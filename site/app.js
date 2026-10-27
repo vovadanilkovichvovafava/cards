@@ -591,7 +591,10 @@
     try {
       const saved = JSON.parse(localStorage.getItem("orderContact") || "{}");
       if (saved.name && !$("#omName").value) $("#omName").value = saved.name;
-      if (saved.contact && !$("#omContact").value) $("#omContact").value = saved.contact;
+      if (!$("#omContact").value) {
+        if (CONTACT[saved.method]) setMethod(saved.method);
+        if (saved.value || saved.contact) $("#omContact").value = saved.value || saved.contact;
+      }
     } catch {}
     $("#omErr").hidden = true;
     $("#omForm").hidden = false;
@@ -603,6 +606,36 @@
     setTimeout(() => ($("#omContact").value ? $("#omSubmit") : $("#omContact")).focus(), 50);
   }
 
+  // Где написать покупателю: Telegram у него может и не быть
+  const CONTACT = {
+    tg: { name: "Telegram", label: "Ник в Telegram", ph: "@nickname", mode: "text", ac: "username" },
+    wa: { name: "WhatsApp", label: "Номер WhatsApp", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
+    vk: { name: "ВК", label: "Ссылка или ник ВКонтакте", ph: "vk.com/nickname", mode: "text", ac: "off" },
+    tt: { name: "TikTok", label: "Ник в TikTok", ph: "@nickname", mode: "text", ac: "off" },
+    ph: { name: "Телефон", label: "Номер телефона", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
+  };
+  let contactMethod = "tg";
+  function setMethod(m) {
+    contactMethod = m;
+    const c = CONTACT[m], input = $("#omContact");
+    $$("#omMethod [data-m]").forEach((b) => {
+      b.classList.toggle("is-on", b.dataset.m === m);
+      b.setAttribute("aria-checked", b.dataset.m === m);
+    });
+    $("#omContactLabel").textContent = `${c.label} *`;
+    input.placeholder = c.ph;
+    input.inputMode = c.mode;
+    input.autocomplete = c.ac;
+    input.type = c.mode === "tel" ? "tel" : "text";
+  }
+  $("#omMethod").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-m]");
+    if (!b || b.dataset.m === contactMethod) return;
+    setMethod(b.dataset.m);
+    $("#omContact").value = "";
+    $("#omContact").focus();
+  });
+
   function closeOrder() {
     om.hidden = true;
     if (lb.hidden) document.body.style.overflow = "";
@@ -613,15 +646,17 @@
 
   $("#orderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = $("#omName").value.trim(), contact = $("#omContact").value.trim(), comment = $("#omComment").value.trim();
-    $("#omContact").classList.toggle("is-bad", !contact);
-    if (!contact) return $("#omContact").focus();
+    const name = $("#omName").value.trim(), value = $("#omContact").value.trim(), comment = $("#omComment").value.trim();
+    $("#omContact").classList.toggle("is-bad", !value);
+    if (!value) return $("#omContact").focus();
+    // В заказе сразу видно, куда писать: «WhatsApp: +7 …», «TikTok: @nick»
+    const contact = `${CONTACT[contactMethod].name}: ${value}`;
     if (!$("#omConsent").checked) {
       $("#omErr").textContent = "Отметь согласие — без него мы не можем принять контакт.";
       $("#omErr").hidden = false;
       return $("#omConsent").focus();
     }
-    try { localStorage.setItem("orderContact", JSON.stringify({ name, contact })); } catch {}
+    try { localStorage.setItem("orderContact", JSON.stringify({ name, method: contactMethod, value })); } catch {}
 
     const btn = $("#omSubmit");
     btn.disabled = true;

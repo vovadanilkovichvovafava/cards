@@ -1,0 +1,15 @@
+# Секреты — никогда не в git
+.env
+.env.*
+!.env.example
+
+# Исходники артов и видео, аудит, служебное
+/*.png
+/*.PNG
+/*.MOV
+/*.mov
+/*.mp3
+audit/
+.claude/
+.DS_Store
+__pycache__/

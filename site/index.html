@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLIPCARD — стерео-карточки по аниме</title>
+  <meta name="description" content="Стерео-карточки с любимыми персонажами аниме — или с тобой и твоими друзьями. Наклони — и картинка оживает.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='22' height='30' x='5' y='1' rx='3' fill='%23ff3b3b'/%3E%3Crect width='16' height='22' x='8' y='4' rx='2' fill='%230b0a0f'/%3E%3C/svg%3E">
+  <link rel="preload" as="image" href="assets/cards/guts-special-a.jpg" imagesrcset="assets/cards/sm/guts-special-a.jpg 400w, assets/cards/guts-special-a.jpg 780w" imagesizes="(max-width: 600px) 66vw, 400px" fetchpriority="high">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Шрифты грузятся без блокировки отрисовки -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="styles.css?v=9">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav__row">
+    <a href="#top" class="logo" data-brand>FLIPCARD</a>
+    <nav class="nav__links">
+      <a href="#how">Как это работает</a>
+      <a href="#builder">Собрать карточку</a>
+      <a href="#works">Коллекции</a>
+      <a href="#prices">Цены</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button type="button" class="sound-toggle" id="soundToggle" aria-pressed="false" title="Звук цитат" aria-label="Звук цитат">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path class="sound-toggle__on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="sound-toggle__off" d="m16 9 6 6m0-6-6 6"/></svg>
+    </button>
+    <a href="#builder" class="btn btn--sm nav__cta">Заказать</a>
+    <button type="button" class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="mnav"><span></span><span></span></button>
+  </div>
+  <nav class="mnav" id="mnav" hidden>
+    <a href="#how">Как это работает</a>
+    <a href="#builder">Собрать карточку</a>
+    <a href="#works">Коллекции</a>
+    <a href="#live">Вживую</a>
+    <a href="#prices">Цены</a>
+    <a href="#faq">FAQ</a>
+    <a href="#builder" class="btn btn--full">Заказать карточку</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero__grid">
+      <span class="sfx" aria-hidden="true">ドン！</span>
+      <div class="hero__text">
+        <h1>Наклони —<br> и&nbsp;персонаж оживает!</h1>
+        <p class="lead">Коллекционные стерео-карточки по аниме: под одним углом один кадр, под другим — второй. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
+        <div class="hero__cta">
+          <a href="#builder" class="btn">Собрать свою карточку</a>
+          <a href="#works" class="btn btn--ghost">Смотреть коллекции</a>
+        </div>
+        <p class="hero__meta">Карточка от&nbsp;<b data-price-min>350 ₽</b>, печать за&nbsp;<span data-production>3–7 дней</span>. Любого персонажа нарисуем под заказ.</p>
+      </div>
+      <div class="hero__card">
+        <div class="flip" id="heroCard">
+          <!-- Статичная копия первого кадра: видна сразу, ещё до загрузки скрипта -->
+          <div class="flip__tilt" style="transform: rotateY(-3.6deg)"><div class="flip__turn"><div class="face face--front">
+            <img class="frame-a" src="assets/cards/guts-special-a.jpg" srcset="assets/cards/sm/guts-special-a.jpg 400w, assets/cards/guts-special-a.jpg 780w" sizes="(max-width: 600px) 66vw, 400px" alt="Стерео-карточка Гатс, особая версия" width="780" height="1051" fetchpriority="high">
+          </div></div></div>
+        </div>
+        <p class="hint"><span class="on-hover">Проведи курсором по карточке</span><span class="on-touch">Проведи пальцем по карточке ← →</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- UNIVERSES MARQUEE -->
+  <section class="banners" aria-label="Вселенные">
+    <div class="banners__track" id="bannerTrack"></div>
+  </section>
+
+  <!-- HOW -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <h2 class="h2" data-jp="つかいかた">Как это работает</h2>
+      <ol class="steps">
+        <li class="step">
+          <h3>Выбираешь героя</h3>
+          <p>Из каталога, любого другого по запросу — или себя и друзей по фото.</p>
+        </li>
+        <li class="step">
+          <h3>Согласуем детали</h3>
+          <p>Пишем тебе в Telegram, для карточек под заказ присылаем макет.</p>
+        </li>
+        <li class="step">
+          <h3>Печатаем</h3>
+          <p>Линзовая стерео-печать, срок — <span data-production>3–7 дней</span>.</p>
+        </li>
+        <li class="step">
+          <h3>Получаешь</h3>
+          <p>Себе в коллекцию или в подарок — с именем получателя на упаковке.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- BUILDER -->
+  <section class="section section--dark" id="builder">
+    <div class="wrap">
+      <h2 class="h2" data-jp="カスタム">Собери свою карточку</h2>
+      <p class="sub">Превью меняется сразу — его можно крутить.</p>
+
+      <div class="builder">
+        <div class="builder__form">
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Для кого карточка?</legend>
+            <div class="seg" data-group="recipient">
+              <button type="button" data-value="self" class="is-on">Себе</button>
+              <button type="button" data-value="gift">В подарок</button>
+            </div>
+            <div class="reveal" data-show-when="recipient=gift">
+              <label class="input">
+                <span>Имя получателя</span>
+                <input type="text" id="giftName" maxlength="40" placeholder="Например, Саша">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Кто будет на карточке?</legend>
+            <div class="seg" data-group="mode">
+              <button type="button" data-value="character" class="is-on">Персонаж аниме</button>
+              <button type="button" data-value="photo">Я / друг по фото</button>
+            </div>
+
+            <div class="reveal is-open" data-show-when="mode=character">
+              <div class="chips" id="universeChips"></div>
+              <div class="pick" id="characterGrid"></div>
+              <div class="reveal" id="otherCharBox">
+                <label class="input">
+                  <span>Какой персонаж нужен?</span>
+                  <input type="text" id="otherChar" maxlength="60" placeholder="Например, Леви Аккерман">
+                </label>
+                <p class="note">Нарисуем любого героя этой вселенной. Превью покажет оформление серии.</p>
+              </div>
+            </div>
+
+            <div class="reveal" data-show-when="mode=photo">
+              <div class="uploads">
+                <label class="upload" id="up1">
+                  <input type="file" accept="image/*" data-slot="0">
+                  <span class="upload__img"></span>
+                  <span class="upload__txt"><b>Кадр 1</b>видно прямо</span>
+                </label>
+                <label class="upload" id="up2">
+                  <input type="file" accept="image/*" data-slot="1">
+                  <span class="upload__img"></span>
+                  <span class="upload__txt"><b>Кадр 2</b>видно при наклоне, можно не добавлять</span>
+                </label>
+              </div>
+              <label class="input">
+                <span>Имя на карточке</span>
+                <input type="text" id="photoName" maxlength="24" placeholder="Твоё имя или ник">
+              </label>
+              <label class="input">
+                <span>Текст на карточке</span>
+                <textarea id="photoText" maxlength="180" rows="3" placeholder="Пара строк о герое: титул, суперсила, любимая фраза"></textarea>
+              </label>
+              <span class="input__label">Стиль серии</span>
+              <div class="chips" id="styleChips"></div>
+              <p class="note">Фото остаются у тебя в браузере — никуда не загружаются, пока ты сам не отправишь их нам.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="field" id="rarityField">
+            <legend><span class="field__n" aria-hidden="true"></span>Версия карточки</legend>
+            <div class="seg" data-group="rarity">
+              <button type="button" data-value="common">Обычная</button>
+              <button type="button" data-value="special" class="is-on">Особая</button>
+            </div>
+            <p class="note" id="rarityNote"></p>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Количество</legend>
+            <div class="qty">
+              <button type="button" data-qty="-1" aria-label="Меньше">−</button>
+              <output id="qty">1</output>
+              <button type="button" data-qty="1" aria-label="Больше">+</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <aside class="builder__preview">
+          <div class="preview">
+            <div class="flip flip--big" id="previewCard"></div>
+            <div class="preview__tools">
+              <button type="button" class="tool" id="tiltBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg>Наклонить</button>
+              <button type="button" class="tool" id="turnBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
+            </div>
+          </div>
+          <div class="summary">
+            <div class="summary__rows" id="summaryRows"></div>
+            <div class="summary__total">
+              <span>Итого</span>
+              <b id="total">—</b>
+            </div>
+            <button type="button" class="btn btn--full" id="orderBtn">Оформить заказ</button>
+            <p class="note note--center">Заказ сразу придёт нам — мы напишем тебе сами</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKS -->
+  <section class="section" id="works">
+    <div class="wrap">
+      <h2 class="h2" data-jp="コレクション">Коллекции</h2>
+      <p class="sub">Выбери вселенную — внутри все карточки серии. <span class="on-hover">Тяни карточку мышкой, чтобы повернуть.</span><span class="on-touch">Крути карточки пальцем.</span></p>
+
+      <div class="collections" id="collections"></div>
+
+      <div class="collection" id="collection" hidden>
+        <div class="collection__head">
+          <button type="button" class="tool" id="colBack"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Все коллекции</button>
+          <img class="collection__icon" id="colIcon" alt="">
+          <div>
+            <h3 id="colTitle"></h3>
+            <span class="note" id="colCount"></span>
+          </div>
+        </div>
+        <div class="gallery" id="gallery"></div>
+        <div class="collection__empty" id="colEmpty" hidden>
+          <p>Арты этой серии ещё не выложены на сайт.<br>Любого героя можно заказать уже сейчас.</p>
+          <a href="#builder" class="btn" id="colCustom">Заказать своего персонажа</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE -->
+  <section class="section section--dark" id="live">
+    <div class="wrap">
+      <h2 class="h2" data-jp="ライブ">Вживую</h2>
+      <p class="sub">Так карточки выглядят в руках — без фильтров.</p>
+      <div class="vslider" id="vslider">
+        <div class="vslider__stage" id="vstage"></div>
+        <div class="vslider__controls">
+          <button type="button" class="vslider__nav" data-vstep="-1" aria-label="Предыдущее видео">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+          </button>
+          <div class="vslider__dots" id="vdots" role="tablist" aria-label="Видео"></div>
+          <button type="button" class="vslider__nav" data-vstep="1" aria-label="Следующее видео">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICES -->
+  <section class="section" id="prices">
+    <div class="wrap">
+      <h2 class="h2" data-jp="ねだん">Цены</h2>
+      <div class="prices">
+        <div class="price">
+          <h3>Обычная</h3>
+          <p class="price__v"><span data-price="common"></span></p>
+          <ul>
+            <li>Готовый персонаж из каталога</li>
+            <li>Стерео-эффект: 2 кадра</li>
+            <li>Фирменный задник серии</li>
+          </ul>
+          <a href="#builder" class="btn btn--ghost btn--full" data-preset="common">Выбрать</a>
+        </div>
+        <div class="price price--hot">
+          <span class="price__tag">Чаще всего берут</span>
+          <h3>Особая</h3>
+          <p class="price__v"><span data-price="special"></span></p>
+          <ul>
+            <li>Особая рамка и арт</li>
+            <li>Любой персонаж по запросу</li>
+            <li>Стерео-эффект: 2 кадра</li>
+          </ul>
+          <a href="#builder" class="btn btn--full" data-preset="special">Выбрать</a>
+        </div>
+        <div class="price">
+          <h3>По фото</h3>
+          <p class="price__v"><span data-price="custom"></span></p>
+          <ul>
+            <li>Ты, друг или пара — в стиле аниме</li>
+            <li>Своё имя и текст на карточке</li>
+            <li>Отличный подарок</li>
+          </ul>
+          <a href="#builder" class="btn btn--ghost btn--full" data-preset="photo">Выбрать</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section--dark" id="faq">
+    <div class="wrap wrap--narrow">
+      <h2 class="h2" data-jp="しつもん">Вопросы</h2>
+      <details class="faq">
+        <summary>Что такое стерео-карточка?</summary>
+        <p>Это карточка с линзовым покрытием: под одним углом видно один кадр, под другим — второй. На сайте эффект показан анимацией, вживую — смотри видео выше.</p>
+      </details>
+      <details class="faq">
+        <summary>Можно персонажа, которого нет в каталоге?</summary>
+        <p>Да. Выбери вселенную в конструкторе, нажми «Другой персонаж» и напиши имя. Если вселенной нет в списке — просто напиши нам.</p>
+      </details>
+      <details class="faq">
+        <summary>Как сделать карточку с собой или другом?</summary>
+        <p>В конструкторе выбери «Я / друг по фото», загрузи 1–2 фото, впиши имя и текст. Мы нарисуем арт в стиле выбранного аниме и пришлём макет на согласование.</p>
+      </details>
+      <details class="faq">
+        <summary>Сколько ждать?</summary>
+        <p>Обычно <span data-production>3–7 дней</span> с момента согласования макета.</p>
+      </details>
+      <details class="faq">
+        <summary>Как оплатить и получить?</summary>
+        <p>После оформления заказа мы свяжемся в Telegram, согласуем детали, доставку и оплату.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__row">
+    <div>
+      <a href="#top" class="logo" data-brand>FLIPCARD</a>
+      <p class="note" data-tagline>Стерео-карточки по аниме</p>
+    </div>
+    <div class="footer__contact">
+      <span class="note">Заказы и вопросы — в Telegram <b data-tg-handle></b></span>
+      <a class="btn btn--ghost" id="tgLink" target="_blank" rel="noopener">Написать в Telegram</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox__inner" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <button type="button" class="lightbox__close" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="lightbox__card">
+      <div class="flip flip--big" id="lightboxCard"></div>
+      <p class="hint"><span class="on-hover">Тяни карточку мышкой — она вращается</span><span class="on-touch">Крути карточку пальцем ← →</span></p>
+    </div>
+    <div class="lightbox__meta">
+      <span class="lb-uni" id="lbUni"></span>
+      <h3 id="lbTitle"></h3>
+      <div class="seg seg--sm" id="lbRarity"></div>
+      <div class="lb-buy">
+        <div class="qty">
+          <button type="button" data-lbqty="-1" aria-label="Меньше">−</button>
+          <output id="lbQty">1</output>
+          <button type="button" data-lbqty="1" aria-label="Больше">+</button>
+        </div>
+        <div class="lb-buy__price">
+          <span class="note" id="lbUnit"></span>
+          <b id="lbTotal"></b>
+        </div>
+      </div>
+      <button type="button" class="btn btn--full" id="lbOrder">Заказать</button>
+      <div class="lb-links">
+        <button type="button" class="tool" id="lbTurn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
+        <button type="button" class="tool" id="lbWant"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>В подарок или настроить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Оформление заказа -->
+<div class="omodal" id="orderModal" hidden>
+  <form class="omodal__box" id="orderForm" role="dialog" aria-modal="true" aria-labelledby="omTitle" novalidate>
+    <button type="button" class="lightbox__close" data-oclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="omodal__step" id="omForm">
+      <h3 id="omTitle">Оформление заказа</h3>
+      <dl class="omodal__lines" id="omLines"></dl>
+      <label class="input">
+        <span>Как к тебе обращаться</span>
+        <input type="text" id="omName" maxlength="80" autocomplete="name" placeholder="Имя">
+      </label>
+      <label class="input">
+        <span>Как с тобой связаться *</span>
+        <input type="text" id="omContact" maxlength="120" autocomplete="tel" placeholder="@ник в Telegram или телефон" required>
+      </label>
+      <label class="input">
+        <span>Комментарий</span>
+        <textarea id="omComment" maxlength="600" rows="2" placeholder="Пожелания, сроки, доставка"></textarea>
+      </label>
+      <label class="consent">
+        <input type="checkbox" id="omConsent">
+        <span>Согласен(на), что вы используете имя и контакт только чтобы связаться со мной по этому заказу</span>
+      </label>
+      <p class="omodal__err" id="omErr" hidden></p>
+      <button type="submit" class="btn btn--full" id="omSubmit">Отправить заказ</button>
+      <button type="button" class="omodal__alt" id="omAlt">или написать нам в Telegram самому</button>
+    </div>
+    <div class="omodal__step omodal__done" id="omDone" hidden>
+      <div class="omodal__ok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></div>
+      <h3>Заказ отправлен!</h3>
+      <p>Мы уже получили его и скоро напишем тебе, чтобы согласовать детали и оплату.</p>
+      <button type="button" class="btn btn--full" data-oclose>Отлично</button>
+    </div>
+  </form>
+</div>
+
+<!-- Нижняя панель заказа (только мобильные, внутри конструктора) -->
+<div class="mbar" id="mbar" inert>
+  <button type="button" class="mbar__thumb" id="mbarThumb" aria-label="Показать превью"></button>
+  <div class="mbar__info">
+    <span id="mbarTitle"></span>
+    <b id="mbarTotal"></b>
+  </div>
+  <button type="button" class="btn btn--sm" id="mbarOrder">Заказать</button>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="data.js?v=4" defer></script>
+<script src="app.js?v=9" defer></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+// ============================================================
+//  Всё, что нужно менять под себя, — в этом файле.
+// ============================================================
+
+window.CONFIG = {
+  brand: "FLIPCARD",
+  tagline: "Стерео-карточки по аниме",
+  // Ник в Telegram без @ — на него ведёт кнопка «Заказать»
+  telegram: "bakayaarou",
+  // Цены — ЗАМЕНИ на свои
+  prices: {
+    common: 350,   // обычная карточка
+    special: 450,  // особая карточка
+    custom: 900,   // карточка по фото (ты / друг)
+  },
+  currency: "₽",
+  production: "3–7 дней",
+};
+
+// Вселенные (аниме). back — задник карточки, accent — цвет рамки для карточек «по фото»
+window.UNIVERSES = [
+  {
+    id: "berserk",
+    name: "Берсерк",
+    icon: "assets/brand/icon-berserk.jpg",
+    banner: "assets/brand/banner-berserk.jpg?v=3",
+    back: "assets/backs/berserk.jpg",
+    accent: "#e0262b",
+  },
+  {
+    id: "mushoku",
+    name: "Реинкарнация безработного",
+    icon: "assets/brand/icon-mushoku.jpg",
+    banner: null,
+    back: "assets/backs/mushoku.jpg",
+    accent: "#e9b44c",
+  },
+  {
+    id: "aot",
+    name: "Атака титанов",
+    icon: "assets/brand/icon-aot.jpg",
+    banner: "assets/brand/banner-aot.jpg?v=3",
+    back: "assets/backs/aot.jpg",
+    accent: "#4f8a4b",
+  },
+  {
+    id: "onepiece",
+    name: "Ван Пис",
+    icon: "assets/brand/icon-onepiece.jpg",
+    banner: "assets/brand/banner-onepiece.jpg?v=3",
+    back: "assets/backs/onepiece.jpg",
+    accent: "#2f7fd6",
+  },
+];
+
+// Готовые персонажи. Для каждой версии — пара кадров [ДО, ПОСЛЕ] (меняются при наклоне)
+// quote — необязательный звук: играет при наведении на карточку и при её выборе.
+//   Чтобы добавить: положи mp3 в assets/audio/ и впиши путь, например quote: "assets/audio/griffith.mp3"
+window.CHARACTERS = [
+  {
+    id: "guts", universe: "berserk", name: "Гатс", subtitle: "Black Swordsman",
+    quote: "assets/audio/guts.mp3",
+    variants: {
+      common: ["assets/cards/guts-common-a.jpg", "assets/cards/guts-common-b.jpg"],
+      special: ["assets/cards/guts-special-a.jpg", "assets/cards/guts-special-b.jpg"],
+    },
+  },
+  {
+    id: "griffith", universe: "berserk", name: "Гриффит", subtitle: "White Hawk",
+    variants: {
+      common: ["assets/cards/griffith-common-a.jpg", "assets/cards/griffith-common-b.jpg"],
+      special: ["assets/cards/griffith-special-a.jpg", "assets/cards/griffith-special-b.jpg"],
+    },
+  },
+  {
+    id: "rudeus", universe: "mushoku", name: "Рудеус",
+    variants: { special: ["assets/cards/rudeus-special-a.jpg", "assets/cards/rudeus-special-b.jpg"] },
+  },
+  {
+    id: "roxy", universe: "mushoku", name: "Рокси",
+    variants: { special: ["assets/cards/roxy-special-a.jpg", "assets/cards/roxy-special-b.jpg"] },
+  },
+  {
+    id: "eris", universe: "mushoku", name: "Эрис",
+    variants: { special: ["assets/cards/eris-special-a.jpg", "assets/cards/eris-special-b.jpg"] },
+  },
+  {
+    id: "sylphy", universe: "mushoku", name: "Сильфи",
+    variants: { special: ["assets/cards/sylphy-special-a.jpg", "assets/cards/sylphy-special-b.jpg"] },
+  },
+  {
+    id: "ruijerd", universe: "mushoku", name: "Руиджерд",
+    variants: { special: ["assets/cards/ruijerd-special-a.jpg", "assets/cards/ruijerd-special-b.jpg"] },
+  },
+];
+
+// Видео живых карточек
+window.VIDEOS = [
+  { src: "assets/video/live-1.mp4?v=2", poster: "assets/video/live-1.jpg?v=3" },
+  { src: "assets/video/live-2.mp4?v=2", poster: "assets/video/live-2.jpg?v=3" },
+  { src: "assets/video/live-3.mp4?v=2", poster: "assets/video/live-3.jpg?v=3" },
+];

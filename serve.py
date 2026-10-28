@@ -71,6 +71,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        # Проверка здоровья для хостинга: сервер жив — отвечаем 200
+        if self.path == "/health":
+            return self.reply(200, {"ok": True})
         # Текстовые файлы отдаём сжатыми (gzip) — так они грузятся в 3–4 раза быстрее
         path = self.translate_path(self.path)
         if os.path.isdir(path):

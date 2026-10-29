@@ -2,6 +2,10 @@
   const { CONFIG, UNIVERSES, CHARACTERS, VIDEOS } = window;
   // Карточки, которые Влад добавил через бота: тот же персонаж дополняется новой версией,
   // новый — встаёт в конец своей коллекции
+  // Коллекции, созданные через бота: рубашка — она же обложка и иконка
+  (window.EXTRA_UNIVERSES || []).forEach(({ id, name, back }) => {
+    if (!UNIVERSES.some((u) => u.id === id)) UNIVERSES.push({ id, name, icon: back, banner: null, back, accent: "#d8112f", glow: "#d8112f" });
+  });
   (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity }) => {
     if (!UNIVERSES.some((u) => u.id === universe)) return;
     const pair = [`assets/cards/db/${id}-a.jpg`, `assets/cards/db/${id}-b.jpg`];

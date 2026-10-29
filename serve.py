@@ -69,6 +69,7 @@ def clean(value, limit):
 
 COMPRESSIBLE = (".html", ".css", ".js", ".json", ".svg")
 DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
+DB_BACK = re.compile(r"^/assets/collections/(\d+)\.jpg$")
 SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
@@ -84,6 +85,16 @@ def render_page(name):
 
 # База нужна только для карточек из бота; без неё сайт и заказы работают как раньше
 STORE = Store(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else None
+
+
+def extra_collections():
+    if not STORE:
+        return []
+    try:
+        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg"} for c in STORE.collections()]
+    except Exception as e:
+        print("db error:", e, file=sys.stderr)
+        return []
 
 
 def extra_cards():
@@ -120,7 +131,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     db = f"error: {type(e).__name__}"
             return self.reply(200, {"ok": True, "db": db})
         if path_only == "/catalog.js":
-            body = ("window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
+            body = ("window.EXTRA_UNIVERSES = " + json.dumps(extra_collections(), ensure_ascii=False) + ";\n"
+                    "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
             return self.send_body(200, "application/javascript; charset=utf-8", body)
         page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only) else None)
         if path_only.endswith(".html") and os.path.isfile(os.path.join(SITE, path_only.lstrip("/"))) and "/partials/" not in path_only:
@@ -129,6 +141,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_text(render_page(page).encode(), "text/html; charset=utf-8")
         if path_only.startswith("/partials/"):
             return self.reply(404, {"ok": False, "error": "not found"})
+        mb = DB_BACK.match(path_only)
+        if mb:
+            data = None
+            try:
+                data = STORE and STORE.collection_back(int(mb[1]))
+            except Exception as e:
+                print("db error:", e, file=sys.stderr)
+            if not data:
+                return self.reply(404, {"ok": False, "error": "not found"})
+            self.cache_forever = True
+            return self.send_body(200, image_type(data), data)
         m = DB_IMAGE.match(path_only)
         if m:
             data = None

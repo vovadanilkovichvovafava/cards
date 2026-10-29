@@ -1673,3 +1673,23 @@ body { background: var(--bg); }                                   /* без «з
 .hero__title::after { background: linear-gradient(270deg, transparent, rgba(216, 17, 47, .7)); }
 /* Полоса коллекций под витриной убрана — коллекции листаются в самой витрине */
 .unis-wrap { display: none; }
+/* Логотип переливается: по надписи медленно проходит светлая волна (красная гамма) */
+.logo {
+  background: linear-gradient(100deg, #f2eeee 0%, #f2eeee 40%, #ffffff 46%, #ffb3be 50%, #f2eeee 56%, #f2eeee 100%);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: logo-sheen 5s ease-in-out infinite;
+}
+.logo__accent {
+  background: linear-gradient(100deg, #b30d27 0%, #e0163a 35%, #ff6b7f 47%, #ffd0d6 50%, #ff2a45 55%, #b30d27 100%);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: logo-sheen 5s ease-in-out infinite;
+}
+@keyframes logo-sheen { 0% { background-position: 100% 0; } 60%, 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .logo, .logo__accent { animation: none; } }
+
+/* Цветные кнопки: меню — янтарное, избранное — красное, корзина — зелёная */
+.burger { color: #f5b53c; }
+.icon-btn--fav { color: #ff3b55; border-color: rgba(255, 59, 85, .55); background: rgba(255, 59, 85, .08); }
+.icon-btn--cart { color: #3ee083; border-color: rgba(62, 224, 131, .55); background: rgba(62, 224, 131, .08); }
+.icon-btn--fav:hover { border-color: #ff3b55; background: rgba(255, 59, 85, .15); }
+.icon-btn--cart:hover { border-color: #3ee083; background: rgba(62, 224, 131, .15); }

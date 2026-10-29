@@ -408,7 +408,6 @@
   // ---------------------------------------------------------------
   if ($("#cfTrack")) (() => {
   const cfTrack = $("#cfTrack");
-  const hero = (u) => WORKS.find((w) => w.c.universe === u.id && w.rarity === "special") || WORKS.find((w) => w.c.universe === u.id);
   const count = (u) => WORKS.filter((w) => w.c.universe === u.id).length;
   // Коллекций мало — повторяем ленту трижды, чтобы листать по кругу и видеть соседей с обеих сторон
   const N = UNIVERSES.length, LOOPS = 3;
@@ -418,6 +417,7 @@
     <div class="cf__slide" role="group" aria-label="Коллекция ${esc(u.name)}" ${Math.floor(i / N) === 1 ? "" : 'aria-hidden="true"'}>
       <div class="cf__item">
         <div class="flip"></div>
+        <span class="cf__glare" aria-hidden="true"></span>
         <span class="cf__label">${esc(u.short || u.name)}</span>
         <span class="cf__base" aria-hidden="true"></span>
       </div>
@@ -427,11 +427,10 @@
   // по внешнему, и если двигать его, они уезжают вместе с карточками — лента застревает
   const cfItems = cfSlides.map((sl) => sl.firstElementChild);
   const cfFlips = cfSlides.map((sl, i) => {
-    const u = SHOW[i], w = hero(u);
-    // Центральную можно покрутить пальцем или мышью и увидеть переход кадров; отпустил — встаёт лицом
-    const f = Flip($(".flip", sl), { rest: -0.6, springBack: true, hover: false, canDrag: () => sl.classList.contains("is-center") });
-    if (w) f.setImages(w.a, w.b, Math.abs(i - START) > 1);
-    else f.setImages(u.back, u.back, Math.abs(i - START) > 1); // у серии ещё нет артов — показываем её обложку
+    const u = SHOW[i];
+    // В витрине карточки стоят рубашкой (обложкой серии) и не крутятся — только листаются
+    const f = Flip($(".flip", sl), { interactive: false, rest: -0.6 });
+    f.setImages(u.back, u.back, Math.abs(i - START) > 1);
     f.setBack(u.back);
     return f;
   });
@@ -533,7 +532,7 @@
   let cfDrag = null, cfMoved = false;
   cfTrack.addEventListener("pointerdown", (e) => {
     cfMoved = false;
-    if (e.pointerType !== "mouse" || e.button > 0 || e.target.closest(".cf__slide.is-center .flip")) return;
+    if (e.pointerType !== "mouse" || e.button > 0) return;
     cfDrag = { x: e.clientX, left: cfTrack.scrollLeft };
   });
   addEventListener("pointermove", (e) => {
@@ -565,48 +564,15 @@
     near === cfCenter ? cfOpen() : cfGo(near);
   });
 
-  // Каждая коллекция, впервые оказавшись в центре, один раз оборачивается на подиуме
-  // и останавливается. Дальше её можно чуть повернуть пальцем — небольшой свайп
-  // наклоняет карточку и пружинит обратно, свайп дальше листает.
-  // Пока ничего не двигается, кадры не перерисовываются вовсе.
-  const SPIN_MS = 2600, SPIN_DELAY = 500;
-  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-  const spun = new Set();
-  let spinRaf = null, spinIdle = null, cfScrollAt = 0;
-  function spinOnce(i) {
-    const id = SHOW[i].id;
-    if (reduceMotion || spun.has(id)) return;
-    spun.add(id);
-    let t0 = null;
-    const step = (t) => {
-      t0 ??= t + SPIN_DELAY;
-      const k = (t - t0) / SPIN_MS;
-      // Начали листать — оборот прерываем, карточка встаёт лицом
-      // Человек сам крутит карточку — автооборот уступает ему
-      if (cfFlips[i].el.classList.contains("is-dragging")) return void (spinRaf = null);
-      if (cfCenter !== i || t - cfScrollAt < 120) {
-        if (k <= 0) spun.delete(id); // ещё не начала оборачиваться — обернётся в следующий раз
-        return cfFlips[i].spin(0), (spinRaf = null);
-      }
-      cfFlips[i].spin(k <= 0 || k >= 1 ? 0 : ease(k) * 360);
-      spinRaf = k < 1 ? requestAnimationFrame(step) : null;
-    };
-    cancelAnimationFrame(spinRaf);
-    spinRaf = requestAnimationFrame(step);
-  }
-  // Лента остановилась: переносимся в среднюю копию и оборачиваем новую коллекцию
-  cfTrack.addEventListener("scroll", () => {
-    cfScrollAt = performance.now();
-    clearTimeout(spinIdle);
-    spinIdle = setTimeout(() => { cfRecenter(); spinOnce(cfCenter); }, 220);
-  }, { passive: true });
+  // Лента остановилась — если ушли в крайнюю копию, переносимся в среднюю
+  let cfIdle = null;
+  cfTrack.addEventListener("scroll", () => { clearTimeout(cfIdle); cfIdle = setTimeout(cfRecenter, 220); }, { passive: true });
 
   // После того как весь скрипт отработал — встаём на стартовую коллекцию
   requestAnimationFrame(() => {
     cfMeasure();
     cfGo(START, false);
     cfLayout();
-    setTimeout(() => spinOnce(cfCenter), 300);
   });
   })();
 

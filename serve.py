@@ -204,7 +204,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         name = clean(data.get("name"), 80)
         contact = clean(data.get("contact"), 120)
         comment = clean(data.get("comment"), 600)
-        order = [clean(line, 300) for line in (data.get("lines") or [])][:12]
+        order = [clean(line, 300) for line in (data.get("lines") or [])][:30]
         if not contact or not order:
             return self.reply(400, {"ok": False, "error": "Укажи, как с тобой связаться"})
 

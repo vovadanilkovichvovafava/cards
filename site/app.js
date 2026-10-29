@@ -1102,7 +1102,7 @@
   // ---------------------------------------------------------------
   //  Избранное и корзина: хранятся в браузере покупателя
   // ---------------------------------------------------------------
-  const MAX_CART = 10; // столько позиций помещается в одно сообщение заказа
+  const MAX_CART = 25; // столько позиций помещается в одно сообщение заказа
   const load = (key) => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } };
   const keep = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} };
   const workByKey = (k) => WORKS.find((w) => workKey(w) === k);
@@ -1171,6 +1171,15 @@
     syncHearts();
   }
 
+  // Итог корзины с акцией 4+1: на каждые 5 карточек самая дешёвая — бесплатно
+  function cartSum() {
+    const units = cart.flatMap(({ k, qty }) => Array(qty).fill(CONFIG.prices[workByKey(k).rarity])).sort((a, b) => a - b);
+    const full = units.reduce((n, v) => n + v, 0);
+    const free = CONFIG.promo41 ? Math.floor(units.length / 5) : 0;
+    const discount = units.slice(0, free).reduce((n, v) => n + v, 0);
+    return { count: units.length, full, free, discount, total: full - discount };
+  }
+
   function renderCart() {
     $("#cartFoot").hidden = !cart.length;
     $("#cartList").innerHTML = cart.length
@@ -1183,7 +1192,13 @@
             </div></div>`;
         }).join("")
       : emptyState("Корзина пуста. Добавь карточки из каталога — оформим всё одним заказом.");
-    $("#cartTotal").textContent = money(cart.reduce((n, { k, qty }) => n + CONFIG.prices[workByKey(k).rarity] * qty, 0));
+    const sum = cartSum();
+    $("#cartTotal").textContent = money(sum.total);
+    $("#cartPromo").hidden = !CONFIG.promo41 || !sum.count;
+    $("#cartPromo").innerHTML = sum.free
+      ? `Акция 4+1: ${plural(sum.free, "карточка", "карточки", "карточек")} в подарок, −${money(sum.discount)}`
+      : `Акция 4+1: добавь ещё ${plural(5 - (sum.count % 5), "карточку", "карточки", "карточек")} — и одна будет в подарок`;
+    $("#cartPromo").classList.toggle("is-on", sum.free > 0);
   }
 
   [$("#favList"), $("#cartList")].forEach((list) =>
@@ -1204,8 +1219,9 @@
     sendOrder([
       `Привет! Хочу заказать карточки:`,
       ...items.map(({ w, qty }) => `• ${w.c.name}, ${uni(w.c.universe).name} (${RARITY[w.rarity].toLowerCase()}): ${qty} × ${money(CONFIG.prices[w.rarity])}`),
-      `• Всего карточек: ${items.reduce((n, x) => n + x.qty, 0)}`,
-      `• Сумма: ${money(items.reduce((n, { w, qty }) => n + CONFIG.prices[w.rarity] * qty, 0))}`,
+      `• Всего карточек: ${cartSum().count}`,
+      cartSum().free ? `• Акция 4+1: ${plural(cartSum().free, "карточка", "карточки", "карточек")} в подарок, −${money(cartSum().discount)}` : null,
+      `• Сумма: ${money(cartSum().total)}`,
     ], { onSent: () => setCart([]) });
   });
 
@@ -1370,9 +1386,23 @@
     $("#newCards").innerHTML = `<div class="newcards__track" style="--dur:${fresh.length * 4}s">${one}${copy}</div>`;
   }
   if ($("#promos") && (CONFIG.promos || []).length) {
+    const allChars = CHARACTERS.map((c) => WORKS.find((w) => w.c === c && w.rarity === "special") || WORKS.find((w) => w.c === c)).filter(Boolean);
+    const allSum = allChars.reduce((n, w) => n + CONFIG.prices[w.rarity], 0);
+    const allFree = CONFIG.promo41 ? allChars.map((w) => CONFIG.prices[w.rarity]).sort((a, b) => a - b).slice(0, Math.floor(allChars.length / 5)).reduce((n, v) => n + v, 0) : 0;
     $("#promos").innerHTML = CONFIG.promos.map((p) => `
-      <div class="promo"><span class="promo__tag">${esc(p.tag || "Акция")}</span><h3>${esc(p.title)}</h3><p>${esc(p.text || "")}</p>
-        ${p.link ? `<a href="${esc(p.link)}" class="btn btn--sm">${esc(p.linkText || "Подробнее")}</a>` : ""}</div>`).join("");
+      <div class="promo ${p.image ? "promo--img" : ""}">
+        ${p.image ? `<img class="promo__img" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy">` : ""}
+        <div class="promo__body"><span class="promo__tag">${esc(p.tag || "Акция")}</span><h3>${esc(p.title)}</h3><p>${esc(p.text || "")}</p>
+        ${p.action === "buyall" ? `<p class="promo__price">${plural(allChars.length, "карточка", "карточки", "карточек")}: ${allFree ? `<s>${money(allSum)}</s> ` : ""}<b>${money(allSum - allFree)}</b></p>
+          <button type="button" class="btn btn--sm" data-buyall>${esc(p.linkText || "Добавить всё в корзину")}</button>`
+          : p.link ? `<a href="${esc(p.link)}" class="btn btn--sm">${esc(p.linkText || "Подробнее")}</a>` : ""}</div></div>`).join("");
+    $("#promos").addEventListener("click", (e) => {
+      if (!e.target.closest("[data-buyall]")) return;
+      const next = [...cart];
+      allChars.forEach((w) => { if (!next.some((it) => it.k === workKey(w))) next.push({ k: workKey(w), qty: 1 }); });
+      setCart(next.slice(0, MAX_CART));
+      openDrawer("#cartDrawer", $("#cartBtn"));
+    });
     $("#promo").hidden = false;
   }
 

@@ -2160,3 +2160,12 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 .promo__col b { font: 600 13px var(--display); }
 .promo__col small { color: var(--grey); font-size: 12px; }
 .promo__col em { font: 700 15px var(--display); font-style: normal; white-space: nowrap; }
+
+/* Лента новинок — обычная горизонтальная прокрутка (надёжно на iPhone и Android) */
+.newcards { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x pan-y; scroll-snap-type: none; }
+.newcards::-webkit-scrollbar { display: none; }
+.newcards::before, .newcards::after { position: sticky; flex: none; }
+.newcards .newcards__track { position: static; display: flex; width: max-content; height: auto !important; transform: none !important; }
+.newcards .newcards__track .newc { position: static; flex: 0 0 200px; width: 200px; transform: none !important; will-change: auto; }
+@media (max-width: 760px) { .newcards .newcards__track .newc { flex-basis: 40vw; width: 40vw; } }
+.newcards::before, .newcards::after { display: none; }

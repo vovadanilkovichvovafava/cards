@@ -1408,67 +1408,50 @@
     // Бегущая строка: список дважды подряд, лента сдвигается на половину и начинается заново
     // картинки ленты грузим сразу — иначе при подгрузке строка «прыгает»
     const copy = one.replace(/<a class="newc"/g, '<a class="newc" tabindex="-1" aria-hidden="true"');
-    $("#newCards").innerHTML = `<div class="newcards__track">${one}</div>`;
-    // Бесконечная лента: каждая карточка — свой небольшой слой, скрипт переставляет их по кругу.
-    // (Одна широкая полоса на iPhone недорисовывается.) Едет сама, тянется пальцем/мышью с инерцией.
+    $("#newCards").innerHTML = `<div class="newcards__track">${one}${copy}${copy}</div>`;
+    // Бесконечная лента на родной прокрутке: пальцем листается в обе стороны с инерцией системы,
+    // сама медленно едет, когда её не трогают. Три одинаковых набора: уходя за край, незаметно
+    // переносимся в средний — лента не кончается.
     const box = $("#newCards"), track = $(".newcards__track", box);
-    let x = 0, step = 1, loopW = 1, items = [], vel = 0, drag = null, moved = false, visible = true, last = 0;
-    const SPEED = reduceMotion ? 0 : 0.035; // px за мс
-    const measure = () => {
-      const first = track.querySelector(".newc");
-      step = first.offsetWidth + parseFloat(getComputedStyle(first).marginRight || 0);
-      // Копий столько, чтобы лента с запасом перекрывала экран
-      while (track.children.length * step < box.clientWidth + step * 2) track.insertAdjacentHTML("beforeend", copy);
-      items = [...track.children];
-      loopW = items.length * step;
-      track.style.height = first.offsetHeight + "px";
-    };
-    const place = () => {
-      items.forEach((el, i) => {
-        let p = ((i * step - x) % loopW + loopW) % loopW;
-        if (p > loopW - step) p -= loopW; // уходящая влево карточка встаёт в конец
-        el.style.transform = `translate3d(${p.toFixed(1)}px,0,0)`;
-      });
+    const SPEED = reduceMotion ? 0 : 0.03; // px за мс
+    let setW = 1, pos = 0, last = 0, userUntil = 0, visible = true, mouse = null, moved = false;
+    const measure = () => { setW = track.scrollWidth / 3 || 1; };
+    const recenter = () => {
+      if (box.scrollLeft < setW * 0.5) box.scrollLeft += setW;
+      else if (box.scrollLeft > setW * 1.5) box.scrollLeft -= setW;
+      pos = box.scrollLeft;
     };
     const frame = (t) => {
       const dt = Math.min(48, t - (last || t)); last = t;
-      if (!drag) {
-        x += SPEED * dt + vel * dt;
-        vel *= Math.pow(0.94, dt / 16);
-        if (Math.abs(vel) < 0.002) vel = 0;
+      if (t > userUntil && !mouse) {
+        pos += SPEED * dt;
+        box.scrollLeft = pos;
+        if (pos > setW * 1.5) pos -= setW, (box.scrollLeft = pos);
       }
-      x = ((x % loopW) + loopW) % loopW;
-      place();
       if (visible) requestAnimationFrame(frame); else last = 0;
     };
-    measure();
-    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) requestAnimationFrame(frame); }).observe(box);
-    addEventListener("resize", () => { measure(); place(); });
+    const touched = () => (userUntil = performance.now() + 1800);
+    ["touchstart", "touchmove", "wheel"].forEach((ev) => box.addEventListener(ev, touched, { passive: true }));
+    box.addEventListener("scroll", () => { if (performance.now() < userUntil || mouse) recenter(); }, { passive: true });
+    // Мышью — тянуть, как пальцем
     box.addEventListener("pointerdown", (e) => {
-      if (e.button > 0) return;
-      drag = { x: e.clientX, y: e.clientY, lx: e.clientX, t: performance.now(), on: false };
-      vel = 0; moved = false;
+      if (e.pointerType !== "mouse" || e.button > 0) return;
+      mouse = { x: e.clientX, left: box.scrollLeft }; moved = false;
     });
     addEventListener("pointermove", (e) => {
-      if (!drag) return;
-      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (!drag.on) {
-        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (drag = null); // это прокрутка страницы
-        if (Math.abs(dx) < 6) return;
-        drag.on = moved = true;
-        box.classList.add("is-drag");
-      }
-      const now = performance.now();
-      x -= e.clientX - drag.lx;
-      vel = -(e.clientX - drag.lx) / Math.max(1, now - drag.t);
-      drag.lx = e.clientX; drag.t = now;
+      if (!mouse) return;
+      const dx = e.clientX - mouse.x;
+      if (Math.abs(dx) > 5) moved = true, box.classList.add("is-drag");
+      box.scrollLeft = mouse.left - dx;
     });
-    const end = () => { if (!drag) return; if (performance.now() - drag.t > 90) vel = 0; drag = null; box.classList.remove("is-drag"); };
-    addEventListener("pointerup", end);
-    addEventListener("pointercancel", end);
-    // Тянули — это не клик по карточке
+    addEventListener("pointerup", () => { if (mouse) mouse = null, box.classList.remove("is-drag"), touched(); });
     box.addEventListener("click", (e) => { if (moved) e.preventDefault(), e.stopPropagation(), (moved = false); }, true);
     box.addEventListener("dragstart", (e) => e.preventDefault());
+    const start = () => { measure(); box.scrollLeft = setW; pos = setW; };
+    start();
+    addEventListener("load", start);
+    addEventListener("resize", () => { measure(); recenter(); });
+    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) requestAnimationFrame(frame); }).observe(box);
   }
   if ($("#promos") && (CONFIG.promos || []).length) {
     // Коллекции, у которых есть карточки: все их карточки — как на странице коллекции

@@ -1896,3 +1896,74 @@ body { background: var(--bg); }                                   /* без «з
 .promo { padding: 20px; align-content: start; }
 .summary__rows .is-promo b, .summary__rows .is-promo span { color: var(--hot); }
 .omodal__lines dd { white-space: nowrap; }
+
+/* ============================================================
+   Коллекции — запечатанные паки с карточками
+   ============================================================ */
+.collections { gap: 22px; padding-top: 30px; }
+.col-tile.pack { overflow: visible; background: none; border: 0; box-shadow: none; isolation: isolate; aspect-ratio: 791 / 1087; transition: transform .25s; }
+.col-tile.pack:hover { transform: translateY(-4px); box-shadow: none; }
+.col-tile.pack::after { content: none; }
+/* Тело пака (без верхней полосы) */
+.pack__body, .pack__top { position: absolute; left: 0; right: 0; overflow: hidden; border-radius: 6px; }
+.pack__body { top: 12%; bottom: 0; z-index: 2; border-radius: 0 0 6px 6px; box-shadow: 0 18px 40px -18px #000; }
+.pack__top { top: 0; height: 12%; z-index: 3; border-radius: 6px 6px 0 0; transform-origin: 12% 100%; transition: transform .45s cubic-bezier(.3, .7, .2, 1), opacity .45s; }
+.pack__body > img, .pack__top > img { position: absolute; left: 0; width: 100%; height: calc(100% / .88); object-fit: cover; z-index: 0; transform: none !important; }
+.pack__body > img { top: calc(-12% / .88); }
+.pack__top > img { top: 0; height: calc(100% / .12); }
+.pack__body::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(transparent 50%, rgba(0, 0, 0, .94)); }
+.pack .col-tile__info { z-index: 2; }
+/* Запаянные рифлёные края — сверху у отрывной полосы и снизу */
+.pack__top::before, .pack__body::before {
+  content: ""; position: absolute; left: 0; right: 0; z-index: 2; height: 14px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .32) 0 1.5px, rgba(0, 0, 0, .25) 1.5px 4px), linear-gradient(rgba(255, 255, 255, .12), rgba(0, 0, 0, .3));
+  mix-blend-mode: overlay;
+}
+.pack__top::before { top: 0; }
+.pack__body::before { bottom: 0; }
+/* Линия надрыва и метка «оторви» */
+.pack__top::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; height: 6px;
+  background: radial-gradient(circle at 3px 6px, transparent 2.2px, rgba(255, 255, 255, .0) 2.3px) 0 0 / 7px 6px repeat-x,
+    linear-gradient(90deg, rgba(255, 255, 255, .55) 50%, transparent 50%) 0 100% / 8px 1px repeat-x;
+}
+/* Фольга: отблеск по всему паку */
+.pack__body > .col-tile__info::before { content: none; }
+.pack::before {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: 6px;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .16) 47%, rgba(255, 255, 255, .04) 53%, transparent 62%) -140% 0 / 250% 100% no-repeat;
+  transition: background-position .7s ease;
+}
+.pack:hover::before { background-position: 140% 0; }
+/* Карточка внутри пака: при наведении верх отрывается, карточка выезжает */
+.pack__card {
+  position: absolute; left: 12%; width: 76%; top: 14%; z-index: 1; aspect-ratio: var(--card-ratio); object-fit: cover; border-radius: 5px;
+  box-shadow: 0 10px 24px -8px #000, 0 0 0 1px rgba(255, 255, 255, .15); transition: transform .45s cubic-bezier(.3, .7, .2, 1) .08s;
+}
+.pack:hover .pack__top, .pack:focus-visible .pack__top { transform: translate(-6%, -70%) rotate(-14deg); opacity: 0; }
+.pack:hover .pack__card, .pack:focus-visible .pack__card { transform: translateY(-38%) rotate(-3deg); }
+@media (hover: none) { .pack:hover .pack__top { transform: none; opacity: 1; } .pack:hover .pack__card { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pack__top, .pack__card, .pack::before { transition: none; } }
+@media (max-width: 860px) { .collections { gap: 12px; padding-top: 20px; } .pack__top::before, .pack__body::before { height: 9px; } }
+/* Зубчатые края запайки и заметное рифление */
+.pack__top {
+  -webkit-mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 9px 5px repeat-x, linear-gradient(#000, #000) 0 5px / 100% 100% no-repeat;
+          mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 9px 5px repeat-x, linear-gradient(#000, #000) 0 5px / 100% 100% no-repeat;
+  border-radius: 0;
+}
+.pack__body {
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 9px 5px repeat-x, linear-gradient(#000, #000) 0 0 / 100% calc(100% - 5px) no-repeat;
+          mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 9px 5px repeat-x, linear-gradient(#000, #000) 0 0 / 100% calc(100% - 5px) no-repeat;
+  border-radius: 0; box-shadow: none;
+}
+.pack { filter: drop-shadow(0 16px 22px rgba(0, 0, 0, .7)); }
+.pack__top::before, .pack__body::before {
+  height: 16px; mix-blend-mode: normal;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .22) 0 1px, rgba(0, 0, 0, .35) 1px 3px), linear-gradient(rgba(0, 0, 0, .45), rgba(0, 0, 0, .2));
+}
+.pack__body::before { bottom: 0; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .22) 0 1px, rgba(0, 0, 0, .35) 1px 3px), linear-gradient(rgba(0, 0, 0, .2), rgba(0, 0, 0, .55)); }
+.pack::before { border-radius: 0; }
+.pack:hover .pack__card, .pack:focus-visible .pack__card { transform: translateY(-26%) rotate(-3deg); }
+@media (max-width: 860px) { .pack__top::before, .pack__body::before { height: 10px; } }
+.pack.is-open .pack__top { transform: translate(-6%, -70%) rotate(-14deg) !important; opacity: 0 !important; }
+.pack.is-open .pack__card { transform: translateY(-26%) rotate(-3deg) !important; }

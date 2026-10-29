@@ -968,16 +968,23 @@
   //  Коллекции: плитки вселенных → мини-карточки серии
   // ---------------------------------------------------------------
   const collectionsEl = $("#collections"), collectionEl = $("#collection"), gallery = $("#gallery");
+  // Коллекции — запечатанные паки: при наведении верх отрывается и выглядывает карточка героя
   if (collectionsEl) collectionsEl.innerHTML = UNIVERSES.map((u) => {
-    const n = WORKS.filter((w) => w.c.universe === u.id).length;
+    const items = WORKS.filter((w) => w.c.universe === u.id);
+    const n = items.length;
+    const peek = items.find((w) => w.rarity === "special") || items[0];
     return `
-      <button type="button" class="col-tile ${n ? "" : "col-tile--soon"}" data-col="${u.id}" style="--c:${u.accent}">
-        <img src="${u.back}" alt="" width="600" height="824" loading="lazy">
-        <span class="col-tile__info">
-          ${n ? "" : `<span class="col-tile__tag">Под заказ</span>`}
-          <b>${esc(u.name)}</b>
-          <span>${n ? plural(n, "карточка", "карточки", "карточек") : "Арты скоро появятся на сайте"}</span>
+      <button type="button" class="col-tile pack ${n ? "" : "col-tile--soon"}" data-col="${u.id}" style="--c:${u.accent}">
+        ${peek ? `<img class="pack__card" src="${sm(peek.a)}" alt="" width="400" height="539" loading="lazy">` : ""}
+        <span class="pack__body">
+          <img src="${u.back}" alt="" width="600" height="824" loading="lazy">
+          <span class="col-tile__info">
+            ${n ? "" : `<span class="col-tile__tag">Под заказ</span>`}
+            <b>${esc(u.name)}</b>
+            <span>${n ? plural(n, "карточка", "карточки", "карточек") : "Арты скоро появятся на сайте"}</span>
+          </span>
         </span>
+        <span class="pack__top" aria-hidden="true"><img src="${u.back}" alt="" width="600" height="824" loading="lazy"></span>
       </button>`;
   }).join("");
 
@@ -1030,7 +1037,10 @@
     }
     collectionsEl.addEventListener("click", (e) => {
       const t = e.target.closest("[data-col]");
-      if (t) go(`catalog/${t.dataset.col}`);
+      if (!t) return;
+      // Сначала пак «вскрывается» (на телефоне — это единственный способ увидеть анимацию), потом переход
+      t.classList.add("is-open");
+      setTimeout(() => go(`catalog/${t.dataset.col}`), reduceMotion ? 0 : 480);
     });
     $("#colBack").addEventListener("click", () => go("catalog"));
   }

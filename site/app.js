@@ -1356,6 +1356,23 @@
   layoutSlides();
   })();
 
+  // Главная: новинки — последние добавленные карточки (через бота — самые свежие), по одной на героя
+  if ($("#newCards")) {
+    const seenChar = new Set();
+    const fresh = [...WORKS].reverse().filter((w) => !seenChar.has(w.c.id) && seenChar.add(w.c.id)).slice(0, 8);
+    $("#newCards").innerHTML = fresh.map((w) => `
+      <a class="newc" href="catalog/${w.c.universe}?card=${workKey(w)}">
+        <span class="newc__img"><img src="${sm(w.a)}" alt="" width="400" height="539" loading="lazy"></span>
+        <b>${esc(w.c.name)} <em>Новинка</em></b><span>${esc(uni(w.c.universe).short || uni(w.c.universe).name)}, ${money(CONFIG.prices[w.rarity])}</span>
+      </a>`).join("");
+  }
+  if ($("#promos") && (CONFIG.promos || []).length) {
+    $("#promos").innerHTML = CONFIG.promos.map((p) => `
+      <div class="promo"><span class="promo__tag">${esc(p.tag || "Акция")}</span><h3>${esc(p.title)}</h3><p>${esc(p.text || "")}</p>
+        ${p.link ? `<a href="${esc(p.link)}" class="btn btn--sm">${esc(p.linkText || "Подробнее")}</a>` : ""}</div>`).join("");
+    $("#promo").hidden = false;
+  }
+
   if (PAGE === "builder") initBuilder();
   // Карточки коллекции рисуем в конце: им нужны уже готовые избранное и окно товара
   if (PAGE === "collection" && uni(pageCollection)) openCollection(pageCollection);

@@ -1,7 +1,7 @@
 # Сервер сайта: отдаёт папку site/ без кеширования и принимает заказы.
 #
 #   POST /api/order  →  сообщение в Telegram через бота (+ фото, если есть)
-#   GET  /, /catalog, /catalog/<коллекция>, /builder, /prices, /about  →  страницы сайта
+#   GET  /, /catalog, /catalog/<коллекция>, /builder, /how, /prices, /about  →  страницы сайта
 #        (общие шапка, подвал и окна подставляются из site/partials/)
 #   GET  /catalog.js →  карточки, добавленные через бота (хранятся в DATABASE_URL)
 #   GET  /assets/cards/[sm/]db/<id>-<a|b>.jpg  →  их кадры из базы
@@ -72,7 +72,7 @@ DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
 SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
-         "/prices": "prices.html", "/about": "about.html"}
+         "/prices": "prices.html", "/about": "about.html", "/how": "how.html"}
 COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
 INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
 

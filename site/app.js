@@ -506,38 +506,39 @@
     i > -1 ? cfGo(i) : openCollection(t.dataset.u);
   });
 
-  let cfVisible = true;
-  new IntersectionObserver(([en]) => (cfVisible = en.isIntersecting)).observe(cfTrack);
 
-  // Центральная карточка вращается на подиуме: стоит лицом, делает полный оборот
-  // (видна и рубашка серии), снова стоит. При смене карточки цикл начинается заново.
-  const SPIN = { hold: 1200, turn: 4200, cycle: 7000 };
+  // Каждая карточка, впервые оказавшись в центре, один раз оборачивается на подиуме
+  // (видна и рубашка серии) и останавливается. Дальше её можно чуть повернуть пальцем —
+  // небольшой свайп наклоняет карточку и пружинит обратно, свайп дальше листает.
+  // Пока ничего не двигается, кадры не перерисовываются вовсе.
+  const SPIN_MS = 2600, SPIN_DELAY = 500;
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-  let spinOf = -1, spinT0 = 0, spinDeg = 0, cfScrollAt = 0;
-  cfTrack.addEventListener("scroll", () => (cfScrollAt = performance.now()), { passive: true });
-  const spinLoop = (t) => {
-    if (cfCenter !== spinOf) {
-      if (spinOf > -1) cfFlips[spinOf].spin(0);
-      spinOf = cfCenter;
-      spinT0 = t;
-      spinDeg = 0;
-    }
-    if (spinOf > -1 && cfVisible) {
-      if (cfDrag || t - cfScrollAt < 250) {
-        // Листают — плавно доворачиваем карточку лицом и начинаем цикл заново
-        const to = Math.round(spinDeg / 360) * 360;
-        spinDeg += (to - spinDeg) * 0.2;
-        if (Math.abs(to - spinDeg) < 0.5) spinDeg = 0;
-        spinT0 = t;
-      } else {
-        const k = (((t - spinT0) % SPIN.cycle) - SPIN.hold) / SPIN.turn;
-        spinDeg = k <= 0 || k >= 1 ? 0 : ease(k) * 360;
+  const spun = new Set();
+  let spinRaf = null, spinIdle = null, cfScrollAt = 0;
+  function spinOnce(i) {
+    if (reduceMotion || spun.has(i)) return;
+    spun.add(i);
+    let t0 = null;
+    const step = (t) => {
+      t0 ??= t + SPIN_DELAY;
+      // Начали листать — оборот прерываем, карточка встаёт лицом
+      const k = (t - t0) / SPIN_MS;
+      if (cfCenter !== i || t - cfScrollAt < 120) {
+        if (k <= 0) spun.delete(i); // ещё не начала оборачиваться — обернётся в следующий раз
+        return cfFlips[i].spin(0), (spinRaf = null);
       }
-      cfFlips[spinOf].spin(spinDeg);
-    }
-    requestAnimationFrame(spinLoop);
-  };
-  if (!reduceMotion) requestAnimationFrame(spinLoop);
+      cfFlips[i].spin(k <= 0 ? 0 : k >= 1 ? 0 : ease(k) * 360);
+      spinRaf = k < 1 ? requestAnimationFrame(step) : null;
+    };
+    cancelAnimationFrame(spinRaf);
+    spinRaf = requestAnimationFrame(step);
+  }
+  // Оборот — только когда лента остановилась на карточке
+  cfTrack.addEventListener("scroll", () => {
+    cfScrollAt = performance.now();
+    clearTimeout(spinIdle);
+    spinIdle = setTimeout(() => spinOnce(cfCenter), 220);
+  }, { passive: true });
 
   // После того как весь скрипт отработал (избранное готово) — встаём на стартовую карточку
   requestAnimationFrame(() => {
@@ -545,6 +546,7 @@
     cfGo(START, false);
     cfLayout();
     cfReady = true;
+    setTimeout(() => spinOnce(cfCenter), 300);
     syncHearts();
   });
 

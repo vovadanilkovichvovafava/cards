@@ -255,7 +255,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
   position: relative; flex: none; width: var(--cw); scroll-snap-align: center; scroll-snap-stop: always;
   will-change: transform, opacity; backface-visibility: hidden;
 }
-.cf__slide .flip { cursor: pointer; }
+/* В каталоге карточку крутят пальцем и горизонтальный жест у неё запрещён — в витрине он нужен ленте */
+.cf__slide .flip { cursor: pointer; touch-action: pan-x pan-y; }
 .cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 140, 155, .45); }
 .cf__slide.is-center .face--front { box-shadow: 0 0 0 1.5px rgba(255, 180, 190, .9), 0 0 24px rgba(255, 40, 70, .6); }
 /* Перелив с режимами наложения — только у центральной, у соседей он всё равно почти не виден */

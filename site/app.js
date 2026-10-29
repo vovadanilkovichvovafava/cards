@@ -20,6 +20,9 @@
   //  нужды прокручивать страницу пальцем по карточке (free: true).
   // ---------------------------------------------------------------
   const GIFT_ICON = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>`;
+  const HEART = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg>`;
+  const heartBtn = (k) => `<button type="button" class="heart" data-fav="${k}" aria-pressed="false" aria-label="В избранное">${HEART}</button>`;
+  const workKey = (w) => `${w.c.id}:${w.rarity}`;
   const SILHOUETTE = `<svg viewBox="0 0 100 100" fill="currentColor"><circle cx="50" cy="34" r="18"/><path d="M14 98c0-22 16-38 36-38s36 16 36 38z"/></svg>`;
   const REST = -0.3;      // наклон в покое: видно кадр A и немного объёма
   const DEG_PER_W = 140;  // протянуть на ширину карточки — повернуть на 140°
@@ -241,14 +244,55 @@
   const tgUrl = `https://t.me/${CONFIG.telegram}`;
   $("#tgLink").href = tgUrl;
 
-  // Мобильное меню
-  const burger = $("#burger"), mnav = $("#mnav");
-  const setMenu = (open) => {
-    burger.setAttribute("aria-expanded", open);
-    mnav.hidden = !open;
+  // ---------------------------------------------------------------
+  //  Выезжающие панели: меню, избранное, корзина
+  // ---------------------------------------------------------------
+  const burger = $("#burger");
+  let drawer = null, drawerFrom = null;
+  function openDrawer(id, from) {
+    if (drawer) closeDrawer(false);
+    drawer = $(id);
+    drawerFrom = from;
+    drawer.hidden = false;
+    document.body.style.overflow = "hidden";
+    from?.setAttribute("aria-expanded", true);
+    $("[data-dclose]", drawer).focus();
+  }
+  function closeDrawer(restoreFocus = true) {
+    if (!drawer) return;
+    drawer.hidden = true;
+    document.body.style.overflow = "";
+    drawerFrom?.setAttribute("aria-expanded", false);
+    if (restoreFocus) drawerFrom?.focus();
+    drawer = drawerFrom = null;
+  }
+  $$(".drawer").forEach((d) => {
+    d.addEventListener("click", (e) => {
+      if (e.target === d || e.target.closest("[data-dclose]")) closeDrawer();
+      else if (e.target.closest("a[href^='#']")) closeDrawer(false);
+    });
+  });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && drawer) closeDrawer(); });
+  burger.addEventListener("click", () => openDrawer("#menuDrawer", burger));
+
+  // Соцсети: пока ссылки нет — честно говорим «скоро» вместо пустой страницы
+  const SOCIAL = {
+    instagram: { name: "Instagram", url: CONFIG.instagram },
+    tiktok: { name: "TikTok", url: CONFIG.tiktok },
+    telegram: { name: "Telegram", url: tgUrl },
   };
-  burger.addEventListener("click", () => setMenu(mnav.hidden));
-  mnav.addEventListener("click", (e) => e.target.closest("a") && setMenu(false));
+  $("#menuSocial").innerHTML = $$(".nav__social [data-social]")
+    .map((a) => a.outerHTML.replace('class="icon-btn"', 'class="icon-btn icon-btn--label"').replace("</svg>", `</svg>${SOCIAL[a.dataset.social].name}`))
+    .join("");
+  $$("[data-social]").forEach((a) => {
+    const s = SOCIAL[a.dataset.social];
+    if (s.url) return (a.href = s.url);
+    a.href = "#";
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      toast(`${s.name} скоро появится — пока пиши нам в Telegram`);
+    });
+  });
 
   function toast(msg) {
     const t = $("#toast");
@@ -581,8 +625,8 @@
     });
   }
 
-  function sendOrder(lines, { photos = [] } = {}) {
-    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean) };
+  function sendOrder(lines, { photos = [], onSent = null } = {}) {
+    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), onSent };
     // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
     const rows = omOrder.lines.slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s));
     if (omOrder.photos.length) rows.splice(rows.length - 1, 0, ["Фото", String(omOrder.photos.length)]);
@@ -674,6 +718,7 @@
       $("#omForm").hidden = true;
       $("#omDone").hidden = false;
       $("#omComment").value = "";
+      omOrder.onSent?.();
     } catch (err) {
       $("#omErr").textContent = `${err.message}. Попробуй ещё раз или напиши нам в Telegram — текст заказа скопируем.`;
       $("#omErr").hidden = false;
@@ -763,7 +808,7 @@
       item.className = "work";
       item.innerHTML = `
         <div class="flip"></div>
-        <div class="work__meta"><b>${esc(w.c.name)}</b><span>${RARITY[w.rarity]}</span></div>
+        <div class="work__meta"><b>${esc(w.c.name)}</b><span>${RARITY[w.rarity]}</span>${heartBtn(workKey(w))}</div>
         <div class="work__buy"><b>${money(CONFIG.prices[w.rarity])}</b><button type="button" class="btn btn--sm">Заказать</button></div>`;
       gallery.append(item);
       const f = Flip($(".flip", item));
@@ -771,7 +816,7 @@
       f.setBack(u.back);
       // Клик по карточке (не вращение) или по кнопке — окно товара
       $(".flip", item).addEventListener("click", () => openProduct(i));
-      $(".work__meta", item).addEventListener("click", () => openProduct(i));
+      $(".work__meta", item).addEventListener("click", (e) => !e.target.closest("[data-fav]") && openProduct(i));
       $(".btn", item).addEventListener("click", () => openProduct(i));
       if (w.c.quote) {
         item.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && Sound.play(w.c.quote));
@@ -780,6 +825,7 @@
       return f;
     });
 
+    syncHearts();
     collectionsEl.hidden = true;
     collectionEl.hidden = false;
     $("#works").scrollIntoView({ block: "start" });
@@ -823,6 +869,8 @@
     $("#lbQty").textContent = qty;
     $("#lbUnit").textContent = `${money(CONFIG.prices[rarity])} за штуку`;
     $("#lbTotal").textContent = money(CONFIG.prices[rarity] * qty);
+    $("#lbFav").dataset.fav = `${c.id}:${rarity}`;
+    syncHearts();
   }
 
   function openProduct(i) {
@@ -871,6 +919,186 @@
     render();
     $("#builder").scrollIntoView();
   });
+
+  $("#lbCart").addEventListener("click", () => {
+    const { c, rarity, qty } = lbState;
+    addToCart(`${c.id}:${rarity}`, qty);
+  });
+
+  // ---------------------------------------------------------------
+  //  Избранное и корзина: хранятся в браузере покупателя
+  // ---------------------------------------------------------------
+  const MAX_CART = 10; // столько позиций помещается в одно сообщение заказа
+  const load = (key) => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } };
+  const keep = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} };
+  const workByKey = (k) => WORKS.find((w) => workKey(w) === k);
+  const thumbOf = (w) => `style="background-image:url('${sm(w.a)}')"`;
+  let favs = load("favs").filter(workByKey);
+  let cart = load("cart").filter((it) => workByKey(it.k));
+
+  function syncHearts() {
+    $$("[data-fav]").forEach((b) => {
+      const on = favs.includes(b.dataset.fav);
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on);
+      b.setAttribute("aria-label", on ? "Убрать из избранного" : "В избранное");
+    });
+  }
+  function bump(el, n) {
+    el.textContent = n;
+    el.hidden = !n;
+    el.classList.remove("is-bump");
+    void el.offsetWidth;
+    el.classList.add("is-bump");
+  }
+  function toggleFav(k) {
+    favs = favs.includes(k) ? favs.filter((x) => x !== k) : [k, ...favs];
+    keep("favs", favs);
+    bump($("#favCount"), favs.length);
+    syncHearts();
+    renderFavs();
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-fav]");
+    if (b) e.stopPropagation(), toggleFav(b.dataset.fav);
+  });
+
+  function addToCart(k, qty = 1) {
+    const it = cart.find((x) => x.k === k);
+    if (it) it.qty = Math.min(50, it.qty + qty);
+    else if (cart.length >= MAX_CART) return toast(`В корзине уже ${MAX_CART} позиций — оформи их, потом добавим ещё`);
+    else cart.push({ k, qty });
+    keep("cart", cart);
+    bump($("#cartCount"), cart.reduce((n, x) => n + x.qty, 0));
+    renderCart();
+    toast(`${workByKey(k).c.name} в корзине`);
+  }
+  function setCart(next) {
+    cart = next;
+    keep("cart", cart);
+    bump($("#cartCount"), cart.reduce((n, x) => n + x.qty, 0));
+    renderCart();
+  }
+
+  const emptyState = (text) => `
+    <div class="dempty"><p>${text}</p><a href="#works" class="btn btn--ghost btn--full">Открыть каталог</a></div>`;
+  const itemHead = (w) => `
+    <button type="button" class="ditem__img" data-open="${workKey(w)}" ${thumbOf(w)} aria-label="Открыть ${esc(w.c.name)}"></button>
+    <div class="ditem__info"><b>${esc(w.c.name)}</b><span>${esc(uni(w.c.universe).name)}, ${RARITY[w.rarity].toLowerCase()}</span>`;
+
+  function renderFavs() {
+    $("#favList").innerHTML = favs.length
+      ? favs.map((k) => {
+          const w = workByKey(k);
+          return `<div class="ditem">${itemHead(w)}<em>${money(CONFIG.prices[w.rarity])}</em></div>
+            <div class="ditem__act"><button type="button" class="btn btn--sm" data-tocart="${k}">В корзину</button>${heartBtn(k)}</div></div>`;
+        }).join("")
+      : emptyState("Нажми на сердечко у карточки — она сохранится здесь.");
+    syncHearts();
+  }
+
+  function renderCart() {
+    $("#cartFoot").hidden = !cart.length;
+    $("#cartList").innerHTML = cart.length
+      ? cart.map(({ k, qty }) => {
+          const w = workByKey(k);
+          return `<div class="ditem">${itemHead(w)}<em>${money(CONFIG.prices[w.rarity] * qty)}</em></div>
+            <div class="ditem__act">
+              <div class="qty qty--sm"><button type="button" data-cq="${k}" data-d="-1" aria-label="Меньше">−</button><output>${qty}</output><button type="button" data-cq="${k}" data-d="1" aria-label="Больше">+</button></div>
+              <button type="button" class="icon-btn icon-btn--sm" data-cdel="${k}" aria-label="Убрать ${esc(w.c.name)}"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            </div></div>`;
+        }).join("")
+      : emptyState("Корзина пуста. Добавь карточки из каталога — оформим всё одним заказом.");
+    $("#cartTotal").textContent = money(cart.reduce((n, { k, qty }) => n + CONFIG.prices[workByKey(k).rarity] * qty, 0));
+  }
+
+  [$("#favList"), $("#cartList")].forEach((list) =>
+    list.addEventListener("click", (e) => {
+      const open = e.target.closest("[data-open]"), add = e.target.closest("[data-tocart]");
+      const q = e.target.closest("[data-cq]"), del = e.target.closest("[data-cdel]");
+      if (open) closeDrawer(false), openProduct(WORKS.indexOf(workByKey(open.dataset.open)));
+      if (add) addToCart(add.dataset.tocart);
+      if (q) setCart(cart.map((it) => it.k === q.dataset.cq ? { ...it, qty: Math.min(50, Math.max(1, it.qty + +q.dataset.d)) } : it));
+      if (del) setCart(cart.filter((it) => it.k !== del.dataset.cdel));
+    })
+  );
+  $("#favBtn").addEventListener("click", (e) => openDrawer("#favDrawer", e.currentTarget));
+  $("#cartBtn").addEventListener("click", (e) => openDrawer("#cartDrawer", e.currentTarget));
+  $("#cartOrder").addEventListener("click", () => {
+    const items = cart.map(({ k, qty }) => ({ w: workByKey(k), qty }));
+    closeDrawer(false);
+    sendOrder([
+      `Привет! Хочу заказать карточки:`,
+      ...items.map(({ w, qty }) => `• ${w.c.name}, ${uni(w.c.universe).name} (${RARITY[w.rarity].toLowerCase()}): ${qty} × ${money(CONFIG.prices[w.rarity])}`),
+      `• Всего карточек: ${items.reduce((n, x) => n + x.qty, 0)}`,
+      `• Сумма: ${money(items.reduce((n, { w, qty }) => n + CONFIG.prices[w.rarity] * qty, 0))}`,
+    ], { onSent: () => setCart([]) });
+  });
+
+  bump($("#favCount"), favs.length);
+  bump($("#cartCount"), cart.reduce((n, x) => n + x.qty, 0));
+  renderFavs();
+  renderCart();
+
+  // ---------------------------------------------------------------
+  //  Поиск по каталогу: персонажи и вселенные
+  // ---------------------------------------------------------------
+  const norm = (t) => String(t || "").toLowerCase().replace(/ё/g, "е");
+  const searchIndex = [
+    ...UNIVERSES.map((u) => ({ u, text: norm(`${u.name} ${u.id}`) })),
+    ...CHARACTERS.map((c) => ({ c, text: norm(`${c.name} ${c.subtitle} ${c.id} ${uni(c.universe).name}`) })),
+  ];
+  const sInput = $("#searchInput"), sRes = $("#searchRes");
+  // На телефоне поле узкое — короткая подсказка
+  const narrow = matchMedia("(max-width: 860px)");
+  const setPh = () => (sInput.placeholder = narrow.matches ? "Найти героя" : "Найти персонажа или аниме");
+  setPh();
+  narrow.addEventListener("change", setPh);
+  let sHits = [];
+
+  function renderSearch() {
+    const q = sInput.value.trim();
+    if (!q) return (sRes.hidden = true);
+    const words = norm(q).split(/\s+/);
+    sHits = searchIndex.filter((it) => words.every((wd) => it.text.includes(wd))).slice(0, 6);
+    sRes.innerHTML = sHits.length
+      ? sHits.map((it, i) => {
+          if (it.u) {
+            const n = WORKS.filter((w) => w.c.universe === it.u.id).length;
+            return `<button type="button" class="sres" data-hit="${i}"><img src="${it.u.icon}" alt="" width="40" height="40"><span><b>${esc(it.u.name)}</b><span>${n ? `Коллекция, ${plural(n, "карточка", "карточки", "карточек")}` : "Нарисуем под заказ"}</span></span></button>`;
+          }
+          const w = WORKS.find((x) => x.c === it.c && x.rarity === "special") || WORKS.find((x) => x.c === it.c);
+          return `<button type="button" class="sres" data-hit="${i}"><i ${thumbOf(w)}></i><span><b>${esc(it.c.name)}</b><span>${esc(uni(it.c.universe).name)}, от ${money(Math.min(...Object.keys(it.c.variants).map((r) => CONFIG.prices[r])))}</span></span></button>`;
+        }).join("")
+      : `<div class="sres sres--none"><span>Такого героя пока нет в каталоге — нарисуем под заказ.</span><button type="button" class="btn btn--sm" data-hit="custom">Заказать «${esc(q)}»</button></div>`;
+    sRes.hidden = false;
+  }
+  function pickHit(i) {
+    const q = sInput.value.trim(), it = sHits[i];
+    sInput.value = "";
+    sRes.hidden = true;
+    sInput.blur();
+    if (i === "custom") {
+      Object.assign(state, { mode: "character", character: "other", otherChar: q.slice(0, 60), rarity: "special" });
+      $("#otherChar").value = state.otherChar;
+      render();
+      return $("#builder").scrollIntoView();
+    }
+    if (it.u) return openCollection(it.u.id);
+    const w = WORKS.find((x) => x.c === it.c && x.rarity === "special") || WORKS.find((x) => x.c === it.c);
+    openProduct(WORKS.indexOf(w));
+  }
+  sInput.addEventListener("input", renderSearch);
+  sInput.addEventListener("focus", renderSearch);
+  sInput.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") sInput.value = "", (sRes.hidden = true);
+    if (e.key === "Enter" && !sRes.hidden) e.preventDefault(), pickHit(sHits.length ? 0 : "custom");
+  });
+  sRes.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-hit]");
+    if (b) pickHit(b.dataset.hit === "custom" ? "custom" : +b.dataset.hit);
+  });
+  document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".search")) sRes.hidden = true; });
 
   // ---------------------------------------------------------------
   //  Слайдер видео: по центру одно, соседние выглядывают по бокам.

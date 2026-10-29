@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FLIPCARD — стерео-карточки по аниме</title>
+  <title>Aniverse Flip — стерео-карточки по аниме</title>
   <meta name="description" content="Стерео-карточки с любимыми персонажами аниме — или с тобой и твоими друзьями. Наклони — и картинка оживает.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='22' height='30' x='5' y='1' rx='3' fill='%23ff3b3b'/%3E%3Crect width='16' height='22' x='8' y='4' rx='2' fill='%230b0a0f'/%3E%3C/svg%3E">
   <link rel="preload" as="image" href="assets/cards/guts-special-a.jpg" imagesrcset="assets/cards/sm/guts-special-a.jpg 400w, assets/cards/guts-special-a.jpg 780w" imagesizes="(max-width: 600px) 66vw, 400px" fetchpriority="high">
@@ -12,35 +12,32 @@
   <!-- Шрифты грузятся без блокировки отрисовки -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 
 <header class="nav">
-  <div class="wrap nav__row">
-    <a href="#top" class="logo" data-brand>FLIPCARD</a>
-    <nav class="nav__links">
-      <a href="#how">Как это работает</a>
-      <a href="#builder">Собрать карточку</a>
-      <a href="#works">Коллекции</a>
-      <a href="#prices">Цены</a>
-      <a href="#faq">FAQ</a>
-    </nav>
-    <button type="button" class="sound-toggle" id="soundToggle" aria-pressed="false" title="Звук цитат" aria-label="Звук цитат">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path class="sound-toggle__on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="sound-toggle__off" d="m16 9 6 6m0-6-6 6"/></svg>
-    </button>
-    <a href="#builder" class="btn btn--sm nav__cta">Заказать</a>
-    <button type="button" class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="mnav"><span></span><span></span></button>
+  <div class="wrap nav__bar">
+    <a href="#top" class="logo" data-brand>Aniverse Flip</a>
+    <div class="search" role="search">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2"/></svg>
+      <input type="search" id="searchInput" placeholder="Найти персонажа или аниме" aria-label="Поиск по каталогу" autocomplete="off" enterkeyhint="search">
+      <div class="search__res" id="searchRes" hidden></div>
+    </div>
+    <div class="nav__social">
+      <a class="icon-btn" data-social="instagram" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></svg></a>
+      <a class="icon-btn" data-social="tiktok" target="_blank" rel="noopener" aria-label="TikTok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3.5v11a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3.5c.4 2.8 2.4 4.8 5.5 5"/></svg></a>
+      <a class="icon-btn" data-social="telegram" target="_blank" rel="noopener" aria-label="Telegram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11.2l6.3 2.3L19 7l-7.6 8.2.5 4.8 3.1-3.6 4.2 3.1z"/></svg></a>
+    </div>
+    <button type="button" class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="menuDrawer"><span></span><span></span><span></span></button>
+    <div class="nav__tools">
+      <button type="button" class="icon-btn sound-toggle" id="soundToggle" aria-pressed="false" title="Звук цитат" aria-label="Звук цитат">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path class="sound-toggle__on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="sound-toggle__off" d="m16 9 6 6m0-6-6 6"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="favBtn" aria-label="Избранное" aria-controls="favDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg><span class="badge" id="favCount" hidden></span></button>
+      <button type="button" class="icon-btn" id="cartBtn" aria-label="Корзина" aria-controls="cartDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span class="badge" id="cartCount" hidden></span></button>
+    </div>
   </div>
-  <nav class="mnav" id="mnav" hidden>
-    <a href="#how">Как это работает</a>
-    <a href="#builder">Собрать карточку</a>
-    <a href="#works">Коллекции</a>
-    <a href="#live">Вживую</a>
-    <a href="#prices">Цены</a>
-    <a href="#faq">FAQ</a>
-    <a href="#builder" class="btn btn--full">Заказать карточку</a>
-  </nav>
 </header>
 
 <main id="top">
@@ -322,12 +319,24 @@
       </details>
     </div>
   </section>
+  <!-- О НАС -->
+  <section class="section" id="about">
+    <div class="wrap wrap--narrow">
+      <h2 class="h2" data-jp="わたしたち">О нас</h2>
+      <p class="sub"><span data-brand>Aniverse Flip</span> — мастерская стерео-карточек по аниме. Каждую карточку собираем из двух кадров, чтобы при наклоне герой оживал. Готовые серии — в каталоге, а любого другого персонажа или тебя самого нарисуем под заказ.</p>
+      <ul class="about">
+        <li><b>Печать за <span data-production>3–7 дней</span></b><span>после того, как согласуем арт</span></li>
+        <li><b>Любой персонаж</b><span>нарисуем под заказ, даже если его нет в каталоге</span></li>
+        <li><b>Связь там, где удобно</b><span>Telegram, WhatsApp, ВК, TikTok или телефон</span></li>
+      </ul>
+    </div>
+  </section>
 </main>
 
 <footer class="footer">
   <div class="wrap footer__row">
     <div>
-      <a href="#top" class="logo" data-brand>FLIPCARD</a>
+      <a href="#top" class="logo" data-brand>Aniverse Flip</a>
       <p class="note" data-tagline>Стерео-карточки по аниме</p>
     </div>
     <div class="footer__contact">
@@ -336,6 +345,44 @@
     </div>
   </div>
 </footer>
+
+<!-- Меню, избранное, корзина: выезжают справа -->
+<div class="drawer" id="menuDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Меню">
+    <div class="drawer__head"><h3>Меню</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <nav class="menu">
+      <a href="#works">Каталог</a>
+      <a href="#builder">Собрать свою карточку</a>
+      <a href="#how">Как это работает</a>
+      <a href="#live">Карточки вживую</a>
+      <a href="#prices">Цены</a>
+      <a href="#about">О нас</a>
+      <a href="#faq">Вопросы</a>
+    </nav>
+    <div class="drawer__foot">
+      <div class="menu__social" id="menuSocial"></div>
+      <a href="#builder" class="btn btn--full" data-dlink>Заказать карточку</a>
+    </div>
+  </div>
+</div>
+
+<div class="drawer" id="favDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Избранное">
+    <div class="drawer__head"><h3>Избранное</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="dlist" id="favList"></div>
+  </div>
+</div>
+
+<div class="drawer" id="cartDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Корзина">
+    <div class="drawer__head"><h3>Корзина</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="dlist" id="cartList"></div>
+    <div class="drawer__foot" id="cartFoot">
+      <div class="cart-total"><span>Итого</span><b id="cartTotal"></b></div>
+      <button type="button" class="btn btn--full" id="cartOrder">Оформить заказ</button>
+    </div>
+  </div>
+</div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" hidden>
@@ -360,7 +407,11 @@
           <b id="lbTotal"></b>
         </div>
       </div>
-      <button type="button" class="btn btn--full" id="lbOrder">Заказать</button>
+      <div class="lb-cta">
+        <button type="button" class="btn" id="lbOrder">Заказать</button>
+        <button type="button" class="btn btn--ghost" id="lbCart">В корзину</button>
+        <button type="button" class="heart heart--lg" id="lbFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
+      </div>
       <div class="lb-links">
         <button type="button" class="tool" id="lbTurn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
         <button type="button" class="tool" id="lbWant"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>В подарок или настроить</button>
@@ -427,7 +478,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="data.js?v=4" defer></script>
-<script src="app.js?v=10" defer></script>
+<script src="data.js?v=5" defer></script>
+<script src="app.js?v=11" defer></script>
 </body>
 </html>

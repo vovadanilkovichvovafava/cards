@@ -66,6 +66,7 @@
         <div class="flip__turn">
           <div class="face face--front"></div>
           <div class="face face--back"><img alt="Обратная сторона карточки" loading="lazy" width="600" height="824"><div class="face__holo"></div></div>
+          <i class="flip__edge flip__edge--l"></i><i class="flip__edge flip__edge--r"></i><i class="flip__edge flip__edge--t"></i><i class="flip__edge flip__edge--b"></i>
         </div>
       </div>`;
     if (free) el.dataset.free = "";
@@ -1402,7 +1403,54 @@
     // Бегущая строка: список дважды подряд, лента сдвигается на половину и начинается заново
     // картинки ленты грузим сразу — иначе при подгрузке строка «прыгает»
     const copy = one.replace(/<a class="newc"/g, '<a class="newc" tabindex="-1" aria-hidden="true"');
-    $("#newCards").innerHTML = `<div class="newcards__track" style="--dur:${fresh.length * 4}s">${one}${copy}</div>`;
+    $("#newCards").innerHTML = `<div class="newcards__track">${one}${copy}${copy}</div>`;
+    // Бесконечная лента: едет сама, пальцем или мышью тянется в обе стороны с инерцией.
+    // Сдвиг всегда держим в пределах одного набора карточек — лента не кончается.
+    const box = $("#newCards"), track = $(".newcards__track", box);
+    let x = 0, setW = 1, vel = 0, drag = null, moved = false, visible = true, last = 0;
+    const SPEED = reduceMotion ? 0 : 0.035; // px за мс
+    const measure = () => (setW = track.scrollWidth / 3 || 1);
+    const wrap = () => { x = ((x % setW) + setW) % setW; };
+    const frame = (t) => {
+      const dt = Math.min(48, t - (last || t)); last = t;
+      if (!drag) {
+        x += SPEED * dt + vel * dt;
+        vel *= Math.pow(0.94, dt / 16);
+        if (Math.abs(vel) < 0.002) vel = 0;
+      }
+      wrap();
+      track.style.transform = `translate3d(${(-x - setW).toFixed(1)}px,0,0)`;
+      if (visible) requestAnimationFrame(frame); else last = 0;
+    };
+    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) requestAnimationFrame(frame); }).observe(box);
+    addEventListener("resize", measure);
+    track.querySelectorAll("img").forEach((im) => im.addEventListener("load", measure, { once: true }));
+    measure();
+    box.addEventListener("pointerdown", (e) => {
+      if (e.button > 0) return;
+      drag = { x: e.clientX, y: e.clientY, lx: e.clientX, t: performance.now(), on: false };
+      vel = 0; moved = false;
+    });
+    addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.on) {
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) return void (drag = null); // это прокрутка страницы
+        if (Math.abs(dx) < 6) return;
+        drag.on = moved = true;
+        box.classList.add("is-drag");
+      }
+      const now = performance.now();
+      x -= e.clientX - drag.lx;
+      vel = -(e.clientX - drag.lx) / Math.max(1, now - drag.t);
+      drag.lx = e.clientX; drag.t = now;
+    });
+    const end = () => { if (!drag) return; if (performance.now() - drag.t > 90) vel = 0; drag = null; box.classList.remove("is-drag"); };
+    addEventListener("pointerup", end);
+    addEventListener("pointercancel", end);
+    // Тянули — это не клик по карточке
+    box.addEventListener("click", (e) => { if (moved) e.preventDefault(), e.stopPropagation(), (moved = false); }, true);
+    box.addEventListener("dragstart", (e) => e.preventDefault());
   }
   if ($("#promos") && (CONFIG.promos || []).length) {
     const allChars = CHARACTERS.map((c) => WORKS.find((w) => w.c === c && w.rarity === "special") || WORKS.find((w) => w.c === c)).filter(Boolean);

@@ -2080,3 +2080,73 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
   .newcards:active .newcards__track { animation-play-state: paused; }
 }
 @media (max-width: 860px) { .hero__mark { display: none; } }
+
+/* ============================================================
+   Толщина карточки: лицо и рубашка раздвинуты, по краям — торцы
+   ============================================================ */
+.flip { --t: max(3px, 1.8cqw); --cw2: 50cqw; --ch2: calc(50cqw * 1051 / 780); }
+.flip .face--front { transform: translateZ(calc(var(--t) / 2)); }
+.flip .face--back { transform: rotateY(180deg) translateZ(calc(var(--t) / 2)); }
+.flip__edge {
+  position: absolute; left: 50%; top: 50%; pointer-events: none; backface-visibility: visible;
+  background: linear-gradient(90deg, #2a2730, #0d0c10 30%, #3a3640 50%, #0d0c10 70%, #2a2730);
+}
+.flip__edge--l, .flip__edge--r { width: var(--t); height: calc(var(--ch2) * 2 * .93); margin: calc(var(--ch2) * -.93) 0 0 calc(var(--t) / -2); }
+.flip__edge--l { transform: rotateY(-90deg) translateZ(var(--cw2)); }
+.flip__edge--r { transform: rotateY(90deg) translateZ(var(--cw2)); }
+.flip__edge--t, .flip__edge--b { height: var(--t); width: calc(var(--cw2) * 2 * .91); margin: calc(var(--t) / -2) 0 0 calc(var(--cw2) * -.91);
+  background: linear-gradient(180deg, #2a2730, #0d0c10 30%, #3a3640 50%, #0d0c10 70%, #2a2730); }
+.flip__edge--t { transform: rotateX(90deg) translateZ(var(--ch2)); }
+.flip__edge--b { transform: rotateX(-90deg) translateZ(var(--ch2)); }
+
+/* Фон окна карточки — без красных точек */
+.lightbox { background: rgba(5, 4, 6, .94); }
+
+/* ============================================================
+   Окно карточки на телефоне: всё на одном экране.
+   Сверху крестик, по центру карточка, снизу компактная панель.
+   ============================================================ */
+@media (max-width: 760px) {
+  .lightbox { display: flex; flex-direction: column; padding: 0; overflow: hidden; place-items: initial; }
+  .lightbox[hidden] { display: none; }
+  .lightbox__inner { flex: 1; display: flex; flex-direction: column; gap: 0; width: 100%; max-width: none; height: 100%; }
+  .lightbox__close { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px; width: 36px; height: 36px; z-index: 6; }
+  .lightbox__card { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 46px 16px 8px; }
+  .lightbox .flip { width: min(62vw, 260px, calc((100dvh - 330px) * .742)); }
+  .lightbox .hint { font-size: 11px; opacity: .6; margin: 0; }
+  .lightbox__meta {
+    flex: none; gap: 10px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0;
+    box-shadow: 0 -1px 0 var(--line), 0 -20px 40px -20px #000;
+  }
+  .lb-uni { font-size: 10.5px; padding: 3px 8px; margin: 0; }
+  .lightbox__meta h3 { font-size: 22px; margin-top: -2px; }
+  .lightbox__meta > .lb-uni + h3 { margin-top: -4px; }
+  .lb-buy { gap: 10px; }
+  .lb-buy .qty button { width: 32px; height: 32px; font-size: 16px; }
+  .lb-buy .qty output { min-width: 34px; line-height: 32px; font-size: 15px; }
+  .lb-buy__price .note { font-size: 11px; }
+  .lb-buy__price b { font-size: 22px; }
+  .lb-cta { grid-template-columns: 1fr 1fr 42px; gap: 8px; }
+  .lb-cta .btn { padding: 10px 8px; }
+  .lb-cta .heart--lg { width: 42px; }
+  .lb-links { padding-top: 8px; gap: 6px; flex-wrap: nowrap; }
+  .lb-links .tool { flex: 1; font-size: 11px; padding: 7px 6px; }
+  .seg--sm button { padding: 7px 8px; }
+}
+
+/* Бесконечная лента новинок: двигает скрипт, CSS-анимация выключена */
+.newcards { touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+.newcards.is-drag { cursor: grabbing; }
+.newcards .newcards__track { animation: none !important; will-change: transform; }
+.newcards img { -webkit-user-drag: none; pointer-events: none; }
+
+/* Окно карточки на телефоне: нижняя панель строго в ширину экрана */
+@media (max-width: 760px) {
+  .lightbox__inner { width: 100%; min-width: 0; }
+  .lightbox__meta { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
+  .lb-cta, .lb-buy, .lb-links { min-width: 0; }
+}
+@media (max-width: 760px) {
+  .lb-links .tool { flex: 1 1 0; min-width: 0; white-space: normal; text-align: center; line-height: 1.2; font-size: 10.5px; padding: 7px 4px; }
+  .lb-links .tool .ico { flex: none; }
+}

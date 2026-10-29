@@ -67,6 +67,11 @@ class Store:
                     if attempt == 2:
                         raise
 
+    def try_lead(self):
+        """Только одна копия сервера опрашивает бота (иначе Telegram отвечает 409).
+        Блокировка держится, пока живо соединение, и сама снимается, когда копия гаснет."""
+        return bool(self.run("SELECT pg_try_advisory_lock(7391001)")[0][0])
+
     def cards(self):
         rows = self.run("SELECT id, universe, name, rarity FROM cards ORDER BY id")
         return [{"id": r[0], "universe": r[1], "name": r[2], "rarity": r[3]} for r in rows]
@@ -247,8 +252,20 @@ class Bot:
             self.api("deleteWebhook")  # иначе getUpdates не работает
         except Exception as e:
             print("bot: deleteWebhook failed:", e, file=sys.stderr)
+        # Отдельное соединение под блокировку: обычные запросы её не трогают
+        leader = Store(self.store.url)
+        waiting = False
         while True:
             try:
+                if not leader.try_lead():
+                    if not waiting:
+                        print("bot: another server instance is polling, waiting", file=sys.stderr)
+                    waiting = True
+                    time.sleep(15)
+                    continue
+                if waiting:
+                    print("bot: now polling", file=sys.stderr)
+                waiting = False
                 for upd in self.api("getUpdates", offset=offset, timeout=50, allowed_updates=["message", "callback_query"]):
                     offset = upd["update_id"] + 1
                     try:

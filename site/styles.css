@@ -2285,3 +2285,24 @@ body:has(.lightbox:not([hidden])) .toast, body:has(.omodal:not([hidden])) .toast
   .seg button, .tool { font-size: 12px; padding-inline: 6px; white-space: nowrap; }
   .preview__tools .tool { flex: 1; justify-content: center; }
 }
+
+/* Окно заказа никогда не шире экрана: длинные строки чека переносятся */
+.omodal > .omodal__box { min-width: 0; max-width: 100%; box-sizing: border-box; overflow-x: hidden; }
+.omodal__lines, .omodal__lines div { min-width: 0; }
+.omodal__lines dt { flex: none; }
+.omodal__lines dd { white-space: normal; min-width: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.omodal__lines .is-total dd, .omodal__lines dd:only-child { white-space: nowrap; }
+.omodal .cpick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.omodal .cpick button { min-width: 0; padding-inline: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.omodal .input input, .omodal .input textarea, .omodal .consent { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.omodal input, .omodal textarea { font-size: 16px; }
+
+/* Подсказка акции 4+1 вверху конструктора */
+.promo-note { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 12px 14px; border-radius: 10px; background: rgba(216, 17, 47, .14); box-shadow: 0 0 0 1px rgba(216, 17, 47, .35); font-size: 14px; }
+.promo-note b { font-family: var(--display); color: var(--hot); white-space: nowrap; }
+/* «О нас»: номер-акцент у каждого пункта */
+.about { counter-reset: ab; }
+.about li { position: relative; padding-left: 58px; counter-increment: ab; }
+.about li::before { content: counter(ab, decimal-leading-zero); position: absolute; left: 18px; top: 18px; font: 700 15px var(--display); color: var(--hot); }
+/* Заголовки страниц теперь h1 — тот же вид, что у h2 */
+h1.h2 { margin: 0; }

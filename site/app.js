@@ -822,7 +822,10 @@
     Object.assign(state, { mode: "character", universe: uni(qp.get("u")) ? qp.get("u") : state.universe, character: "other", otherChar: qp.get("other").slice(0, 60), rarity: "special" });
     $("#otherChar").value = state.otherChar;
   }
-  if (qp.get("promo") === "41") state.qty = Math.max(state.qty, 4);
+  if (qp.get("promo") === "41") {
+    state.qty = Math.max(state.qty, 4);
+    $("#builder .sub")?.insertAdjacentHTML("afterend", `<p class="promo-note"><b>Акция 4+1</b><span>Выбери 4 карточки — пятую, мистери-карточку, добавим в подарок.</span></p>`);
+  }
   const preset = qp.get("preset");
   if (preset === "photo") state.mode = "photo";
   else if (preset === "common" || preset === "special") {
@@ -1271,7 +1274,7 @@
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка
   const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 400px)");
-  const setPh = () => (sInput.placeholder = narrow.matches ? "Поиск героя" : "Найти героя, коллекцию или карточку...");
+  const setPh = () => (sInput.placeholder = narrow.matches ? "Поиск" : "Найти героя, коллекцию или карточку...");
   setPh();
   [narrow, tiny].forEach((m) => m.addEventListener("change", setPh));
   let sHits = [];

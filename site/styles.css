@@ -1891,3 +1891,8 @@ body { background: var(--bg); }                                   /* без «з
 .promo { align-content: stretch; }
 .promo__body { height: 100%; }
 .footer .logo { font-size: 26px; }
+/* Акции — без картинок, просто описание и кнопка */
+.promos { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.promo { padding: 20px; align-content: start; }
+.summary__rows .is-promo b, .summary__rows .is-promo span { color: var(--hot); }
+.omodal__lines dd { white-space: nowrap; }

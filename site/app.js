@@ -295,7 +295,7 @@
     telegram: { name: "Telegram", url: CONFIG.telegramChannel || tgUrl },
   };
   $("#menuSocial").innerHTML = $$(".nav__social [data-social]")
-    .map((a) => a.outerHTML.replace('class="icon-btn"', 'class="icon-btn icon-btn--label"').replace("</svg>", `</svg>${SOCIAL[a.dataset.social].name}`))
+    .map((a) => a.outerHTML.replace('class="soc"', 'class="icon-btn icon-btn--label"').replace(/igG/g, "igG2").replace("</svg>", `</svg>${SOCIAL[a.dataset.social].name}`))
     .join("");
   $$("[data-social]").forEach((a) => {
     const s = SOCIAL[a.dataset.social];
@@ -369,59 +369,65 @@
   );
 
   // ---------------------------------------------------------------
-  //  Витрина первого экрана: карточки на подиумах.
-  //  Листается пальцем (родная прокрутка со «снапом»), мышью, стрелками.
-  //  Проезжая через центр, карточка наклоняется и переливается.
+  //  Витрина первого экрана: коллекции на подиумах.
+  //  Листается пальцем (родная прокрутка со «снапом») или мышью, по кругу.
+  //  На подиуме — обложка серии; при наклоне и обороте видна карточка её героя.
+  //  Нажатие на центральную — открывает коллекцию со всеми карточками.
   // ---------------------------------------------------------------
   const cfTrack = $("#cfTrack");
-  const SHOW = WORKS.filter((w) => w.rarity === "special" || !w.c.variants.special);
-  // Гатс — в центре при загрузке, по бокам уже видны соседи
-  const START = Math.min(2, SHOW.length - 1);
-  const gi = SHOW.findIndex((w) => w.c.id === "guts");
-  if (gi > -1) SHOW.splice(START, 0, ...SHOW.splice(gi, 1));
-  cfTrack.innerHTML = SHOW.map((w) => `
-    <div class="cf__slide" role="group" aria-label="${esc(w.c.name)}, ${esc(uni(w.c.universe).name)}">
-      <span class="cf__halo" aria-hidden="true"></span>
-      <div class="flip"></div>
-      <span class="cf__base" aria-hidden="true"></span>
+  const hero = (u) => WORKS.find((w) => w.c.universe === u.id && w.rarity === "special") || WORKS.find((w) => w.c.universe === u.id);
+  const count = (u) => WORKS.filter((w) => w.c.universe === u.id).length;
+  // Коллекций мало — повторяем ленту трижды, чтобы листать по кругу и видеть соседей с обеих сторон
+  const N = UNIVERSES.length, LOOPS = 3;
+  const SHOW = Array.from({ length: N * LOOPS }, (_, i) => UNIVERSES[i % N]);
+  const START = N + Math.max(0, UNIVERSES.findIndex((u) => u.id === "berserk"));
+  cfTrack.innerHTML = SHOW.map((u, i) => `
+    <div class="cf__slide" role="group" aria-label="Коллекция ${esc(u.name)}" ${Math.floor(i / N) === 1 ? "" : 'aria-hidden="true"'}>
+      <div class="cf__item">
+        <span class="cf__halo" aria-hidden="true"></span>
+        <div class="flip"></div>
+        <span class="cf__base" aria-hidden="true"></span>
+      </div>
     </div>`).join("");
   const cfSlides = $$(".cf__slide", cfTrack);
+  // Наклоняем и сдвигаем только внутренний блок: точки «примагничивания» ленты браузер считает
+  // по внешнему, и если двигать его, они уезжают вместе с карточками — лента застревает
+  const cfItems = cfSlides.map((sl) => sl.firstElementChild);
   const cfFlips = cfSlides.map((sl, i) => {
+    const u = SHOW[i], w = hero(u);
     const f = Flip($(".flip", sl), { interactive: false });
-    f.setImages(SHOW[i].a, SHOW[i].b, Math.abs(i - START) > 1);
-    f.setBack(uni(SHOW[i].c.universe).back);
+    f.setImages(u.back, w ? w.a : u.back, Math.abs(i - START) > 1);
+    f.setBack(w ? w.a : u.back);
     return f;
   });
-  $("#cfDots").innerHTML = SHOW.map(() => "<i></i>").join("");
-  $("#uniStrip").innerHTML = UNIVERSES.map((u) => {
-    const has = SHOW.some((w) => w.c.universe === u.id);
-    return `<button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
+  $("#cfDots").innerHTML = UNIVERSES.map(() => "<i></i>").join("");
+  $("#uniStrip").innerHTML = UNIVERSES.map((u) => `
+    <button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
       <img src="${u.banner || u.back}" alt="" width="720" height="240" loading="lazy">
-      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span>${has ? "" : "<em>Под заказ</em>"}</button>`;
-  }).join("");
+      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span>${count(u) ? "" : "<em>Под заказ</em>"}</button>`).join("");
 
-  let cfCenter = -1, cfReady = false, cfRaf = null;
+  let cfCenter = -1, cfRaf = null;
   function cfSetCenter(i) {
     cfCenter = i;
-    const w = SHOW[i];
+    const u = SHOW[i], n = count(u);
     cfSlides.forEach((sl, j) => sl.classList.toggle("is-center", j === i));
-    $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i));
+    $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i % N));
     $$("#uniStrip [data-u]").forEach((t) => {
-      const on = t.dataset.u === w.c.universe;
+      const on = t.dataset.u === u.id;
       t.classList.toggle("is-on", on);
       t.setAttribute("aria-selected", on);
     });
-    $("#cfUni").textContent = uni(w.c.universe).name;
-    $("#cfName").textContent = w.c.name;
-    $("#cfPrice").textContent = money(CONFIG.prices[w.rarity]);
+    $("#cfName").textContent = u.name;
+    $("#cfMeta").textContent = n ? `${plural(n, "карточка", "карточки", "карточек")}. Нажми, чтобы открыть` : "Нарисуем любого героя серии под заказ";
   }
   // Центры карточек считаем один раз (и при смене ширины), а не в каждом кадре:
   // чтение offsetLeft после записи стилей заставляло браузер пересчитывать раскладку
   const CF_REST = -0.6;
-  let cfCenters = [], cfW = 1;
+  let cfCenters = [], cfW = 1, cfStep = 1;
   const cfMeasure = () => {
     cfW = cfSlides[0].offsetWidth;
     cfCenters = cfSlides.map((sl) => sl.offsetLeft + cfW / 2);
+    cfStep = cfCenters[1] - cfCenters[0];
   };
   const cfLast = [];
   function cfLayout() {
@@ -438,10 +444,10 @@
       // Соседи уходят в глубину, разворачиваются к центру и сдвигаются к нему — как витрина по дуге
       const k = Math.max(-1, Math.min(1, d));
       const pull = Math.sign(d) * Math.min(a, 2) * cfW * (innerWidth > 860 ? 0.04 : 0.16);
-      sl.style.transform = `translate3d(${(-pull).toFixed(1)}px, ${(Math.min(a, 2) * 18).toFixed(1)}px, ${(-Math.min(a, 2.5) * 230).toFixed(1)}px) rotateY(${(k * -38).toFixed(2)}deg)`;
-      sl.style.opacity = Math.max(0, Math.min(1, 1.5 - a * 0.42)).toFixed(3);
+      cfItems[i].style.transform = `translate3d(${(-pull).toFixed(1)}px, ${(Math.min(a, 2) * 18).toFixed(1)}px, ${(-Math.min(a, 2.5) * 230).toFixed(1)}px) rotateY(${(k * -38).toFixed(2)}deg)`;
+      cfItems[i].style.opacity = Math.max(0, Math.min(1, 1.5 - a * 0.42)).toFixed(3);
       sl.style.zIndex = 10 - Math.round(a);
-      // Перелив и смена кадра — только у карточек рядом с центром
+      // Перелив и смена кадра — только у карточек рядом с центром.
       // В покое — чуть повёрнута к первому кадру: ровно «в лоб» оба кадра смешаны пополам
       if (a < 1.5) cfFlips[i].pose(Math.max(-1, Math.min(1, CF_REST - d * 1.6)));
     });
@@ -449,9 +455,15 @@
   }
   const cfQueue = () => { if (!cfRaf) cfRaf = requestAnimationFrame(cfLayout); };
   function cfGo(i, smooth = true) {
-    i = (i + SHOW.length) % SHOW.length;
-    const sl = cfSlides[i];
+    i = Math.max(0, Math.min(SHOW.length - 1, i));
     cfTrack.scrollTo({ left: cfCenters[i] - cfTrack.clientWidth / 2, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+  }
+  // Ушли в крайнюю копию ленты — незаметно переносимся в такую же коллекцию в средней
+  function cfRecenter() {
+    const loop = Math.floor(cfCenter / N);
+    if (loop === 1 || cfDrag) return;
+    cfTrack.scrollLeft += (1 - loop) * N * cfStep;
+    cfLayout();
   }
   cfTrack.addEventListener("scroll", cfQueue, { passive: true });
   // На телефоне resize срабатывает и когда прячется адресная строка — реагируем только на смену ширины
@@ -463,12 +475,13 @@
     cfGo(cfCenter, false);
     cfQueue();
   });
+  const cfOpen = () => openCollection(SHOW[cfCenter].id);
   cfTrack.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault(), cfGo(cfCenter + (e.key === "ArrowLeft" ? -1 : 1));
-    if (e.key === "Enter") openProduct(WORKS.indexOf(SHOW[cfCenter]));
+    if (e.key === "Enter") cfOpen();
   });
 
-  // Мышью — тянуть, как пальцем; короткий клик по центральной открывает карточку
+  // Мышью — тянуть, как пальцем; короткий клик по центральной открывает коллекцию
   let cfDrag = null, cfMoved = false;
   cfTrack.addEventListener("pointerdown", (e) => {
     cfMoved = false;
@@ -492,62 +505,64 @@
     const sl = e.target.closest(".cf__slide");
     if (!sl || cfMoved) return;
     const i = cfSlides.indexOf(sl);
-    i === cfCenter ? openProduct(WORKS.indexOf(SHOW[i])) : cfGo(i);
+    i === cfCenter ? cfOpen() : cfGo(i);
   });
   cfTrack.addEventListener("pointerover", (e) => {
-    if (e.pointerType === "mouse" && e.target.closest(".cf__slide.is-center")) Sound.play(SHOW[cfCenter].c.quote);
+    if (e.pointerType !== "mouse" || !e.target.closest(".cf__slide.is-center")) return;
+    const q = CHARACTERS.find((c) => c.universe === SHOW[cfCenter].id && c.quote);
+    if (q) Sound.play(q.quote);
   });
   cfTrack.addEventListener("pointerleave", () => Sound.stop());
 
+  // Полоса коллекций: листает витрину к ближайшей такой же коллекции
   $("#uniStrip").addEventListener("click", (e) => {
     const t = e.target.closest("[data-u]");
     if (!t) return;
-    const i = SHOW.findIndex((w) => w.c.universe === t.dataset.u);
-    i > -1 ? cfGo(i) : openCollection(t.dataset.u);
+    const near = SHOW.map((u, i) => (u.id === t.dataset.u ? i : -1)).filter((i) => i > -1)
+      .sort((x, y) => Math.abs(x - cfCenter) - Math.abs(y - cfCenter))[0];
+    near === cfCenter ? cfOpen() : cfGo(near);
   });
 
-
-  // Каждая карточка, впервые оказавшись в центре, один раз оборачивается на подиуме
-  // (видна и рубашка серии) и останавливается. Дальше её можно чуть повернуть пальцем —
-  // небольшой свайп наклоняет карточку и пружинит обратно, свайп дальше листает.
+  // Каждая коллекция, впервые оказавшись в центре, один раз оборачивается на подиуме
+  // и останавливается. Дальше её можно чуть повернуть пальцем — небольшой свайп
+  // наклоняет карточку и пружинит обратно, свайп дальше листает.
   // Пока ничего не двигается, кадры не перерисовываются вовсе.
   const SPIN_MS = 2600, SPIN_DELAY = 500;
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
   const spun = new Set();
   let spinRaf = null, spinIdle = null, cfScrollAt = 0;
   function spinOnce(i) {
-    if (reduceMotion || spun.has(i)) return;
-    spun.add(i);
+    const id = SHOW[i].id;
+    if (reduceMotion || spun.has(id)) return;
+    spun.add(id);
     let t0 = null;
     const step = (t) => {
       t0 ??= t + SPIN_DELAY;
-      // Начали листать — оборот прерываем, карточка встаёт лицом
       const k = (t - t0) / SPIN_MS;
+      // Начали листать — оборот прерываем, карточка встаёт лицом
       if (cfCenter !== i || t - cfScrollAt < 120) {
-        if (k <= 0) spun.delete(i); // ещё не начала оборачиваться — обернётся в следующий раз
+        if (k <= 0) spun.delete(id); // ещё не начала оборачиваться — обернётся в следующий раз
         return cfFlips[i].spin(0), (spinRaf = null);
       }
-      cfFlips[i].spin(k <= 0 ? 0 : k >= 1 ? 0 : ease(k) * 360);
+      cfFlips[i].spin(k <= 0 || k >= 1 ? 0 : ease(k) * 360);
       spinRaf = k < 1 ? requestAnimationFrame(step) : null;
     };
     cancelAnimationFrame(spinRaf);
     spinRaf = requestAnimationFrame(step);
   }
-  // Оборот — только когда лента остановилась на карточке
+  // Лента остановилась: переносимся в среднюю копию и оборачиваем новую коллекцию
   cfTrack.addEventListener("scroll", () => {
     cfScrollAt = performance.now();
     clearTimeout(spinIdle);
-    spinIdle = setTimeout(() => spinOnce(cfCenter), 220);
+    spinIdle = setTimeout(() => { cfRecenter(); spinOnce(cfCenter); }, 220);
   }, { passive: true });
 
-  // После того как весь скрипт отработал (избранное готово) — встаём на стартовую карточку
+  // После того как весь скрипт отработал — встаём на стартовую коллекцию
   requestAnimationFrame(() => {
     cfMeasure();
     cfGo(START, false);
     cfLayout();
-    cfReady = true;
     setTimeout(() => spinOnce(cfCenter), 300);
-    syncHearts();
   });
 
   // ---------------------------------------------------------------

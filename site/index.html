@@ -6,37 +6,37 @@
   <title>Aniverse Flip — стерео-карточки по аниме</title>
   <meta name="description" content="Стерео-карточки с любимыми персонажами аниме — или с тобой и твоими друзьями. Наклони — и картинка оживает.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='22' height='30' x='5' y='1' rx='3' fill='%23ff3b3b'/%3E%3Crect width='16' height='22' x='8' y='4' rx='2' fill='%230b0a0f'/%3E%3C/svg%3E">
-  <link rel="preload" as="image" href="assets/cards/guts-special-a.jpg" imagesrcset="assets/cards/sm/guts-special-a.jpg 400w, assets/cards/guts-special-a.jpg 780w" imagesizes="(max-width: 600px) 66vw, 400px" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/backs/berserk.jpg" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Шрифты грузятся без блокировки отрисовки -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
 
 <header class="nav">
+  <!-- Как на макете: 1 строка — название, соцсети, звук; 2 строка — меню, поиск, избранное, корзина -->
   <div class="wrap nav__bar">
     <a href="#top" class="logo" data-brand>Aniverse Flip</a>
+    <div class="nav__social">
+      <a class="soc" data-social="instagram" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="igG" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/><stop offset=".6" stop-color="#d62976"/><stop offset=".85" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igG)"/><rect x="5.5" y="5.5" width="13" height="13" rx="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.3" cy="7.7" r="1" fill="#fff"/></svg></a>
+      <a class="soc" data-social="tiktok" target="_blank" rel="noopener" aria-label="TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 3.6v11.2a3.4 3.4 0 1 1-3.4-3.4M13.2 3.6c.4 2.6 2.3 4.5 5.1 4.8" stroke="#25f4ee" transform="translate(-.9 -.7)"/><path d="M13.2 3.6v11.2a3.4 3.4 0 1 1-3.4-3.4M13.2 3.6c.4 2.6 2.3 4.5 5.1 4.8" stroke="#fe2c55" transform="translate(.9 .7)"/><path d="M13.2 3.6v11.2a3.4 3.4 0 1 1-3.4-3.4M13.2 3.6c.4 2.6 2.3 4.5 5.1 4.8" stroke="#fff"/></g></svg></a>
+      <a class="soc" data-social="telegram" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 3.4 2.6 10.7c-1 .4-1 1.6 0 1.9l4.7 1.5 1.8 5.6c.3.8 1.3 1 1.9.4l2.6-2.5 4.9 3.6c.7.5 1.7.1 1.9-.8L23 4.7c.2-1-.6-1.7-1.5-1.3z" fill="#2aabee"/><path d="m8.2 13.9 9.3-6.1-7.2 7.3-.3 3.3z" fill="#fff" opacity=".9"/></svg></a>
+      <span class="nav__sep" aria-hidden="true"></span>
+      <button type="button" class="icon-btn sound-toggle" id="soundToggle" aria-pressed="false" title="Звук цитат" aria-label="Звук цитат">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path class="sound-toggle__on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="sound-toggle__off" d="m16 9 6 6m0-6-6 6"/></svg>
+      </button>
+    </div>
+    <button type="button" class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="menuDrawer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg></button>
     <div class="search" role="search">
       <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2"/></svg>
       <input type="search" id="searchInput" placeholder="Найти персонажа или аниме" aria-label="Поиск по каталогу" autocomplete="off" enterkeyhint="search">
       <div class="search__res" id="searchRes" hidden></div>
     </div>
-    <div class="nav__social">
-      <a class="icon-btn" data-social="instagram" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></svg></a>
-      <a class="icon-btn" data-social="tiktok" target="_blank" rel="noopener" aria-label="TikTok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3.5v11a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3.5c.4 2.8 2.4 4.8 5.5 5"/></svg></a>
-      <a class="icon-btn" data-social="telegram" target="_blank" rel="noopener" aria-label="Telegram"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11.2l6.3 2.3L19 7l-7.6 8.2.5 4.8 3.1-3.6 4.2 3.1z"/></svg></a>
-    </div>
-    <button type="button" class="burger" id="burger" aria-label="Меню" aria-expanded="false" aria-controls="menuDrawer"><span></span><span></span><span></span></button>
-    <div class="nav__tools">
-      <button type="button" class="icon-btn sound-toggle" id="soundToggle" aria-pressed="false" title="Звук цитат" aria-label="Звук цитат">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor"/><path class="sound-toggle__on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/><path class="sound-toggle__off" d="m16 9 6 6m0-6-6 6"/></svg>
-      </button>
-      <button type="button" class="icon-btn" id="favBtn" aria-label="Избранное" aria-controls="favDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg><span class="badge" id="favCount" hidden></span></button>
-      <button type="button" class="icon-btn" id="cartBtn" aria-label="Корзина" aria-controls="cartDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg><span class="badge" id="cartCount" hidden></span></button>
-    </div>
+      <button type="button" class="icon-btn icon-btn--fav" id="favBtn" aria-label="Избранное" aria-controls="favDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg><span class="badge" id="favCount" hidden></span></button>
+      <button type="button" class="icon-btn icon-btn--cart" id="cartBtn" aria-label="Корзина" aria-controls="cartDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11h10.6l2-7.5H6.4"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/></svg><span class="badge" id="cartCount" hidden></span></button>
   </div>
 </header>
 
@@ -47,10 +47,10 @@
     <div class="wrap">
       <h1 class="hero__title" id="heroTitle"><span>Коллекционные карточки</span></h1>
       <div class="cf" id="cf">
-        <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Карточки: листай влево и вправо"></div>
+        <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Коллекции: листай влево и вправо"></div>
       </div>
       <div class="cf__dots" id="cfDots" aria-hidden="true"></div>
-      <p class="cf__cap" aria-live="polite"><b id="cfName"></b><span><span id="cfUni"></span>, <span id="cfPrice"></span></span></p>
+      <p class="cf__cap" aria-live="polite"><b id="cfName"></b><span id="cfMeta"></span></p>
       <div class="unis" id="uniStrip" role="tablist" aria-label="Коллекции"></div>
       <div class="hero__text">
         <p class="lead">Стерео-карточки по аниме: наклони — и персонаж оживает. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
@@ -471,6 +471,6 @@
 
 <script src="data.js?v=6" defer></script>
 <script src="catalog.js" defer></script>
-<script src="app.js?v=22" defer></script>
+<script src="app.js?v=25" defer></script>
 </body>
 </html>

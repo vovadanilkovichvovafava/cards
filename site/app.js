@@ -384,7 +384,6 @@
   cfTrack.innerHTML = SHOW.map((u, i) => `
     <div class="cf__slide" role="group" aria-label="Коллекция ${esc(u.name)}" ${Math.floor(i / N) === 1 ? "" : 'aria-hidden="true"'}>
       <div class="cf__item">
-        <span class="cf__halo" aria-hidden="true"></span>
         <div class="flip"></div>
         <span class="cf__base" aria-hidden="true"></span>
       </div>

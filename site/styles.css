@@ -1144,3 +1144,5 @@ body {
 .cf__slide .face__lines { display: none; }
 .cf__slide .face__sheen { opacity: clamp(0, calc((var(--holo, 0) - .24) * 2.5), 1); }
 .cf__slide .face--front .face__holo { opacity: clamp(0, calc((var(--holo, 0) - .2) * .6), .4); }
+/* Верхнего кольца нет — сверху остаётся только небольшой отступ */
+.cf__track { padding-top: calc(var(--cw) * .14); }

@@ -2079,3 +2079,4 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
   .newcards:hover .newcards__track, .newcards:focus-within .newcards__track { animation-play-state: running; }
   .newcards:active .newcards__track { animation-play-state: paused; }
 }
+@media (max-width: 860px) { .hero__mark { display: none; } }

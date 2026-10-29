@@ -58,6 +58,7 @@ window.UNIVERSES = [
   {
     id: "aot",
     name: "Атака титанов",
+    mark: "Атака", // слово-фон за карточкой на главной (на компьютере)
     icon: "assets/brand/icon-aot.jpg",
     banner: "assets/brand/banner-aot.jpg?v=3",
     back: "assets/backs/aot.jpg",

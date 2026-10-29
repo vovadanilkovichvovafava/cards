@@ -454,7 +454,7 @@
     cfSlides.forEach((sl, j) => sl.classList.toggle("is-center", j === i));
     // Сцена окрашивается в цвет серии, за карточкой — её название
     $(".hero").style.setProperty("--acc", u.glow || u.accent);
-    $("#cfMark").textContent = (u.short || u.name).toUpperCase();
+    $("#cfMark").textContent = (u.mark || u.short || u.name).toUpperCase();
     $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i % N));
     $$("#uniStrip [data-u]").forEach((t) => {
       const on = t.dataset.u === u.id;

@@ -12,7 +12,7 @@
   <!-- Шрифты грузятся без блокировки отрисовки -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 
@@ -50,14 +50,7 @@
         <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Карточки: листай влево и вправо"></div>
       </div>
       <div class="cf__dots" id="cfDots" aria-hidden="true"></div>
-      <div class="cf__info">
-        <div class="cf__who"><span id="cfUni"></span><b id="cfName"></b></div>
-        <b class="cf__price" id="cfPrice"></b>
-        <div class="cf__act">
-          <button type="button" class="btn" id="cfOrder">Заказать</button>
-          <button type="button" class="heart heart--lg" id="cfFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
-        </div>
-      </div>
+      <p class="cf__cap" aria-live="polite"><b id="cfName"></b><span><span id="cfUni"></span>, <span id="cfPrice"></span></span></p>
       <div class="unis" id="uniStrip" role="tablist" aria-label="Коллекции"></div>
       <div class="hero__text">
         <p class="lead">Стерео-карточки по аниме: наклони — и персонаж оживает. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
@@ -478,6 +471,6 @@
 
 <script src="data.js?v=6" defer></script>
 <script src="catalog.js" defer></script>
-<script src="app.js?v=19" defer></script>
+<script src="app.js?v=21" defer></script>
 </body>
 </html>

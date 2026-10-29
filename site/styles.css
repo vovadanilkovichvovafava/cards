@@ -229,22 +229,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .hero__title::after { transform: scaleX(-1); }
 .hero__title span { margin-right: -.42em; }
 
-.cf { position: relative; margin: 8px 0 0; --cw: 250px; }
+/* Сцена — на всю ширину экрана, края мягко уходят в темноту */
+.cf { position: relative; margin: 4px calc(50% - 50vw) 0; --cw: 300px; }
 /* Отражающий пол под подиумами */
 .cf::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 38%; z-index: -1; pointer-events: none;
-  background: radial-gradient(70% 60% at 50% 40%, rgba(255, 40, 70, .18), transparent 70%),
-    linear-gradient(transparent, rgba(255, 255, 255, .02) 40%, transparent);
-  -webkit-mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+  content: ""; position: absolute; left: 0; right: 0; bottom: 40px; height: 42%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(22% 30% at 50% 26%, rgba(255, 90, 120, .4), transparent 70%),
+    radial-gradient(55% 60% at 50% 22%, rgba(255, 30, 60, .2), transparent 72%),
+    radial-gradient(80% 100% at 50% 0, rgba(40, 8, 14, .9), transparent 75%);
 }
 .cf__track {
-  position: relative; display: flex; gap: 34px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
-  padding: 112px calc(50% - var(--cw) / 2) 118px; perspective: 1400px; cursor: grab; scrollbar-width: none; outline: none;
+  position: relative; display: flex; gap: 22px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+  padding: 120px calc(50% - var(--cw) / 2) 130px; perspective: 1100px; perspective-origin: 50% 40%; cursor: grab; scrollbar-width: none; outline: none;
 }
 .cf__track::-webkit-scrollbar { display: none; }
 .cf::before {
   content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none;
-  background: linear-gradient(90deg, var(--bg), transparent 9%, transparent 91%, var(--bg));
+  background: linear-gradient(90deg, var(--bg), transparent 12%, transparent 88%, var(--bg));
+  -webkit-mask: linear-gradient(transparent, #000 20%, #000 75%, transparent); mask: linear-gradient(transparent, #000 20%, #000 75%, transparent);
 }
 .cf__track.is-drag { scroll-snap-type: none; cursor: grabbing; }
 .cf__track:focus-visible .is-center .face--front { outline: 3px solid var(--hot); outline-offset: 6px; }
@@ -286,16 +289,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .cf__dots i { width: 16px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .22); transition: .3s; }
 .cf__dots i.is-on { width: 34px; background: var(--hot); box-shadow: 0 0 10px var(--glow); }
 
-.cf__info {
-  display: flex; align-items: center; gap: 18px; width: min(560px, 100%); margin: 22px auto 0; padding: 12px 12px 12px 22px;
-  background: rgba(21, 5, 10, .72); border: var(--frame); border-radius: var(--radius); box-shadow: 0 0 30px -12px var(--glow);
-}
-.cf__who { flex: 1; min-width: 0; display: grid; line-height: 1.15; }
-.cf__who span { color: var(--hot); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.cf__who b { font-family: var(--display); font-weight: 400; font-size: 26px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cf__price { font-family: var(--display); font-weight: 400; font-size: 24px; white-space: nowrap; }
-.cf__act { display: flex; gap: 8px; }
-.cf__act .heart--lg { width: 48px; }
+.cf__cap { display: grid; justify-items: center; gap: 2px; margin: 14px 0 0; text-align: center; }
+.cf__cap b { font-family: var(--display); font-weight: 400; font-style: italic; font-size: 30px; line-height: 1.1; text-shadow: 0 0 18px var(--glow); }
+.cf__cap > span { color: var(--grey); font-size: 14px; }
 
 /* Полоса коллекций */
 .unis { display: flex; gap: 12px; margin-top: 26px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 4px 2px 8px; }
@@ -304,13 +300,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
   position: relative; flex: 1 0 190px; height: 80px; padding: 0; overflow: hidden; scroll-snap-align: start;
   border: var(--frame); border-radius: 12px; background: #000; color: #fff; transition: border-color .2s, box-shadow .2s;
 }
-.uni img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .6; transition: opacity .2s, transform .4s; }
+.uni img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .45; filter: saturate(.7); transition: opacity .2s, transform .4s; }
 .uni--text img { filter: brightness(.5) saturate(1.2); }
 .uni span:not(.sr) { position: relative; display: grid; place-items: center; height: 100%; padding: 0 12px; font-family: var(--display); font-size: 15px; line-height: 1.1; text-shadow: 0 2px 8px #000; }
 .uni em { position: absolute; top: 6px; right: 6px; font-style: normal; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgba(0, 0, 0, .7); border: var(--frame); }
 .uni:hover img { opacity: .85; }
 .uni.is-on { border: 2px solid var(--hot); box-shadow: 0 0 22px var(--glow), inset 0 0 16px rgba(255, 40, 70, .35); }
-.uni.is-on img { opacity: 1; }
+.uni.is-on img { opacity: 1; filter: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .hero__text { max-width: 640px; margin: 34px auto 0; text-align: center; }
@@ -764,13 +760,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
   .hero__title { font-size: 11px; letter-spacing: .26em; gap: 10px; white-space: nowrap; }
   .hero__title::before, .hero__title::after { flex-basis: 48px; }
   .hero__title span { margin-right: -.26em; }
-  .cf__track { gap: 6px; }
-  .cf { --cw: min(56vw, 230px); margin-inline: -16px; }
-  .cf__track { padding-block: 96px 100px; }
-  .cf__info { flex-wrap: wrap; gap: 10px 14px; padding: 12px 14px; }
-  .cf__who b { font-size: 22px; }
-  .cf__act { width: 100%; }
-  .cf__act .btn { flex: 1; }
+  .cf { --cw: min(64vw, 270px); }
+  .cf__track { gap: 0; }
+  .cf__track { padding-block: 100px 112px; perspective: 800px; }
   .unis { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
   .uni { flex: 0 0 140px; height: 62px; }
   .uni span:not(.sr) { font-size: 12px; }

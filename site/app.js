@@ -414,8 +414,6 @@
     $("#cfUni").textContent = uni(w.c.universe).name;
     $("#cfName").textContent = w.c.name;
     $("#cfPrice").textContent = money(CONFIG.prices[w.rarity]);
-    $("#cfFav").dataset.fav = workKey(w);
-    if (cfReady) syncHearts();
   }
   // Центры карточек считаем один раз (и при смене ширины), а не в каждом кадре:
   // чтение offsetLeft после записи стилей заставляло браузер пересчитывать раскладку
@@ -437,9 +435,11 @@
       // Карточки далеко за краем не трогаем
       if (a >= 3 && cfLast[i] >= 3) return;
       cfLast[i] = a;
-      const turn = Math.max(-1, Math.min(1, d)) * -34;
-      sl.style.transform = `translate3d(0, 0, ${(-a * 140).toFixed(1)}px) rotateY(${turn.toFixed(2)}deg) scale(${(1 - Math.min(a, 2) * 0.13).toFixed(3)})`;
-      sl.style.opacity = Math.max(0, Math.min(1, 1.6 - a * 0.45)).toFixed(3);
+      // Соседи уходят в глубину, разворачиваются к центру и сдвигаются к нему — как витрина по дуге
+      const k = Math.max(-1, Math.min(1, d));
+      const pull = Math.sign(d) * Math.min(a, 2) * cfW * (innerWidth > 860 ? 0.04 : 0.16);
+      sl.style.transform = `translate3d(${(-pull).toFixed(1)}px, ${(Math.min(a, 2) * 18).toFixed(1)}px, ${(-Math.min(a, 2.5) * 230).toFixed(1)}px) rotateY(${(k * -38).toFixed(2)}deg)`;
+      sl.style.opacity = Math.max(0, Math.min(1, 1.5 - a * 0.42)).toFixed(3);
       sl.style.zIndex = 10 - Math.round(a);
       // Перелив и смена кадра — только у карточек рядом с центром
       // В покое — чуть повёрнута к первому кадру: ровно «в лоб» оба кадра смешаны пополам
@@ -499,7 +499,6 @@
   });
   cfTrack.addEventListener("pointerleave", () => Sound.stop());
 
-  $("#cfOrder").addEventListener("click", () => openProduct(WORKS.indexOf(SHOW[cfCenter])));
   $("#uniStrip").addEventListener("click", (e) => {
     const t = e.target.closest("[data-u]");
     if (!t) return;

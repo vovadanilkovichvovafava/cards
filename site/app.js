@@ -663,7 +663,7 @@
     const list = CHARACTERS.filter((c) => c.universe === state.universe);
     $("#characterGrid").innerHTML =
       list.map((c) => {
-        const [a] = c.variants.special || c.variants.common;
+        const [a] = c.variants[state.rarity] || c.variants.special || c.variants.common; // миниатюра — в выбранной версии
         return `<button type="button" class="pick__item ${c.id === state.character ? "is-on" : ""}" data-c="${c.id}"><span class="pick__img"><img src="${sm(a)}" alt="" width="400" height="539" loading="lazy"></span><span class="pick__name">${esc(c.name)}</span></button>`;
       }).join("") +
       `<button type="button" class="pick__item pick__item--other ${state.character === "other" ? "is-on" : ""}" data-c="other"><span class="pick__img"><b>+</b></span><span class="pick__name">${list.length ? "Другой" : "Любой"}</span></button>`;
@@ -685,7 +685,8 @@
   }
 
   function unitPrice() {
-    return state.mode === "photo" ? CONFIG.prices.custom : CONFIG.prices[state.rarity];
+    // Индивидуальная карточка (по фото или свой персонаж под заказ) — по одной цене
+    return state.mode === "photo" || state.character === "other" ? CONFIG.prices.custom : CONFIG.prices[state.rarity];
   }
 
   function describeCard() {

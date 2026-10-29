@@ -686,8 +686,9 @@ h1 { font-size: clamp(40px, 5.2vw, 72px); line-height: 1.04; }
   /* Шапка в две строки: название · соцсети · меню, ниже звук · избранное · корзина · поиск */
   .nav__bar {
     column-gap: 8px; row-gap: 8px; padding: 8px 0;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "logo social burger" "tools search search";
+    /* Первая колонка — по ширине трёх кнопок, поэтому поиск начинается сразу за ними */
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "logo logo social burger" "tools search search search";
   }
   .logo { font-size: 23px; }
   .nav__social { justify-self: end; gap: 0; }
@@ -760,6 +761,12 @@ h1 { font-size: clamp(40px, 5.2vw, 72px); line-height: 1.04; }
 @media (max-width: 370px) {
   .logo { font-size: 19px; }
   .nav__social .icon-btn { width: 32px; }
+  .nav__tools .icon-btn { width: 38px; height: 38px; }
+  .search { padding: 0 8px; gap: 6px; }
+}
+
+@media (max-width: 340px) {
+  .logo { font-size: 17px; }
 }
 
 @media (max-width: 360px) {

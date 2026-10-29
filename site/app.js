@@ -1050,10 +1050,10 @@
   ];
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка
-  const narrow = matchMedia("(max-width: 860px)");
-  const setPh = () => (sInput.placeholder = narrow.matches ? "Найти героя" : "Найти персонажа или аниме");
+  const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 340px)");
+  const setPh = () => (sInput.placeholder = tiny.matches ? "Поиск" : narrow.matches ? "Найти героя" : "Найти персонажа или аниме");
   setPh();
-  narrow.addEventListener("change", setPh);
+  [narrow, tiny].forEach((m) => m.addEventListener("change", setPh));
   let sHits = [];
 
   function renderSearch() {

@@ -70,7 +70,7 @@
         <div class="flip__turn">
           <div class="face face--front"></div>
           <div class="face face--back"><img alt="Обратная сторона карточки" loading="lazy" width="600" height="824"><div class="face__holo"></div></div>
-          <i class="flip__edge flip__edge--l"></i><i class="flip__edge flip__edge--r"></i><i class="flip__edge flip__edge--t"></i><i class="flip__edge flip__edge--b"></i>
+          ${free ? Array.from({ length: 9 }, (_, k) => `<i class="flip__layer" style="--k:${(k / 8 - 0.5).toFixed(3)}"></i>`).join("") : ""}
         </div>
       </div>`;
     if (free) el.dataset.free = "";

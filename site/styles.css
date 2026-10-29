@@ -2087,17 +2087,13 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 .flip { --t: max(3px, 1.8cqw); --cw2: 50cqw; --ch2: calc(50cqw * 1051 / 780); }
 .flip .face--front { transform: translateZ(calc(var(--t) / 2)); }
 .flip .face--back { transform: rotateY(180deg) translateZ(calc(var(--t) / 2)); }
-.flip__edge {
-  position: absolute; left: 50%; top: 50%; pointer-events: none; backface-visibility: visible;
-  background: linear-gradient(90deg, #2a2730, #0d0c10 30%, #3a3640 50%, #0d0c10 70%, #2a2730);
+/* Толщина — стопка слоёв формы карточки между лицом и рубашкой (только там, где карточку крутят) */
+.flip__layer {
+  position: absolute; inset: 0; border-radius: 4.5% / 3.4%; pointer-events: none;
+  background: #17151b; box-shadow: inset 0 0 0 1px #2b2830;
+  transform: translateZ(calc(var(--t) * var(--k) * .96));
 }
-.flip__edge--l, .flip__edge--r { width: var(--t); height: calc(var(--ch2) * 2 * .93); margin: calc(var(--ch2) * -.93) 0 0 calc(var(--t) / -2); }
-.flip__edge--l { transform: rotateY(-90deg) translateZ(var(--cw2)); }
-.flip__edge--r { transform: rotateY(90deg) translateZ(var(--cw2)); }
-.flip__edge--t, .flip__edge--b { height: var(--t); width: calc(var(--cw2) * 2 * .91); margin: calc(var(--t) / -2) 0 0 calc(var(--cw2) * -.91);
-  background: linear-gradient(180deg, #2a2730, #0d0c10 30%, #3a3640 50%, #0d0c10 70%, #2a2730); }
-.flip__edge--t { transform: rotateX(90deg) translateZ(var(--ch2)); }
-.flip__edge--b { transform: rotateX(-90deg) translateZ(var(--ch2)); }
+.flip:not([data-free]) .face--front, .flip:not([data-free]) .face--back { --t: 0px; }
 
 /* Фон окна карточки — без красных точек */
 .lightbox { background: rgba(5, 4, 6, .94); }

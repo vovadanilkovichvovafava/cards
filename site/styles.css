@@ -2311,3 +2311,23 @@ h1.h2 { margin: 0; }
 /* Фон за окнами — ровное затемнение, без точек */
 .omodal, .drawer { background: rgba(5, 4, 6, .9); }
 .omodal .cpick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Подвал: почта и юридические ссылки */
+.footer__legal { display: grid; gap: 10px; flex-basis: 100%; padding-top: 18px; border-top: 1px solid var(--line); }
+.footer__legal a { color: var(--grey); font-size: 14px; }
+.footer__legal a:hover { color: var(--text); }
+.footer__legal .footer__mail { color: var(--text); font-size: 15px; margin-bottom: 6px; }
+@media (min-width: 861px) { .footer__legal { display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: baseline; } .footer__legal .footer__mail { margin: 0 auto 0 0; } }
+/* Юридические страницы и контакты */
+.legal h3 { font-size: 16px; margin: 26px 0 8px; }
+.legal p { color: var(--grey); font-size: 14.5px; line-height: 1.6; margin: 0 0 10px; max-width: 68ch; }
+.legal a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.legal__meta { font-size: 12.5px !important; }
+.todo { color: #f5b53c; }
+.contacts { list-style: none; padding: 0; margin: 22px 0; display: grid; gap: 8px; }
+.contacts li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+.contacts li span { color: var(--grey); font-size: 13px; }
+.contacts li a { font-weight: 600; overflow-wrap: anywhere; text-align: right; text-decoration: none; }
+.consent a { color: var(--text); text-decoration: underline; }
+.legal h1.h2 { overflow-wrap: anywhere; hyphens: auto; }
+@media (max-width: 860px) { .legal h1.h2 { font-size: 22px; } }

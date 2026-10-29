@@ -73,7 +73,8 @@ DB_BACK = re.compile(r"^/assets/collections/(\d+)\.jpg$")
 SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
-         "/prices": "prices.html", "/about": "about.html", "/how": "how.html"}
+         "/prices": "prices.html", "/about": "about.html", "/how": "how.html",
+         "/contacts": "contacts.html", "/privacy": "privacy.html", "/offer": "offer.html"}
 COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
 INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
 

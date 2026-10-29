@@ -2306,3 +2306,5 @@ body:has(.lightbox:not([hidden])) .toast, body:has(.omodal:not([hidden])) .toast
 .about li::before { content: counter(ab, decimal-leading-zero); position: absolute; left: 18px; top: 18px; font: 700 15px var(--display); color: var(--hot); }
 /* Заголовки страниц теперь h1 — тот же вид, что у h2 */
 h1.h2 { margin: 0; }
+.promo__col em { display: grid; justify-items: end; line-height: 1.1; }
+.promo__col em s { font: 500 11px var(--body); color: var(--grey); }

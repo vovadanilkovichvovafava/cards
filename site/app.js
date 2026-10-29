@@ -1466,13 +1466,20 @@
     // Коллекции, у которых есть карточки: все их карточки — как на странице коллекции
     const colSets = UNIVERSES.map((u) => ({ u, cards: WORKS.filter((w) => w.c.universe === u.id) })).filter((x) => x.cards.length);
     const setSum = (x) => x.cards.reduce((n, w) => n + CONFIG.prices[w.rarity], 0);
+    // Серия целиком: каждая пятая карточка самой серии — бесплатно (самые дешёвые)
+    const setFree = (x) => {
+      if (!CONFIG.promo41) return { n: 0, discount: 0 };
+      const units = x.cards.map((w) => CONFIG.prices[w.rarity]).sort((a, b) => a - b);
+      const n = Math.floor(units.length / 5);
+      return { n, discount: units.slice(0, n).reduce((a, v) => a + v, 0) };
+    };
     $("#promos").innerHTML = CONFIG.promos.map((p) => `
       <div class="promo"><span class="promo__tag">${esc(p.tag || "Акция")}</span><h3>${esc(p.title)}</h3><p>${esc(p.text || "")}</p>
         ${p.action === "buycollection" ? `<div class="promo__cols">${colSets.map((x) => `
             <button type="button" class="promo__col" data-buycol="${x.u.id}">
               <img src="${x.u.icon}" alt="" width="40" height="40" loading="lazy">
-              <span><b>${esc(x.u.short || x.u.name)}</b><small>${plural(x.cards.length, "карточка", "карточки", "карточек")}${CONFIG.promo41 && x.cards.length >= 4 ? ` + ${Math.floor(x.cards.length / 4)} 🎁` : ""}</small></span>
-              <em>${money(setSum(x))}</em>
+              <span><b>${esc(x.u.short || x.u.name)}</b><small>${plural(x.cards.length, "карточка", "карточки", "карточек")}${setFree(x).n ? `, ${setFree(x).n}\u00a0бесплатно` : ""}</small></span>
+              <em>${setFree(x).n ? `<s>${money(setSum(x))}</s>` : ""}${money(setSum(x) - setFree(x).discount)}</em>
             </button>`).join("")}</div>`
           : p.link ? `<a href="${esc(p.link)}" class="btn btn--sm">${esc(p.linkText || "Подробнее")}</a>` : ""}</div>`).join("");
     // Нажали на коллекцию — сразу форма заказа со всеми её карточками
@@ -1480,13 +1487,13 @@
       const b = e.target.closest("[data-buycol]");
       if (!b) return;
       const x = colSets.find((y) => y.u.id === b.dataset.buycol);
-      const gifts = CONFIG.promo41 ? Math.floor(x.cards.length / 4) : 0;
+      const f = setFree(x);
       sendOrder([
         `Привет! Хочу коллекцию «${x.u.name}» целиком:`,
         ...x.cards.map((w) => `• ${w.c.name} (${RARITY[w.rarity].toLowerCase()}): 1 × ${money(CONFIG.prices[w.rarity])}`),
         `• Всего карточек: ${x.cards.length}`,
-        gifts ? `• Акция 4+1: ${mystery(gifts)}` : null,
-        `• Сумма: ${money(setSum(x))}`,
+        f.n ? `• Акция 4+1: ${plural(f.n, "карточка", "карточки", "карточек")} из серии бесплатно, −${money(f.discount)}` : null,
+        `• Сумма: ${money(setSum(x) - f.discount)}`,
       ]);
     });
     $("#promo").hidden = false;

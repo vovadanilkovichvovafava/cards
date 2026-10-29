@@ -419,6 +419,7 @@
   }
   // Центры карточек считаем один раз (и при смене ширины), а не в каждом кадре:
   // чтение offsetLeft после записи стилей заставляло браузер пересчитывать раскладку
+  const CF_REST = -0.6;
   let cfCenters = [], cfW = 1;
   const cfMeasure = () => {
     cfW = cfSlides[0].offsetWidth;
@@ -441,7 +442,8 @@
       sl.style.opacity = Math.max(0, Math.min(1, 1.6 - a * 0.45)).toFixed(3);
       sl.style.zIndex = 10 - Math.round(a);
       // Перелив и смена кадра — только у карточек рядом с центром
-      if (a < 1.5) cfFlips[i].pose(Math.max(-1, Math.min(1, -d * 1.6)));
+      // В покое — чуть повёрнута к первому кадру: ровно «в лоб» оба кадра смешаны пополам
+      if (a < 1.5) cfFlips[i].pose(Math.max(-1, Math.min(1, CF_REST - d * 1.6)));
     });
     if (best !== cfCenter) cfSetCenter(best);
   }

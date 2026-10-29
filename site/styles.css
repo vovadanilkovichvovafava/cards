@@ -249,7 +249,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .cf__track.is-drag { scroll-snap-type: none; cursor: grabbing; }
 .cf__track:focus-visible .is-center .face--front { outline: 3px solid var(--hot); outline-offset: 6px; }
 .cf__slide {
-  position: relative; flex: none; width: var(--cw); scroll-snap-align: center;
+  position: relative; flex: none; width: var(--cw); scroll-snap-align: center; scroll-snap-stop: always;
   will-change: transform, opacity; backface-visibility: hidden;
 }
 .cf__slide .flip { cursor: pointer; }

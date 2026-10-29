@@ -2310,3 +2310,4 @@ h1.h2 { margin: 0; }
 .promo__col em s { font: 500 11px var(--body); color: var(--grey); }
 /* Фон за окнами — ровное затемнение, без точек */
 .omodal, .drawer { background: rgba(5, 4, 6, .9); }
+.omodal .cpick { grid-template-columns: repeat(3, minmax(0, 1fr)); }

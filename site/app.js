@@ -871,7 +871,7 @@
       const saved = JSON.parse(localStorage.getItem("orderContact") || "{}");
       if (saved.name && !$("#omName").value) $("#omName").value = saved.name;
       if (!$("#omContact").value) {
-        if (CONTACT[saved.method]) setMethod(saved.method);
+        if (CONTACT[saved.method] && $(`#omMethod [data-m="${saved.method}"]`)) setMethod(saved.method);
         if (saved.value || saved.contact) $("#omContact").value = saved.value || saved.contact;
       }
     } catch {}
@@ -933,7 +933,7 @@
       $("#omErr").hidden = false;
       return $("#omContact").focus();
     }
-    // В заказе сразу видно, куда писать: «WhatsApp: +7 …», «TikTok: @nick»
+    // В заказе сразу видно, куда писать: «ВК: vk.com/…», «TikTok: @nick»
     const contact = `${CONTACT[contactMethod].name}: ${value}`;
     if (!$("#omConsent").checked) {
       $("#omErr").textContent = "Отметь согласие — без него мы не можем принять контакт.";

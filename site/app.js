@@ -1407,14 +1407,28 @@
     // Бегущая строка: список дважды подряд, лента сдвигается на половину и начинается заново
     // картинки ленты грузим сразу — иначе при подгрузке строка «прыгает»
     const copy = one.replace(/<a class="newc"/g, '<a class="newc" tabindex="-1" aria-hidden="true"');
-    $("#newCards").innerHTML = `<div class="newcards__track">${one}${copy}${copy}</div>`;
-    // Бесконечная лента: едет сама, пальцем или мышью тянется в обе стороны с инерцией.
-    // Сдвиг всегда держим в пределах одного набора карточек — лента не кончается.
+    $("#newCards").innerHTML = `<div class="newcards__track">${one}</div>`;
+    // Бесконечная лента: каждая карточка — свой небольшой слой, скрипт переставляет их по кругу.
+    // (Одна широкая полоса на iPhone недорисовывается.) Едет сама, тянется пальцем/мышью с инерцией.
     const box = $("#newCards"), track = $(".newcards__track", box);
-    let x = 0, setW = 1, vel = 0, drag = null, moved = false, visible = true, last = 0;
+    let x = 0, step = 1, loopW = 1, items = [], vel = 0, drag = null, moved = false, visible = true, last = 0;
     const SPEED = reduceMotion ? 0 : 0.035; // px за мс
-    const measure = () => (setW = track.scrollWidth / 3 || 1);
-    const wrap = () => { x = ((x % setW) + setW) % setW; };
+    const measure = () => {
+      const first = track.querySelector(".newc");
+      step = first.offsetWidth + parseFloat(getComputedStyle(first).marginRight || 0);
+      // Копий столько, чтобы лента с запасом перекрывала экран
+      while (track.children.length * step < box.clientWidth + step * 2) track.insertAdjacentHTML("beforeend", copy);
+      items = [...track.children];
+      loopW = items.length * step;
+      track.style.height = first.offsetHeight + "px";
+    };
+    const place = () => {
+      items.forEach((el, i) => {
+        let p = ((i * step - x) % loopW + loopW) % loopW;
+        if (p > loopW - step) p -= loopW; // уходящая влево карточка встаёт в конец
+        el.style.transform = `translate3d(${p.toFixed(1)}px,0,0)`;
+      });
+    };
     const frame = (t) => {
       const dt = Math.min(48, t - (last || t)); last = t;
       if (!drag) {
@@ -1422,14 +1436,13 @@
         vel *= Math.pow(0.94, dt / 16);
         if (Math.abs(vel) < 0.002) vel = 0;
       }
-      wrap();
-      track.style.transform = `translate3d(${(-x - setW).toFixed(1)}px,0,0)`;
+      x = ((x % loopW) + loopW) % loopW;
+      place();
       if (visible) requestAnimationFrame(frame); else last = 0;
     };
-    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) requestAnimationFrame(frame); }).observe(box);
-    addEventListener("resize", measure);
-    track.querySelectorAll("img").forEach((im) => im.addEventListener("load", measure, { once: true }));
     measure();
+    new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) requestAnimationFrame(frame); }).observe(box);
+    addEventListener("resize", () => { measure(); place(); });
     box.addEventListener("pointerdown", (e) => {
       if (e.button > 0) return;
       drag = { x: e.clientX, y: e.clientY, lx: e.clientX, t: performance.now(), on: false };

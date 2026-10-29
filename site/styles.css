@@ -2146,3 +2146,7 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
   .lb-links .tool { flex: 1 1 0; min-width: 0; white-space: normal; text-align: center; line-height: 1.2; font-size: 10.5px; padding: 7px 4px; }
   .lb-links .tool .ico { flex: none; }
 }
+/* Лента новинок: карточки — отдельные слои, позицию задаёт скрипт */
+.newcards .newcards__track { position: relative; display: block; width: auto; transform: none !important; will-change: auto; }
+.newcards .newcards__track .newc { position: absolute; left: 0; top: 0; width: 200px; margin-right: 14px; will-change: transform; }
+@media (max-width: 760px) { .newcards .newcards__track .newc { width: 38vw; margin-right: 10px; } }

@@ -704,15 +704,36 @@
     preview.setBadge(state.recipient === "gift" ? state.giftName || "Подарок" : "");
   }
 
+  // Индивидуальная карточка — по фото или свой персонаж «под заказ»
+  const isCustom = () => state.mode === "photo" || state.character === "other";
+  // Акция 2+1: за каждые 2 индивидуальные карточки — любая карточка каталога в подарок (вместо 4+1)
+  const gifts21 = () => (CONFIG.promo21 !== false && isCustom() ? Math.floor(state.qty / 2) : 0);
+  const p41 = () => (isCustom() ? { free: 0, discount: 0, total: unitPrice() * state.qty } : promo41(unitPrice(), state.qty));
+  const giftName = () => {
+    const w = WORKS[+$("#gift21Card").value] || WORKS[0];
+    return `${w.c.name}, ${uni(w.c.universe).short || uni(w.c.universe).name} (${RARITY[w.rarity].toLowerCase()})`;
+  };
+  $("#gift21Card").innerHTML = WORKS.map((w, i) => `<option value="${i}">${esc(w.c.name)} — ${esc(uni(w.c.universe).short || uni(w.c.universe).name)}, ${RARITY[w.rarity].toLowerCase()}</option>`).join("");
+  $("#gift21Card").addEventListener("change", () => renderSummary());
+  const gift21Line = () => {
+    const n = gifts21();
+    if (!n) return null;
+    return n === 1 ? `в подарок: ${giftName()}` : `в подарок ${n} карточки из каталога (первая: ${giftName()}, остальные выберем в чате)`;
+  };
+
   function renderSummary() {
+    const g = gifts21();
+    $("#gift21").hidden = !g;
+    if (g) $("#gift21Text").textContent = g === 1 ? "— выбери карточку из каталога, она будет бесплатно." : `— тебе положено ${g} подарочные карточки: первую выбери здесь, остальные — в чате.`;
     const rows = [
       ["Карточка", describeCard()],
       state.mode === "photo" ? null : ["Версия", RARITY[state.rarity]],
       ["Количество", `${state.qty} × ${money(unitPrice())}`],
-      promo41(unitPrice(), state.qty).free ? ["Акция 4+1", mystery(promo41(unitPrice(), state.qty).free)] : null,
+      p41().free ? ["Акция 4+1", mystery(p41().free)] : null,
+      g ? ["Акция 2+1", gift21Line()] : null,
     ].filter(Boolean);
-    $("#summaryRows").innerHTML = rows.map(([k, v]) => `<div class="${k === "Акция 4+1" ? "is-promo" : ""}"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
-    $("#total").textContent = money(promo41(unitPrice(), state.qty).total);
+    $("#summaryRows").innerHTML = rows.map(([k, v]) => `<div class="${k.startsWith("Акция") ? "is-promo" : ""}"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+    $("#total").textContent = money(p41().total);
   }
 
   // Миниатюра и сумма в нижней панели (мобильные)
@@ -725,7 +746,7 @@
     $("#mbarThumb").style.backgroundImage = `url("${thumb || back}")`;
     $("#mbarThumb").style.backgroundColor = "#000";
     $("#mbarTitle").textContent = describeCard();
-    $("#mbarTotal").textContent = money(promo41(unitPrice(), state.qty).total);
+    $("#mbarTotal").textContent = money(p41().total);
   }
 
   function render() {
@@ -809,8 +830,9 @@
       state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
       state.mode === "photo" && state.photoText ? `• Текст: ${state.photoText}` : null,
       `• Количество: ${state.qty}`,
-      promoLine(promo41(unitPrice(), state.qty)),
-      `• Сумма: ${money(promo41(unitPrice(), state.qty).total)}`,
+      promoLine(p41()),
+      gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,
+      `• Сумма: ${money(p41().total)}`,
     ], { photos: state.mode === "photo" ? state.photos : [] })
   );
 
@@ -823,6 +845,10 @@
   if (qp.has("other")) {
     Object.assign(state, { mode: "character", universe: uni(qp.get("u")) ? qp.get("u") : state.universe, character: "other", otherChar: qp.get("other").slice(0, 60), rarity: "special" });
     $("#otherChar").value = state.otherChar;
+  }
+  if (qp.get("promo") === "21") {
+    state.qty = Math.max(state.qty, 2);
+    $("#builder .sub")?.insertAdjacentHTML("afterend", `<p class="promo-note"><b>Акция 2+1</b><span>Закажи 2 индивидуальные карточки — по фото или своего персонажа — и выбери любую карточку из каталога в подарок.</span></p>`);
   }
   if (qp.get("promo") === "41") {
     state.qty = Math.max(state.qty, 4);

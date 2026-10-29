@@ -2331,3 +2331,8 @@ h1.h2 { margin: 0; }
 .consent a { color: var(--text); text-decoration: underline; }
 .legal h1.h2 { overflow-wrap: anywhere; hyphens: auto; }
 @media (max-width: 860px) { .legal h1.h2 { font-size: 22px; } }
+/* Акция 2+1 в конструкторе */
+.gift21 { margin: 0 0 4px; padding: 16px; border-radius: 10px; background: rgba(216, 17, 47, .12); box-shadow: 0 0 0 1px rgba(216, 17, 47, .35); }
+.gift21__title { margin: 0 0 6px; font-size: 14px; color: var(--grey); }
+.gift21__title b { font-family: var(--display); color: var(--hot); }
+.gift21 select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .12); background: var(--well); color: var(--text); font: 16px var(--body); }

@@ -8,7 +8,10 @@
 #   дальше можно сразу слать карточки, они попадают в эту коллекцию.
 #
 # Добавлять и удалять карточки может только чат заказов (TELEGRAM_CHAT_ID).
-# Остальным бот на /start отвечает, как сделать заказ.
+#
+# Переписка с покупателями идёт через бота: всё, что покупатель пишет боту,
+# бот пересылает Владу; Влад отвечает «ответом» (reply) на пересланное
+# сообщение — и бот отправляет ответ покупателю. Ник Влада покупатели не видят.
 import json
 import os
 import re
@@ -57,6 +60,12 @@ class Store:
                 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )""")
         self.conn.run("""
+            CREATE TABLE IF NOT EXISTS relay (
+                admin_msg BIGINT PRIMARY KEY,
+                user_chat BIGINT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )""")
+        self.conn.run("""
             CREATE TABLE IF NOT EXISTS collections (
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -102,6 +111,14 @@ class Store:
     def delete(self, card_id):
         return self.run("DELETE FROM cards WHERE id = :id RETURNING name", id=card_id)
 
+    # --- переписка с покупателями: какое пересланное сообщение от какого покупателя ---
+    def relay_put(self, admin_msg, user_chat):
+        self.run("INSERT INTO relay (admin_msg, user_chat) VALUES (:m, :c) ON CONFLICT (admin_msg) DO NOTHING", m=admin_msg, c=user_chat)
+
+    def relay_get(self, admin_msg):
+        rows = self.run("SELECT user_chat FROM relay WHERE admin_msg = :m", m=admin_msg)
+        return rows[0][0] if rows else None
+
     # --- коллекции из бота: id на сайте — «c<номер>» ---
     def collections(self):
         rows = self.run("SELECT id, name FROM collections ORDER BY id")
@@ -145,6 +162,7 @@ class Bot:
         self.site = site_url.rstrip("/")
         self.state = {}  # chat_id → черновик карточки
         self.into = {}   # chat_id → (id, название) коллекции, куда сейчас добавляются карточки
+        self.greeted = {}  # покупателям «передали» пишем один раз за запуск
 
     def api(self, method, **fields):
         req = urllib.request.Request(f"https://api.telegram.org/bot{self.token}/{method}",
@@ -193,12 +211,41 @@ class Bot:
         chat = str(msg["chat"]["id"])
         text = (msg.get("text") or "").strip()
         if chat != self.admin:
-            if text.startswith("/start") or text.startswith("/help"):
-                link = f"\n\nЗаказать карточку: {self.site}" if self.site else ""
-                self.say(chat, "Привет! Это бот магазина Aniverse Flip — через него к нам приходят заказы с сайта. "
-                               "Оформи карточку на сайте, и мы напишем тебе туда, куда укажешь." + link)
-            return
+            return self.on_customer(chat, msg, text)
+        # Влад ответил (reply) на пересланное сообщение покупателя — отправляем ответ покупателю
+        rep_to = (msg.get("reply_to_message") or {}).get("message_id")
+        if rep_to:
+            user = self.store.relay_get(rep_to)
+            if user:
+                try:
+                    self.api("copyMessage", chat_id=user, from_chat_id=chat, message_id=msg["message_id"])
+                    return self.api("setMessageReaction", chat_id=chat, message_id=msg["message_id"],
+                                    reaction=[{"type": "emoji", "emoji": "👍"}])
+                except Exception as e:
+                    return self.say(chat, f"Не получилось отправить ответ покупателю: {e}")
         self.on_admin(chat, msg, text)
+
+    def on_customer(self, chat, msg, text):
+        if text.startswith("/start") or text.startswith("/help"):
+            link = f"\n\nКаталог и конструктор карточек: {self.site}" if self.site else ""
+            return self.say(chat, "Привет! Это Aniverse Flip 🃏\nНапиши сюда вопрос или что хочешь заказать — "
+                                  "мы ответим прямо в этом чате." + link)
+        # Пересылаем Владу: шапка с именем покупателя + само сообщение (фото, голос — что угодно)
+        u = msg.get("from") or {}
+        who = " ".join(x for x in (u.get("first_name"), u.get("last_name")) if x) or "Покупатель"
+        if u.get("username"):
+            who += f" (@{u['username']})"
+        try:
+            head = self.say(self.admin, f"💬 {who} пишет в бота. Ответь на это или следующее сообщение (reply) — ответ уйдёт покупателю.")
+            copy = self.api("copyMessage", chat_id=self.admin, from_chat_id=chat, message_id=msg["message_id"])
+            self.store.relay_put(head["message_id"], int(chat))
+            self.store.relay_put(copy["message_id"], int(chat))
+        except Exception as e:
+            print("bot relay error:", e, file=sys.stderr)
+            return self.say(chat, "Не получилось передать сообщение, попробуй ещё раз чуть позже.")
+        if not self.greeted.get(chat):
+            self.greeted[chat] = True
+            self.say(chat, "Передали — ответим здесь же, обычно в течение дня.")
 
     def on_admin(self, chat, msg, text):
         st = self.state.get(chat)

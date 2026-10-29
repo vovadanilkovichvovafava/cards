@@ -298,9 +298,10 @@
   $$("[data-production]").forEach((n) => (n.textContent = CONFIG.production));
   $$("[data-price]").forEach((n) => (n.textContent = money(CONFIG.prices[n.dataset.price])));
   $$("[data-price-min]").forEach((n) => (n.textContent = money(Math.min(...Object.values(CONFIG.prices)))));
-  $$("[data-tg-handle]").forEach((n) => (n.textContent = `@${CONFIG.telegram}`));
+  $$("[data-tg-handle]").forEach((n) => (n.textContent = `@${CONFIG.telegramBot || CONFIG.telegram}`));
   if (PAGE === "index") document.title = `${CONFIG.brand} — ${CONFIG.tagline.toLowerCase()}`;
-  const tgUrl = `https://t.me/${CONFIG.telegram}`;
+  // Покупатели пишут не лично Владу, а в бота — бот пересылает
+  const tgUrl = `https://t.me/${CONFIG.telegramBot || CONFIG.telegram}`;
   $("#tgLink").href = tgUrl;
 
   // ---------------------------------------------------------------

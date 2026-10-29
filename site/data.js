@@ -7,6 +7,8 @@ window.CONFIG = {
   tagline: "Стерео-карточки по аниме",
   // Ник в Telegram без @ — на него ведёт кнопка «Заказать»
   telegram: "bakayaarou",
+  // Бот: «Написать в Telegram» на сайте ведёт сюда, бот пересылает сообщения Владу
+  telegramBot: "aniverse_agent",
   // Соцсети для иконок в шапке: полная ссылка. Пусто — иконка покажет «скоро».
   instagram: "https://www.instagram.com/aniverse_3dcards",
   tiktok: "https://www.tiktok.com/@aniverse_3dcards",

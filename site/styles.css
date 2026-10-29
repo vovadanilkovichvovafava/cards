@@ -1334,3 +1334,64 @@ body { background: radial-gradient(900px 600px at 50% -10%, rgba(255, 50, 100, .
   .region { padding: 0 7px; font-size: 10px; }
 }
 .uni .uni__cap b { max-width: 100%; }
+
+/* ============================================================
+   Рендеры вместо CSS-рисунков: фон-зал и подиумы отрисованы в 3D
+   (Three.js: физические материалы, контровой свет, свечение)
+   ============================================================ */
+.hero {
+  background:
+    radial-gradient(42% 30% at 50% 58%, rgba(255, 50, 100, .16), transparent 70%),
+    linear-gradient(180deg, rgba(7, 9, 15, 0) 70%, #07090f),
+    url("assets/stage/backdrop-m.webp") center 40px / 100% auto no-repeat,
+    #07090f;
+}
+@media (min-width: 861px) {
+  .hero { background:
+    radial-gradient(30% 34% at 50% 56%, rgba(255, 50, 100, .14), transparent 70%),
+    linear-gradient(180deg, rgba(7, 9, 15, 0) 72%, #07090f),
+    url("assets/stage/backdrop-d.webp") center 0 / cover no-repeat,
+    #07090f; }
+}
+.cf::after { content: none; }
+.hero__title::before, .hero__title::after { height: 2px; background: linear-gradient(90deg, transparent, #ff3d6e 70%, #ff7a9c); box-shadow: 0 0 8px rgba(255, 60, 110, .8); }
+.hero__title::after { background: linear-gradient(270deg, transparent, #ff3d6e 70%, #ff7a9c); transform: none; }
+
+/* Подиум — отрендеренный глянцевый диск; у центральной карточки — с ярким розовым отсветом */
+.cf__base {
+  left: -22%; right: -22%; bottom: calc(var(--cw) * -.5); height: auto; aspect-ratio: 1160 / 333;
+  background: url("assets/stage/pedestal-side.webp") center / 100% 100% no-repeat; opacity: 1;
+}
+.cf__slide.is-center .cf__base { background-image: url("assets/stage/pedestal-center.webp"); }
+.cf__base::after { content: none; }
+/* Отсвет держателя на крышке подиума */
+.cf__base::before {
+  content: ""; position: absolute; left: 18%; right: 18%; top: 2%; height: 34%; border-radius: 50%; box-shadow: none; opacity: 0;
+  background: radial-gradient(closest-side, rgba(255, 70, 115, .75), rgba(255, 70, 115, .2) 60%, transparent);
+  transition: opacity .3s;
+}
+.cf__slide.is-center .cf__base::before { opacity: 1; }
+
+/* Держатель — тёмная акриловая пластина */
+.cf__item::before {
+  left: -6%; right: -6%; top: -4%; bottom: calc(var(--cw) * -.22); border-radius: 9% / 6.5%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .07), transparent 18%),
+    linear-gradient(180deg, rgba(30, 34, 50, .78), rgba(14, 16, 26, .9));
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 18px 30px -12px rgba(0, 0, 0, .8);
+}
+.cf__slide.is-center .cf__item::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .08), transparent 16%),
+    linear-gradient(180deg, rgba(58, 22, 40, .82), rgba(30, 14, 26, .94));
+  border: 1px solid rgba(255, 150, 180, .55);
+  box-shadow: inset 0 1px 0 rgba(255, 200, 215, .35), 0 0 26px rgba(255, 50, 100, .45), 0 0 70px rgba(255, 50, 100, .2);
+}
+/* Неоновая кромка вокруг самой карточки */
+.cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 255, 255, .14); }
+.cf__slide.is-center .face--front { box-shadow: 0 0 0 1.5px #ff6b8f, 0 0 14px rgba(255, 60, 110, .85); }
+.cf__label { bottom: calc(var(--cw) * -.165); text-shadow: 0 0 10px rgba(242, 181, 90, .45); }
+/* Держатель стоит на крышке подиума: подиум ниже и позади пластины */
+.cf__base { bottom: calc(var(--cw) * -.6); z-index: -2; }
+.cf__track { padding-bottom: calc(var(--cw) * .7); }

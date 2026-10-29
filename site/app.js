@@ -329,14 +329,7 @@
     const audio = new Audio();
     audio.preload = "none";
     // Звук выключен, пока пользователь сам его не включит
-    let on = false, src = null, fade = null, pending = null;
-    const unlock = () => {
-      removeEventListener("pointerdown", unlock, true);
-      removeEventListener("keydown", unlock, true);
-      if (pending && on) { const p = pending; pending = src = null; play(p); }
-    };
-    addEventListener("pointerdown", unlock, true);
-    addEventListener("keydown", unlock, true);
+    let on = false, src = null, fade = null;
     try { on = localStorage.getItem("sound") === "on"; } catch {}
 
     const sync = () => {
@@ -346,7 +339,6 @@
     ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, sync));
 
     function stop() {
-      pending = null;
       clearInterval(fade);
       if (audio.paused) return (src = null);
       // Затухание за ~300 мс, чтобы не обрывать фразу резко
@@ -363,8 +355,7 @@
       if (src === next && !audio.paused) return;
       src = next;
       audio.src = next;
-      // До первого клика по странице браузер запрещает звук — цитата сыграет сразу после него
-      audio.play().then(() => (pending = null), () => (pending = next));
+      audio.play().catch(() => {});
     }
 
     btn.addEventListener("click", () => {
@@ -527,12 +518,6 @@
     const i = cfSlides.indexOf(sl);
     i === cfCenter ? cfOpen() : cfGo(i);
   });
-  cfTrack.addEventListener("pointermove", (e) => {
-    if (e.pointerType !== "mouse" || !e.target.closest(".cf__slide.is-center")) return;
-    const q = CHARACTERS.find((c) => c.universe === SHOW[cfCenter].id && c.quote);
-    if (q) Sound.play(q.quote);
-  });
-  cfTrack.addEventListener("pointerleave", () => Sound.stop());
 
   // Полоса коллекций: листает витрину к ближайшей такой же коллекции
   $("#uniStrip").addEventListener("click", (e) => {
@@ -652,8 +637,6 @@
     if (!b) return;
     state.character = b.dataset.c;
     render();
-    const q = char(state.character)?.quote;
-    q ? Sound.play(q) : Sound.stop();
     if (state.character === "other") $("#otherChar").focus();
   });
 
@@ -1012,10 +995,6 @@
       $(".flip", item).addEventListener("click", () => openProduct(i));
       $(".work__meta", item).addEventListener("click", (e) => !e.target.closest("[data-fav]") && openProduct(i));
       $(".btn", item).addEventListener("click", () => openProduct(i));
-      if (w.c.quote) {
-        item.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && Sound.play(w.c.quote));
-        item.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && lb.hidden && Sound.stop());
-      }
       return f;
     });
 

@@ -2041,3 +2041,5 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
   opacity: 1; transform: translateY(-42%) !important;
 }
 @media (hover: none) { .col-tile.pack:hover > img.pack__card { opacity: 0; transform: none !important; } .col-tile.pack.is-open > img.pack__card { opacity: 1; transform: translateY(-42%) !important; } }
+/* Карточка в паке — почти во всю ширину */
+.col-tile.pack > img.pack__card { left: 6%; width: 88%; }

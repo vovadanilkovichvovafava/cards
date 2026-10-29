@@ -1976,3 +1976,5 @@ body { background: var(--bg); }                                   /* без «з
 }
 .logo::after { -webkit-text-fill-color: #a77bff; color: #a77bff; }
 @media (prefers-reduced-motion: reduce) { .logo__accent { animation: none; } }
+.howp__pic--gift img { width: 120px; aspect-ratio: var(--card-ratio); object-fit: cover; transform: rotate(-6deg); }
+.howp__tag { position: absolute; left: 50%; bottom: 26px; transform: translateX(10%) rotate(5deg); padding: 6px 12px; border-radius: 6px; background: var(--red); color: #fff; font-weight: 800; font-size: 13px; box-shadow: 0 8px 18px -6px #000; }

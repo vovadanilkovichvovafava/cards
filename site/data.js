@@ -116,9 +116,5 @@ window.CHARACTERS = [
   },
 ];
 
-// Видео живых карточек
-window.VIDEOS = [
-  { src: "assets/video/live-1.mp4?v=2", poster: "assets/video/live-1.jpg?v=3" },
-  { src: "assets/video/live-2.mp4?v=2", poster: "assets/video/live-2.jpg?v=3" },
-  { src: "assets/video/live-3.mp4?v=2", poster: "assets/video/live-3.jpg?v=3" },
-];
+// Видео живых карточек убраны с сайта
+window.VIDEOS = [];

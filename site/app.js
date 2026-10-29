@@ -43,7 +43,8 @@
 
   // mirror — элемент, которому тоже передаётся угол перелива (заголовок первого экрана)
   // rest — наклон в покое; canDrag — можно ли сейчас крутить; springBack — после отпускания вернуться лицом
-  function Flip(el, { interactive = true, free = false, mirror = null, rest = REST, canDrag = null, springBack = false } = {}) {
+  // hover — наклоняться за курсором мыши
+  function Flip(el, { interactive = true, free = false, mirror = null, rest = REST, canDrag = null, springBack = false, hover = true } = {}) {
     el.innerHTML = `
       <div class="flip__tilt">
         <div class="flip__turn">
@@ -121,6 +122,8 @@
         if (dragging) {
           const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
           if (!moved && Math.hypot(dx, dy) > 6) {
+            // Палец идёт в основном вертикально — это прокрутка страницы, карточку не трогаем
+            if (dragging.touch && !free && Math.abs(dy) > Math.abs(dx)) return void (dragging = null);
             moved = true;
             try { el.setPointerCapture(e.pointerId); } catch {}
           }
@@ -140,7 +143,7 @@
             return;
           }
         }
-        if (e.pointerType === "mouse" && (!canDrag || canDrag())) {
+        if (hover && e.pointerType === "mouse" && (!canDrag || canDrag())) {
           const r = el.getBoundingClientRect();
           lean(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
         }
@@ -400,7 +403,7 @@
   const cfFlips = cfSlides.map((sl, i) => {
     const u = SHOW[i], w = hero(u);
     // Центральную можно покрутить пальцем или мышью и увидеть переход кадров; отпустил — встаёт лицом
-    const f = Flip($(".flip", sl), { rest: -0.6, springBack: true, canDrag: () => sl.classList.contains("is-center") });
+    const f = Flip($(".flip", sl), { rest: -0.6, springBack: true, hover: false, canDrag: () => sl.classList.contains("is-center") });
     if (w) f.setImages(w.a, w.b, Math.abs(i - START) > 1);
     else f.setImages(u.back, u.back, Math.abs(i - START) > 1); // у серии ещё нет артов — показываем её обложку
     f.setBack(u.back);
@@ -477,6 +480,13 @@
     cfLayout();
   }
   cfTrack.addEventListener("scroll", cfQueue, { passive: true });
+  // Колесо и тачпад над витриной: в основном вертикальный жест — только прокрутка страницы,
+  // без случайного листания ленты боковой составляющей
+  cfTrack.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    scrollBy(0, e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1));
+  }, { passive: false });
   // На телефоне resize срабатывает и когда прячется адресная строка — реагируем только на смену ширины
   let cfWidth = innerWidth;
   addEventListener("resize", () => {

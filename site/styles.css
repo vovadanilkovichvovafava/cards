@@ -2150,3 +2150,13 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 .newcards .newcards__track { position: relative; display: block; width: auto; transform: none !important; will-change: auto; }
 .newcards .newcards__track .newc { position: absolute; left: 0; top: 0; width: 200px; margin-right: 14px; will-change: transform; }
 @media (max-width: 760px) { .newcards .newcards__track .newc { width: 38vw; margin-right: 10px; } }
+/* «Забери всю серию»: список коллекций с ценой */
+.promo__cols { display: grid; gap: 8px; width: 100%; margin-top: 4px; }
+.promo__col { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; width: 100%; padding: 8px 14px 8px 8px; text-align: left;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .03); color: var(--text); transition: border-color .2s, background .2s; }
+.promo__col:hover { border-color: rgba(216, 17, 47, .6); background: rgba(216, 17, 47, .08); }
+.promo__col img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+.promo__col span { display: grid; line-height: 1.25; min-width: 0; }
+.promo__col b { font: 600 13px var(--display); }
+.promo__col small { color: var(--grey); font-size: 12px; }
+.promo__col em { font: 700 15px var(--display); font-style: normal; white-space: nowrap; }

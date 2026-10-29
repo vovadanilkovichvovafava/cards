@@ -33,11 +33,13 @@
   const plural = (n, one, few, many) =>
     `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;
   // Акция 4+1 для нескольких одинаковых карточек: каждая пятая — бесплатно
+  // Акция 4+1: за каждые 4 карточки — пятая, мистери-карточка, в подарок (её выбираем мы)
   const promo41 = (unit, qty) => {
-    const free = window.CONFIG.promo41 ? Math.floor(qty / 5) : 0;
-    return { free, discount: free * unit, total: unit * qty - free * unit };
+    const free = window.CONFIG.promo41 ? Math.floor(qty / 4) : 0;
+    return { free, discount: 0, total: unit * qty };
   };
-  const promoLine = (p) => p.free ? `• Акция 4+1: ${p.free} в подарок, −${money(p.discount)}` : null;
+  const mystery = (n) => `+${n} ${n === 1 ? "мистери-карточка" : n < 5 ? "мистери-карточки" : "мистери-карточек"} в подарок`;
+  const promoLine = (p) => p.free ? `• Акция 4+1: ${mystery(p.free)}` : null;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ---------------------------------------------------------------
@@ -705,7 +707,7 @@
       ["Карточка", describeCard()],
       state.mode === "photo" ? null : ["Версия", RARITY[state.rarity]],
       ["Количество", `${state.qty} × ${money(unitPrice())}`],
-      promo41(unitPrice(), state.qty).free ? ["Акция 4+1", `${promo41(unitPrice(), state.qty).free} в подарок, −${money(promo41(unitPrice(), state.qty).discount)}`] : null,
+      promo41(unitPrice(), state.qty).free ? ["Акция 4+1", mystery(promo41(unitPrice(), state.qty).free)] : null,
     ].filter(Boolean);
     $("#summaryRows").innerHTML = rows.map(([k, v]) => `<div class="${k === "Акция 4+1" ? "is-promo" : ""}"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
     $("#total").textContent = money(promo41(unitPrice(), state.qty).total);
@@ -819,7 +821,7 @@
     Object.assign(state, { mode: "character", universe: uni(qp.get("u")) ? qp.get("u") : state.universe, character: "other", otherChar: qp.get("other").slice(0, 60), rarity: "special" });
     $("#otherChar").value = state.otherChar;
   }
-  if (qp.get("promo") === "41") state.qty = Math.max(state.qty, 5);
+  if (qp.get("promo") === "41") state.qty = Math.max(state.qty, 4);
   const preset = qp.get("preset");
   if (preset === "photo") state.mode = "photo";
   else if (preset === "common" || preset === "special") {
@@ -1198,9 +1200,8 @@
   function cartSum() {
     const units = cart.flatMap(({ k, qty }) => Array(qty).fill(CONFIG.prices[workByKey(k).rarity])).sort((a, b) => a - b);
     const full = units.reduce((n, v) => n + v, 0);
-    const free = CONFIG.promo41 ? Math.floor(units.length / 5) : 0;
-    const discount = units.slice(0, free).reduce((n, v) => n + v, 0);
-    return { count: units.length, full, free, discount, total: full - discount };
+    const free = CONFIG.promo41 ? Math.floor(units.length / 4) : 0;
+    return { count: units.length, full, free, discount: 0, total: full };
   }
 
   function renderCart() {
@@ -1219,8 +1220,8 @@
     $("#cartTotal").textContent = money(sum.total);
     $("#cartPromo").hidden = !CONFIG.promo41 || !sum.count;
     $("#cartPromo").innerHTML = sum.free
-      ? `Акция 4+1: ${plural(sum.free, "карточка", "карточки", "карточек")} в подарок, −${money(sum.discount)}`
-      : `Акция 4+1: добавь ещё ${plural(5 - (sum.count % 5), "карточку", "карточки", "карточек")} — и одна будет в подарок`;
+      ? `Акция 4+1: ${mystery(sum.free)} 🎁`
+      : `Акция 4+1: добавь ещё ${plural(4 - (sum.count % 4), "карточку", "карточки", "карточек")} — и получишь мистери-карточку в подарок`;
     $("#cartPromo").classList.toggle("is-on", sum.free > 0);
   }
 
@@ -1243,7 +1244,7 @@
       `Привет! Хочу заказать карточки:`,
       ...items.map(({ w, qty }) => `• ${w.c.name}, ${uni(w.c.universe).name} (${RARITY[w.rarity].toLowerCase()}): ${qty} × ${money(CONFIG.prices[w.rarity])}`),
       `• Всего карточек: ${cartSum().count}`,
-      cartSum().free ? `• Акция 4+1: ${plural(cartSum().free, "карточка", "карточки", "карточек")} в подарок, −${money(cartSum().discount)}` : null,
+      cartSum().free ? `• Акция 4+1: ${mystery(cartSum().free)}` : null,
       `• Сумма: ${money(cartSum().total)}`,
     ], { onSent: () => setCart([]) });
   });
@@ -1470,25 +1471,30 @@
     box.addEventListener("dragstart", (e) => e.preventDefault());
   }
   if ($("#promos") && (CONFIG.promos || []).length) {
-    const allChars = CHARACTERS.map((c) => WORKS.find((w) => w.c === c && w.rarity === "special") || WORKS.find((w) => w.c === c)).filter(Boolean);
-    const allSum = allChars.reduce((n, w) => n + CONFIG.prices[w.rarity], 0);
-    const allFree = CONFIG.promo41 ? allChars.map((w) => CONFIG.prices[w.rarity]).sort((a, b) => a - b).slice(0, Math.floor(allChars.length / 5)).reduce((n, v) => n + v, 0) : 0;
+    // Коллекции, у которых есть карточки: все их карточки — как на странице коллекции
+    const colSets = UNIVERSES.map((u) => ({ u, cards: WORKS.filter((w) => w.c.universe === u.id) })).filter((x) => x.cards.length);
+    const setSum = (x) => x.cards.reduce((n, w) => n + CONFIG.prices[w.rarity], 0);
     $("#promos").innerHTML = CONFIG.promos.map((p) => `
       <div class="promo"><span class="promo__tag">${esc(p.tag || "Акция")}</span><h3>${esc(p.title)}</h3><p>${esc(p.text || "")}</p>
-        ${p.action === "buyall" ? `<p class="promo__price">${plural(allChars.length, "карточка", "карточки", "карточек")}: ${allFree ? `<s>${money(allSum)}</s> ` : ""}<b>${money(allSum - allFree)}</b></p>
-          <button type="button" class="btn btn--sm" data-buyall>${esc(p.linkText || "Оформить")}</button>`
+        ${p.action === "buycollection" ? `<div class="promo__cols">${colSets.map((x) => `
+            <button type="button" class="promo__col" data-buycol="${x.u.id}">
+              <img src="${x.u.icon}" alt="" width="40" height="40" loading="lazy">
+              <span><b>${esc(x.u.short || x.u.name)}</b><small>${plural(x.cards.length, "карточка", "карточки", "карточек")}${CONFIG.promo41 && x.cards.length >= 4 ? ` + ${Math.floor(x.cards.length / 4)} 🎁` : ""}</small></span>
+              <em>${money(setSum(x))}</em>
+            </button>`).join("")}</div>`
           : p.link ? `<a href="${esc(p.link)}" class="btn btn--sm">${esc(p.linkText || "Подробнее")}</a>` : ""}</div>`).join("");
-    // «Купить весь каталог» — сразу форма заказа со всеми карточками и скидкой 4+1
+    // Нажали на коллекцию — сразу форма заказа со всеми её карточками
     $("#promos").addEventListener("click", (e) => {
-      if (!e.target.closest("[data-buyall]")) return;
-      const units = allChars.map((w) => CONFIG.prices[w.rarity]).sort((a, b) => a - b);
-      const free = CONFIG.promo41 ? Math.floor(units.length / 5) : 0;
+      const b = e.target.closest("[data-buycol]");
+      if (!b) return;
+      const x = colSets.find((y) => y.u.id === b.dataset.buycol);
+      const gifts = CONFIG.promo41 ? Math.floor(x.cards.length / 4) : 0;
       sendOrder([
-        `Привет! Хочу купить весь каталог:`,
-        ...allChars.map((w) => `• ${w.c.name}, ${uni(w.c.universe).name} (${RARITY[w.rarity].toLowerCase()}): 1 × ${money(CONFIG.prices[w.rarity])}`),
-        `• Всего карточек: ${allChars.length}`,
-        free ? `• Акция 4+1: ${free} в подарок, −${money(allFree)}` : null,
-        `• Сумма: ${money(allSum - allFree)}`,
+        `Привет! Хочу коллекцию «${x.u.name}» целиком:`,
+        ...x.cards.map((w) => `• ${w.c.name} (${RARITY[w.rarity].toLowerCase()}): 1 × ${money(CONFIG.prices[w.rarity])}`),
+        `• Всего карточек: ${x.cards.length}`,
+        gifts ? `• Акция 4+1: ${mystery(gifts)}` : null,
+        `• Сумма: ${money(setSum(x))}`,
       ]);
     });
     $("#promo").hidden = false;

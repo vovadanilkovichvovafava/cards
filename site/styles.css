@@ -2032,3 +2032,12 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 }
 /* «FLIP» прозрачный только внутри логотипа (там его красит градиент); в тексте — красный */
 :not(.logo) > .logo__accent { -webkit-text-fill-color: var(--hot); color: var(--hot); background: none; }
+/* Карточка спрятана внутри пака целиком; при открытии ровно выходит вверх из разорванного края */
+.col-tile.pack > img.pack__card {
+  inset: auto; left: 15%; top: 13%; width: 70%; height: auto; z-index: 1; opacity: 0;
+  transform: translateY(0); transition: transform .45s cubic-bezier(.3, .7, .2, 1) .08s, opacity .15s;
+}
+.col-tile.pack:hover > img.pack__card, .col-tile.pack:focus-visible > img.pack__card, .col-tile.pack.is-open > img.pack__card {
+  opacity: 1; transform: translateY(-42%) !important;
+}
+@media (hover: none) { .col-tile.pack:hover > img.pack__card { opacity: 0; transform: none !important; } .col-tile.pack.is-open > img.pack__card { opacity: 1; transform: translateY(-42%) !important; } }

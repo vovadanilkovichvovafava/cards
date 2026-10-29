@@ -98,7 +98,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.cache_forever = False  # один обработчик может отвечать на несколько запросов подряд
         path_only = self.path.split("?", 1)[0]
         if path_only == "/health":
-            return self.reply(200, {"ok": True})
+            db = None
+            if STORE:
+                try:
+                    db = len(STORE.cards())  # сколько карточек добавлено через бота
+                except Exception as e:
+                    db = f"error: {type(e).__name__}"
+            return self.reply(200, {"ok": True, "db": db})
         if path_only == "/catalog.js":
             body = ("window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
             return self.send_body(200, "application/javascript; charset=utf-8", body)

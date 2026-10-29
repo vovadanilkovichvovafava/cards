@@ -1996,3 +1996,39 @@ body { background: var(--bg); }                                   /* без «з
 }
 .logo::after { content: "✦"; position: absolute; right: 0; top: -.05em; font-size: .5em; font-style: normal; -webkit-text-fill-color: #ff3d5e; color: #ff3d5e; text-shadow: 0 0 10px rgba(255, 50, 90, .6); }
 @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
+
+/* ============================================================
+   Unbounded везде, кроме обычного текста абзацев (он остаётся Golos)
+   ============================================================ */
+:root { --display: "Unbounded", "Golos Text", system-ui, sans-serif; }
+h1, h2, h3, .h2, .logo, .btn, .tool, .seg button, .chip, .cpick button, .menu a, .field legend,
+.price h3, .price__v, .summary__total, .summary__total b, .work__buy b, .work__meta b, .lb-buy__price b, .lightbox__meta h3,
+.cart-total, .cart-total b, .ditem__info b, .ditem__info em, .newc b, .promo h3, .promo__price b, .promo__tag, .col-tile__info b,
+.collection__head h3, .step h3, .howp__txt h3, .howp__n, .step::before, .field__n, .price__tag, .badge, .region, .cf__label,
+.hero__title, .sechead__more, .faq summary, .about b, .omodal__lines dt, .omodal__lines .is-total dd, .mbar__info b, .drawer__head h3,
+.newc b em, .col-tile__tag, .lb-uni, .qty output, .uni__name {
+  font-family: var(--display);
+}
+/* Размеры и насыщенность — спокойные, как на витрине */
+.logo { font-family: var(--display); font-style: normal; font-weight: 700; letter-spacing: -.025em; }
+.h2 { font-weight: 700; font-size: clamp(24px, 3.2vw, 40px); letter-spacing: -.02em; }
+h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 { font-weight: 600; letter-spacing: -.01em; }
+.btn { font-weight: 600; font-size: 13px; letter-spacing: 0; }
+.btn--sm, .work__buy .btn { font-size: 11.5px; }
+.tool, .seg button, .chip, .cpick button { font-weight: 500; font-size: 12px; }
+.menu a { font-weight: 600; font-size: 17px; }
+.field legend { font-weight: 600; font-size: 14px; }
+.price__v, .summary__total b, .cart-total b, .lb-buy__price b { font-weight: 700; letter-spacing: -.02em; }
+.faq summary { font-weight: 500; font-size: 14px; }
+.hero__title { font-weight: 500; font-size: 11px; }
+.cf__label { font-weight: 600; font-size: 12px; letter-spacing: .14em; }
+.region { font-weight: 500; }
+@media (max-width: 860px) {
+  .h2 { font-size: 22px; }
+  .btn { font-size: 12px; }
+  .menu a { font-size: 15px; }
+  .faq summary { font-size: 13px; }
+  .tool, .seg button, .chip, .cpick button { font-size: 11px; }
+}
+/* «FLIP» прозрачный только внутри логотипа (там его красит градиент); в тексте — красный */
+:not(.logo) > .logo__accent { -webkit-text-fill-color: var(--hot); color: var(--hot); background: none; }

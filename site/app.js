@@ -176,6 +176,8 @@
       },
       // Поставить наклон сразу, без анимации (витрина двигает карточки при прокрутке)
       pose,
+      // Повернуть вокруг вертикальной оси сразу (вращение на подиуме)
+      spin(deg) { tgt.y = cur.y = deg; vel.y = 0; render(); },
       setCustom(html) { front.innerHTML = html; },
       setBack(src) { backImg.src = src; },
       setBadge(text) {
@@ -387,6 +389,7 @@
   const cfFlips = cfSlides.map((sl, i) => {
     const f = Flip($(".flip", sl), { interactive: false });
     f.setImages(SHOW[i].a, SHOW[i].b, Math.abs(i - START) > 1);
+    f.setBack(uni(SHOW[i].c.universe).back);
     return f;
   });
   $("#cfDots").innerHTML = SHOW.map(() => "<i></i>").join("");
@@ -488,7 +491,26 @@
   // Сама листается, пока человек её не тронул и пока она на экране
   let cfVisible = true;
   new IntersectionObserver(([en]) => (cfVisible = en.isIntersecting)).observe(cfTrack);
-  setInterval(() => { if (cfAuto && cfVisible && !document.hidden) cfGo(cfCenter + 1); }, 4200);
+  setInterval(() => { if (cfAuto && cfVisible && !document.hidden) cfGo(cfCenter + 1); }, 7000);
+
+  // Центральная карточка вращается на подиуме: стоит лицом, делает полный оборот
+  // (видна и рубашка серии), снова стоит. При смене карточки цикл начинается заново.
+  const SPIN = { hold: 1200, turn: 4200, cycle: 7000 };
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  let spinOf = -1, spinT0 = 0;
+  const spinLoop = (t) => {
+    if (cfCenter !== spinOf) {
+      if (spinOf > -1) cfFlips[spinOf].spin(0);
+      spinOf = cfCenter;
+      spinT0 = t;
+    }
+    if (spinOf > -1 && cfVisible && !cfDrag) {
+      const k = (((t - spinT0) % SPIN.cycle) - SPIN.hold) / SPIN.turn;
+      cfFlips[spinOf].spin(k <= 0 || k >= 1 ? 0 : ease(k) * 360);
+    }
+    requestAnimationFrame(spinLoop);
+  };
+  if (!reduceMotion) requestAnimationFrame(spinLoop);
 
   // После того как весь скрипт отработал (избранное готово) — встаём на стартовую карточку
   requestAnimationFrame(() => {

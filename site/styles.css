@@ -209,9 +209,21 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .hero::before {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(60% 45% at 50% 58%, rgba(255, 30, 60, .28), transparent 70%),
-    linear-gradient(115deg, transparent 30%, rgba(255, 40, 70, .1) 31%, transparent 34%),
-    linear-gradient(65deg, transparent 62%, rgba(255, 40, 70, .08) 63%, transparent 66%);
+    radial-gradient(45% 40% at 50% 62%, rgba(255, 30, 60, .38), transparent 70%),
+    radial-gradient(30% 25% at 50% 20%, rgba(255, 60, 90, .18), transparent 70%),
+    radial-gradient(25% 60% at 0% 40%, rgba(255, 20, 50, .22), transparent 70%),
+    radial-gradient(25% 60% at 100% 40%, rgba(255, 20, 50, .22), transparent 70%);
+}
+/* Косые световые лучи, как в рендере макета */
+.hero::after {
+  content: ""; position: absolute; inset: -20% -10%; z-index: -1; pointer-events: none; filter: blur(2px);
+  background:
+    linear-gradient(118deg, transparent 18%, rgba(255, 60, 90, .0) 20%, rgba(255, 70, 100, .35) 20.4%, transparent 21.2%),
+    linear-gradient(118deg, transparent 24%, rgba(255, 90, 120, .18) 24.3%, transparent 25.5%),
+    linear-gradient(62deg, transparent 74%, rgba(255, 70, 100, .3) 74.4%, transparent 75.2%),
+    linear-gradient(62deg, transparent 79%, rgba(255, 90, 120, .14) 79.3%, transparent 80.6%),
+    linear-gradient(170deg, transparent 8%, rgba(255, 40, 70, .12) 9%, transparent 14%);
+  -webkit-mask: linear-gradient(transparent, #000 15%, #000 70%, transparent); mask: linear-gradient(transparent, #000 15%, #000 70%, transparent);
 }
 .hero__title { display: flex; align-items: center; justify-content: center; gap: 18px; font: 700 15px/1.2 var(--body); letter-spacing: .42em; text-transform: uppercase; color: #ffd3da; text-shadow: 0 0 14px var(--glow); }
 .hero__title::before, .hero__title::after { content: ""; flex: 0 1 140px; height: 1px; background: linear-gradient(90deg, transparent, var(--hot)); box-shadow: 0 0 8px var(--glow); }
@@ -228,7 +240,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 }
 .cf__track {
   position: relative; display: flex; gap: 34px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
-  padding: 74px calc(50% - var(--cw) / 2) 96px; perspective: 1400px; cursor: grab; scrollbar-width: none; outline: none;
+  padding: 112px calc(50% - var(--cw) / 2) 118px; perspective: 1400px; cursor: grab; scrollbar-width: none; outline: none;
   -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
 .cf__track::-webkit-scrollbar { display: none; }
@@ -243,23 +255,29 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .cf__slide .flip { cursor: pointer; }
 .cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 140, 155, .45), 0 0 26px -6px var(--glow); }
 .cf__slide.is-center .face--front { box-shadow: 0 0 0 1.5px rgba(255, 180, 190, .9), 0 0 34px rgba(255, 40, 70, .75), 0 0 90px rgba(255, 40, 70, .35); }
-/* Подиум: светящийся диск и луч вверх; кольцо-держатель над карточкой */
+/* Подиум и кольцо-держатель — детали из рендера макета (чёрный фон переведён в прозрачность) */
 .cf__base {
-  position: absolute; left: -16%; right: -16%; bottom: -66px; height: 44px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(closest-side, #fff 0 5%, rgba(255, 90, 115, .95) 14%, rgba(255, 40, 70, .35) 36%, rgba(40, 8, 14, .96) 58%, #12040a 100%);
-  box-shadow: 0 0 0 1.5px rgba(255, 110, 130, .5), 0 9px 0 -1px #1d070c, 0 10px 0 0 rgba(255, 70, 95, .35), 0 0 40px rgba(255, 40, 70, .4);
-  opacity: .6; transition: opacity .3s;
-}
-.cf__base::before {
-  content: ""; position: absolute; left: 26%; right: 26%; bottom: 50%; height: 120px; border-radius: 50% 50% 0 0;
-  background: linear-gradient(to top, rgba(255, 70, 100, .45), transparent); filter: blur(8px);
-}
-.cf__halo {
-  position: absolute; left: -6%; right: -6%; top: -52px; height: 26px; border-radius: 50%; pointer-events: none;
-  border: 2px solid rgba(255, 200, 208, .55); background: radial-gradient(closest-side, rgba(255, 255, 255, .35), rgba(255, 60, 90, .15) 60%, transparent);
-  box-shadow: 0 0 12px rgba(255, 60, 90, .6), inset 0 0 10px rgba(255, 60, 90, .5), 0 8px 0 -3px #1a0609;
+  position: absolute; left: -34%; right: -34%; bottom: -78px; aspect-ratio: 840 / 192; pointer-events: none;
+  background: url("assets/stage/pedestal.webp") center / 100% 100% no-repeat;
   opacity: .55; transition: opacity .3s;
 }
+.cf__base::before {
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: 46%; height: 130px; border-radius: 50% 50% 0 0;
+  background: linear-gradient(to top, rgba(255, 80, 110, .5), transparent); filter: blur(10px); opacity: 0; transition: opacity .3s;
+}
+.cf__halo {
+  position: absolute; left: -18%; right: -18%; top: -98px; aspect-ratio: 628 / 160; pointer-events: none;
+  background: url("assets/stage/halo.webp") center / 100% 100% no-repeat;
+  opacity: .5; transition: opacity .3s;
+}
+.cf__halo::after {
+  content: ""; position: absolute; left: 30%; right: 30%; top: 60%; height: 90px;
+  background: linear-gradient(rgba(255, 120, 140, .35), transparent); filter: blur(12px); opacity: 0; transition: opacity .3s;
+}
+.cf__slide.is-center .cf__base::before, .cf__slide.is-center .cf__halo::after { opacity: 1; }
+/* Акриловая подставка: прозрачная рамка вокруг карточки, вращается вместе с ней */
+.cf__slide .face--front { outline: 1.5px solid rgba(255, 190, 200, .35); outline-offset: 5px; }
+.cf__slide.is-center .face--front { outline-color: rgba(255, 210, 218, .85); }
 .cf__slide.is-center .cf__base, .cf__slide.is-center .cf__halo { opacity: 1; }
 
 .cf__nav {
@@ -756,7 +774,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
   .hero__title span { margin-right: -.26em; }
   .cf__track { gap: 6px; }
   .cf { --cw: min(56vw, 230px); margin-inline: -16px; }
-  .cf__track { padding-block: 62px 84px; }
+  .cf__track { padding-block: 96px 100px; }
   .cf__nav { width: 40px; height: 40px; }
   .cf__nav--prev { left: 10px; }
   .cf__nav--next { right: 10px; }

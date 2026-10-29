@@ -1978,3 +1978,21 @@ body { background: var(--bg); }                                   /* без «з
 @media (prefers-reduced-motion: reduce) { .logo__accent { animation: none; } }
 .howp__pic--gift img { width: 120px; aspect-ratio: var(--card-ratio); object-fit: cover; transform: rotate(-6deg); }
 .howp__tag { position: absolute; left: 50%; bottom: 26px; transform: translateX(10%) rotate(5deg); padding: 6px 12px; border-radius: 6px; background: var(--red); color: #fff; font-weight: 800; font-size: 13px; box-shadow: 0 8px 18px -6px #000; }
+/* Логотип как в красной неоновой версии: курсив капсом, по всей надписи течёт
+   градиент красный → розовый → белый, под «FLIP» — взмах, рядом искра */
+.logo {
+  font-family: "Dela Gothic One", var(--display); font-weight: 400; font-style: italic; text-transform: uppercase; letter-spacing: -.02em;
+  position: relative; padding-right: .5em;
+  background: linear-gradient(100deg, #b80d22 0%, #ff1f3d 38%, #ff5a72 56%, #fff1f4 64%, #ffd3db 82%, #ff9fb0 100%);
+  background-size: 160% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: logo-flow 6s ease-in-out infinite alternate;
+}
+.logo__accent { background: none; -webkit-text-fill-color: transparent; animation: none; }
+.logo::before {
+  content: ""; position: absolute; right: .55em; bottom: -.16em; width: 2.4em; height: .42em; pointer-events: none;
+  border-bottom: .05em solid #ff3d5e; border-radius: 0 0 60% 60% / 0 0 100% 100%; transform: rotate(-5deg);
+  filter: drop-shadow(0 0 6px rgba(255, 50, 90, .6));
+}
+.logo::after { content: "✦"; position: absolute; right: 0; top: -.05em; font-size: .5em; font-style: normal; -webkit-text-fill-color: #ff3d5e; color: #ff3d5e; text-shadow: 0 0 10px rgba(255, 50, 90, .6); }
+@media (prefers-reduced-motion: reduce) { .logo { animation: none; } }

@@ -2169,3 +2169,119 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 .newcards .newcards__track .newc { position: static; flex: 0 0 200px; width: 200px; transform: none !important; will-change: auto; }
 @media (max-width: 760px) { .newcards .newcards__track .newc { flex-basis: 40vw; width: 40vw; } }
 .newcards::before, .newcards::after { display: none; }
+
+/* ============================================================
+   Мобильный аудит (5 ревьюеров): касания, ритм, окна, тексты
+   ============================================================ */
+html { scroll-padding-bottom: 96px; }
+.search input { font-size: 16px; }                       /* иначе iOS увеличивает страницу при фокусе */
+.newc b em { display: none; }                             /* «Новинка» дублировала заголовок раздела */
+.newc__img { line-height: 0; }
+.newc__img img { display: block; }
+.sechead__more { color: var(--text); padding: 10px 0; margin: -10px 0; }
+.sechead__more::after { content: " →"; color: var(--hot); }
+.collection__empty p { display: block; padding: 0; background: none; }
+.collection__empty { display: grid; justify-items: start; gap: 16px; padding: 24px 20px; }
+.collection__head { align-items: start; }
+.col-tile__info span, .collection__head .note, .note--center, .summary__rows b { text-wrap: balance; }
+.pack__top::after { opacity: .5; }
+.cf__dots i { padding: 10px 0; background-clip: content-box; height: 22px; }
+.cf__dots i.is-on { height: 22px; }
+.lb-cta .heart--lg { height: auto; align-self: stretch; }
+.promo__col::after { content: "›"; font: 600 22px var(--display); color: var(--grey); }
+.promo__col { grid-template-columns: 40px 1fr auto 12px; }
+.cpick { display: grid; grid-template-columns: repeat(3, 1fr); }
+.omodal__alt { padding: 11px 8px; }
+.footer__nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.footer__nav a { color: var(--grey); font-size: 13px; padding: 6px 0; }
+.footer__nav a:hover { color: var(--text); }
+.footer__copy { margin: 0; flex-basis: 100%; color: var(--grey); font-size: 12px; opacity: .7; }
+.footer__brand .note { margin-top: 6px; }
+/* Уведомление, когда открыто окно, — сверху, чтобы не закрывать кнопки */
+body:has(.lightbox:not([hidden])) .toast, body:has(.omodal:not([hidden])) .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+/* Окно заказа: прокручивается само окно, крестик всегда виден */
+.omodal__box { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.omodal__box .lightbox__close { position: sticky; top: 0; float: right; margin: -6px -6px 0 0; z-index: 3; }
+
+@media (max-width: 860px) {
+  /* Шапка: цели касания 36 px, поиск забирает остаток */
+  .soc, .nav__social .sound-toggle { width: 34px; height: 34px; }
+  .soc svg { width: 18px; height: 18px; }
+  .nav__social .sound-toggle svg { width: 17px; height: 17px; }
+  .burger { width: 34px; height: 36px; }
+  .burger svg { width: 22px; height: 22px; }
+  .icon-btn--fav, .icon-btn--cart { width: 36px; height: 36px; }
+  .icon-btn--fav .ico, .icon-btn--cart .ico { width: 17px; height: 17px; }
+  .search { height: 36px; min-width: 0; }
+  .search input { font-size: 16px; }
+  .region { height: 36px; padding: 0 4px; font-size: 11px; }
+  .region button { min-height: 34px; padding: 0 5px; }
+  .badge { min-width: 15px; height: 15px; font-size: 9px; line-height: 13px; top: -5px; right: -5px; }
+  .nav__bar > .burger, .nav__bar > .search, .nav__bar > #favBtn, .nav__bar > #cartBtn, .region { margin-block: 8px; }
+  .nav__bar > .logo { font-size: 18px; }
+
+  /* Ритм страницы */
+  .section { padding-block: 36px; }
+  .hero > .wrap { padding-bottom: 16px; }
+  .h2 { font-size: 26px; }
+  .sub { font-size: 14.5px; }
+
+  /* Кнопки и переключатели — удобнее под палец */
+  .btn { font-size: 13.5px; min-height: 42px; }
+  .btn--sm, .work__buy .btn { min-height: 38px; font-size: 12.5px; }
+  .seg button, .tool { min-height: 42px; font-size: 13px; padding-block: 10px; }
+  .chip { font-size: 12.5px; }
+  .heart { width: 38px; height: 38px; }
+  .cpick button { min-height: 42px; font-size: 12.5px; }
+  .lb-buy .qty button, .ditem .qty button { width: 38px; height: 38px; }
+  .collection__head .tool { min-height: 40px; }
+
+  /* Вопросы: вопрос крупнее ответа */
+  .faq summary { font-size: 15px; }
+  .faq p { font-size: 14px; line-height: 1.55; }
+
+  /* Единые отступы карточек-панелей */
+  .step, .price, .about li { padding: 18px; }
+  .price--hot { margin-top: 24px; }
+  .price__tag { top: -12px; }
+
+  /* /how */
+  .howp__cta { flex-direction: column; }
+  .howp__cta .btn { width: 100%; }
+  .howp__pic { background: none; }
+  .howp__pic--fan { padding-bottom: 16px; }
+  .howp__tag { bottom: auto; top: 18px; transform: translateX(20%) rotate(5deg); }
+
+  /* Каталог и коллекции */
+  .collections { padding-top: 40px; }
+  .pack.is-open .pack__card, .col-tile.pack.is-open > img.pack__card { transform: translateY(-30%) !important; }
+
+  /* Подвал */
+  .footer { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .footer__row { gap: 18px; }
+  .footer .logo { font-size: 22px; }
+}
+@media (max-width: 520px) {
+  .gallery { gap: 24px 12px; }
+  .work__meta { flex-wrap: nowrap; }
+  .work__meta b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .work__meta span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .work__meta .heart { width: 34px; height: 34px; flex: none; }
+}
+/* Сетка выбора персонажа — 3 колонки и на узких экранах; «Другой» — компактная плитка */
+@media (max-width: 360px) { .pick { grid-template-columns: repeat(3, 1fr); gap: 10px 6px; } }
+.pick__item--other .pick__img { aspect-ratio: auto; min-height: 96px; height: 100%; }
+/* Конструктор по фото: номер и «Особая» не налезают */
+.custom__top { padding-inline: 22%; }
+.summary__rows span { white-space: nowrap; flex: none; }
+/* Доводка после повторной проверки на 360 px */
+.cf__dots i, .cf__dots i.is-on { background-clip: content-box; height: 22px; box-shadow: none; }
+@media (max-width: 400px) {
+  .nav__social { gap: 5px; }
+  .soc, .nav__social .sound-toggle { width: 30px; height: 30px; }
+  .soc svg { width: 16px; height: 16px; }
+  .nav__sep { display: none; }
+  .nav__bar > .logo { font-size: 16px; }
+  .seg button, .tool { font-size: 12px; padding-inline: 6px; white-space: nowrap; }
+  .preview__tools .tool { flex: 1; justify-content: center; }
+}

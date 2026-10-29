@@ -38,7 +38,7 @@
     const free = window.CONFIG.promo41 ? Math.floor(qty / 4) : 0;
     return { free, discount: 0, total: unit * qty };
   };
-  const mystery = (n) => `+${n} ${n === 1 ? "мистери-карточка" : n < 5 ? "мистери-карточки" : "мистери-карточек"} в подарок`;
+  const mystery = (n) => `+${n}\u00a0${n === 1 ? "мистери-карточка" : n < 5 ? "мистери-карточки" : "мистери-карточек"} в\u00a0подарок`;
   const promoLine = (p) => p.free ? `• Акция 4+1: ${mystery(p.free)}` : null;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -622,10 +622,10 @@
 
   function renderUniverseChips() {
     $("#universeChips").innerHTML = UNIVERSES.map((u) =>
-      `<button type="button" class="chip ${u.id === state.universe ? "is-on" : ""}" data-u="${u.id}"><img src="${u.icon}" alt="" width="128" height="128" loading="lazy">${esc(u.name)}</button>`
+      `<button type="button" class="chip ${u.id === state.universe ? "is-on" : ""}" data-u="${u.id}"><img src="${u.icon}" alt="" width="128" height="128" loading="lazy">${esc(u.short || u.name)}</button>`
     ).join("");
     $("#styleChips").innerHTML = UNIVERSES.map((u) =>
-      `<button type="button" class="chip ${u.id === state.style ? "is-on" : ""}" data-s="${u.id}"><img src="${u.icon}" alt="" width="128" height="128" loading="lazy">${esc(u.name)}</button>`
+      `<button type="button" class="chip ${u.id === state.style ? "is-on" : ""}" data-s="${u.id}"><img src="${u.icon}" alt="" width="128" height="128" loading="lazy">${esc(u.short || u.name)}</button>`
     ).join("");
   }
   $("#universeChips").addEventListener("click", (e) => {
@@ -718,9 +718,10 @@
     let thumb = "";
     if (state.mode === "character" && state.character !== "other") thumb = sm(char(state.character).variants[state.rarity][0]);
     else if (state.mode === "photo" && state.photos[0]) thumb = state.photos[0];
-    const accent = uni(state.mode === "photo" ? state.style : state.universe).accent;
-    $("#mbarThumb").style.backgroundImage = thumb ? `url("${thumb}")` : "";
-    $("#mbarThumb").style.backgroundColor = thumb ? "#000" : accent;
+    // Нет своей картинки — показываем рубашку серии, а не плоский цветной квадрат
+    const back = uni(state.mode === "photo" ? state.style : state.universe).back;
+    $("#mbarThumb").style.backgroundImage = `url("${thumb || back}")`;
+    $("#mbarThumb").style.backgroundColor = "#000";
     $("#mbarTitle").textContent = describeCard();
     $("#mbarTotal").textContent = money(promo41(unitPrice(), state.qty).total);
   }
@@ -922,7 +923,12 @@
     e.preventDefault();
     const name = $("#omName").value.trim(), value = $("#omContact").value.trim(), comment = $("#omComment").value.trim();
     $("#omContact").classList.toggle("is-bad", !value);
-    if (!value) return $("#omContact").focus();
+    $("#omContact").setAttribute("aria-invalid", !value);
+    if (!value) {
+      $("#omErr").textContent = `Укажи, куда тебе написать: ${CONTACT[contactMethod].label.toLowerCase()}.`;
+      $("#omErr").hidden = false;
+      return $("#omContact").focus();
+    }
     // В заказе сразу видно, куда писать: «WhatsApp: +7 …», «TikTok: @nick»
     const contact = `${CONTACT[contactMethod].name}: ${value}`;
     if (!$("#omConsent").checked) {
@@ -1001,8 +1007,8 @@
     $("#colTitle").textContent = u.name;
     $("#colIcon").src = u.icon;
     $("#colCount").textContent = items.length
-      ? `${plural(items.length, "карточка", "карточки", "карточек")}. Нажми на карточку, чтобы заказать`
-      : "Арты этой серии ещё не на сайте";
+      ? `${plural(items.length, "карточка", "карточки", "карточек")} — нажми, чтобы заказать`
+      : "Карточки под заказ";
     $("#colEmpty").hidden = items.length > 0;
     $("#colCustom").href = `builder?u=${id}&other=`;
     document.title = `${u.name} — ${CONFIG.brand}`;
@@ -1220,7 +1226,7 @@
     $("#cartTotal").textContent = money(sum.total);
     $("#cartPromo").hidden = !CONFIG.promo41 || !sum.count;
     $("#cartPromo").innerHTML = sum.free
-      ? `Акция 4+1: ${mystery(sum.free)} 🎁`
+      ? `Акция 4+1: ${mystery(sum.free)}\u00a0🎁`
       : `Акция 4+1: добавь ещё ${plural(4 - (sum.count % 4), "карточку", "карточки", "карточек")} — и получишь мистери-карточку в подарок`;
     $("#cartPromo").classList.toggle("is-on", sum.free > 0);
   }
@@ -1265,7 +1271,7 @@
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка
   const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 400px)");
-  const setPh = () => (sInput.placeholder = tiny.matches ? "Поиск" : narrow.matches ? "Найти героя..." : "Найти героя, коллекцию или карточку...");
+  const setPh = () => (sInput.placeholder = narrow.matches ? "Поиск героя" : "Найти героя, коллекцию или карточку...");
   setPh();
   [narrow, tiny].forEach((m) => m.addEventListener("change", setPh));
   let sHits = [];

@@ -697,7 +697,6 @@
 
   function renderSummary() {
     const rows = [
-      ["Для кого", state.recipient === "gift" ? `В подарок${state.giftName ? " — " + state.giftName : ""}` : "Себе"],
       ["Карточка", describeCard()],
       state.mode === "photo" ? null : ["Версия", RARITY[state.rarity]],
       ["Количество", `${state.qty} × ${money(unitPrice())}`],
@@ -726,7 +725,7 @@
     $("#rarityNote").textContent =
       avail.length === 1 ? (state.character === "other" ? "Персонажи под заказ делаются в особой версии." : `У этого персонажа есть только ${RARITY[avail[0]].toLowerCase()} версия.`) : "";
 
-    ["recipient", "mode", "rarity"].forEach((g) => segSet(g, state[g]));
+    ["mode", "rarity"].forEach((g) => segSet(g, state[g]));
     $("#rarityField").hidden = state.mode === "photo";
     renderUniverseChips();
     renderCharacterGrid();
@@ -737,7 +736,7 @@
   }
 
   // Текстовые поля
-  [["giftName", "giftName"], ["otherChar", "otherChar"], ["photoName", "photoName"], ["photoText", "photoText"]].forEach(([id, key]) =>
+  [["otherChar", "otherChar"], ["photoName", "photoName"], ["photoText", "photoText"]].forEach(([id, key]) =>
     $("#" + id).addEventListener("input", (e) => {
       state[key] = e.target.value.trim();
       renderPreview();
@@ -796,7 +795,6 @@
   $("#orderBtn").addEventListener("click", () =>
     sendOrder([
       `Привет! Хочу заказать карточку:`,
-      `• Для кого: ${state.recipient === "gift" ? "в подарок" + (state.giftName ? ` (${state.giftName})` : "") : "себе"}`,
       `• Карточка: ${describeCard()}`,
       state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
       state.mode === "photo" && state.photoText ? `• Текст: ${state.photoText}` : null,

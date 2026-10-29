@@ -52,7 +52,7 @@ PORT=3000 python3 serve.py
 | `/catalog` | `site/catalog.html` | все коллекции |
 | `/catalog/<коллекция>` | `site/collection.html` | карточки серии (id коллекции — из `data.js`) |
 | `/builder` | `site/builder.html` | конструктор; принимает `?c=guts&r=special&q=2`, `?other=Имя&u=aot`, `?preset=common\|special\|photo` |
-| `/prices` | `site/prices.html` | цены и вопросы |
+| `/how` | `site/how.html` | как это работает и вопросы (`/prices` переадресует сюда) |
 | `/about` | `site/about.html` | о нас и видео |
 
 Шапка, подвал, окна (корзина, избранное, меню, окно товара, оформление заказа) и подключение скриптов — общие, лежат в `site/partials/` и подставляются сервером вместо `<!--#include имя-->`. Менять их нужно в одном месте.

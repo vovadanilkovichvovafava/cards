@@ -27,7 +27,7 @@
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
   const sm = (src) => src.replace("assets/cards/", "assets/cards/sm/");
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // Какая это страница сайта (body data-page): index, catalog, collection, builder, prices, about
+  // Какая это страница сайта (body data-page): index, catalog, collection, builder, how, about, contacts, privacy, offer
   const PAGE = document.body.dataset.page || "index";
   const go = (url) => (location.href = url);
   const plural = (n, one, few, many) =>

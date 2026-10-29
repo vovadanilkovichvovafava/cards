@@ -1,7 +1,7 @@
 # Сервер сайта: отдаёт папку site/ без кеширования и принимает заказы.
 #
 #   POST /api/order  →  сообщение в Telegram через бота (+ фото, если есть)
-#   GET  /, /catalog, /catalog/<коллекция>, /builder, /how, /prices, /about  →  страницы сайта
+#   GET  /, /catalog, /catalog/<коллекция>, /builder, /how, /about, /contacts, /privacy, /offer  →  страницы сайта
 #        (общие шапка, подвал и окна подставляются из site/partials/)
 #   GET  /catalog.js →  карточки, добавленные через бота (хранятся в DATABASE_URL)
 #   GET  /assets/cards/[sm/]db/<id>-<a|b>.jpg  →  их кадры из базы
@@ -73,7 +73,7 @@ DB_BACK = re.compile(r"^/assets/collections/(\d+)\.jpg$")
 SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
-         "/prices": "prices.html", "/about": "about.html", "/how": "how.html",
+         "/about": "about.html", "/how": "how.html",
          "/contacts": "contacts.html", "/privacy": "privacy.html", "/offer": "offer.html"}
 COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
 INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
@@ -135,6 +135,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             body = ("window.EXTRA_UNIVERSES = " + json.dumps(extra_collections(), ensure_ascii=False) + ";\n"
                     "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
             return self.send_body(200, "application/javascript; charset=utf-8", body)
+        # Страницы цен больше нет — старые ссылки ведут на «Как это работает»
+        if path_only.rstrip("/") in ("/prices", "/prices.html"):
+            self.send_response(301)
+            self.send_header("Location", "/how")
+            self.end_headers()
+            return
         page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only) else None)
         if path_only.endswith(".html") and os.path.isfile(os.path.join(SITE, path_only.lstrip("/"))) and "/partials/" not in path_only:
             page = path_only.lstrip("/")

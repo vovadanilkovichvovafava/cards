@@ -1134,3 +1134,13 @@ body {
   .soc { width: 22px; height: 22px; }
   .soc svg { width: 21px; height: 21px; }
 }
+/* Карточка висит между кольцом и подиумом с зазором — не налезает на них */
+.cf__halo { top: calc(var(--cw) * -.47); }
+.cf__base { bottom: calc(var(--cw) * -.43); }
+.cf__track { padding-block: calc(var(--cw) * .56) calc(var(--cw) * .62); }
+.cf__dots { margin-top: calc(var(--cw) * -.2); }
+.cf__slide .face { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+/* В витрине в покое обложка чистая: блик и перелив появляются только при наклоне */
+.cf__slide .face__lines { display: none; }
+.cf__slide .face__sheen { opacity: clamp(0, calc((var(--holo, 0) - .24) * 2.5), 1); }
+.cf__slide .face--front .face__holo { opacity: clamp(0, calc((var(--holo, 0) - .2) * .6), .4); }

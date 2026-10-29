@@ -448,7 +448,9 @@
       const shift = a > 1 ? -side * (a - 1) * 0.37 * cfCard : 0;
       const turn = -side * Math.min(a, 2) * 12;
       cfItems[i].style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0) rotateY(${turn.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      cfItems[i].style.opacity = (a <= 2 ? 1 - 0.08 * a : Math.max(0, 0.84 - (a - 2) * 1.4)).toFixed(3);
+      // Прозрачность у 3D-карточки ломает скрытие рубашки (на Android она просвечивает сквозь лицо),
+      // поэтому карточки не полупрозрачные — дальние просто прячем
+      cfItems[i].style.visibility = a > 2.6 ? "hidden" : "";
       sl.style.zIndex = 10 - Math.round(a);
       // Перелив и смена кадра — только у карточек рядом с центром.
       // В покое — чуть повёрнута к первому кадру: ровно «в лоб» оба кадра смешаны пополам

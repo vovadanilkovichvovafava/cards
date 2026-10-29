@@ -89,7 +89,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
     radial-gradient(34% 80% at var(--lx2) var(--ly2), #ffc2cd 0%, rgba(255, 140, 160, .7) 35%, rgba(255, 90, 120, 0) 72%),
     linear-gradient(100deg, #b50d21, #e3122b 35%, #ff4d6a 60%, #d10f29);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
-  filter: drop-shadow(2px 2px 0 #000);
   animation: liquid-a 7s ease-in-out infinite alternate, liquid-b 11s ease-in-out infinite alternate;
 }
 @keyframes liquid-a {
@@ -216,7 +215,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 }
 /* Косые световые лучи, как в рендере макета */
 .hero::after {
-  content: ""; position: absolute; inset: -20% -10%; z-index: -1; pointer-events: none; filter: blur(2px);
+  content: ""; position: absolute; inset: -20% -10%; z-index: -1; pointer-events: none;
   background:
     linear-gradient(118deg, transparent 18%, rgba(255, 60, 90, .0) 20%, rgba(255, 70, 100, .35) 20.4%, transparent 21.2%),
     linear-gradient(118deg, transparent 24%, rgba(255, 90, 120, .18) 24.3%, transparent 25.5%),
@@ -241,20 +240,23 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .cf__track {
   position: relative; display: flex; gap: 34px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
   padding: 112px calc(50% - var(--cw) / 2) 118px; perspective: 1400px; cursor: grab; scrollbar-width: none; outline: none;
-  -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
 .cf__track::-webkit-scrollbar { display: none; }
+.cf::before {
+  content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none;
+  background: linear-gradient(90deg, var(--bg), transparent 9%, transparent 91%, var(--bg));
+}
 .cf__track.is-drag { scroll-snap-type: none; cursor: grabbing; }
 .cf__track:focus-visible .is-center .face--front { outline: 3px solid var(--hot); outline-offset: 6px; }
 .cf__slide {
-  --d: 0; --a: 0;
   position: relative; flex: none; width: var(--cw); scroll-snap-align: center;
-  transform: translateZ(calc(var(--a) * -140px)) rotateY(calc(clamp(-1, var(--d), 1) * -34deg)) scale(calc(1 - min(var(--a), 2) * .13));
-  filter: brightness(calc(1 - min(var(--a), 2) * .28)); opacity: calc(1.6 - var(--a) * .4);
+  will-change: transform, opacity; backface-visibility: hidden;
 }
 .cf__slide .flip { cursor: pointer; }
-.cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 140, 155, .45), 0 0 26px -6px var(--glow); }
-.cf__slide.is-center .face--front { box-shadow: 0 0 0 1.5px rgba(255, 180, 190, .9), 0 0 34px rgba(255, 40, 70, .75), 0 0 90px rgba(255, 40, 70, .35); }
+.cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 140, 155, .45); }
+.cf__slide.is-center .face--front { box-shadow: 0 0 0 1.5px rgba(255, 180, 190, .9), 0 0 24px rgba(255, 40, 70, .6); }
+/* Перелив с режимами наложения — только у центральной, у соседей он всё равно почти не виден */
+.cf__slide:not(.is-center) .face__holo, .cf__slide:not(.is-center) .face__sheen, .cf__slide:not(.is-center) .face__lines { display: none; }
 /* Подиум и кольцо-держатель — детали из рендера макета (чёрный фон переведён в прозрачность) */
 .cf__base {
   position: absolute; left: -34%; right: -34%; bottom: -78px; aspect-ratio: 840 / 192; pointer-events: none;
@@ -263,7 +265,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 }
 .cf__base::before {
   content: ""; position: absolute; left: 22%; right: 22%; bottom: 46%; height: 130px; border-radius: 50% 50% 0 0;
-  background: linear-gradient(to top, rgba(255, 80, 110, .5), transparent); filter: blur(10px); opacity: 0; transition: opacity .3s;
+  background: radial-gradient(50% 100% at 50% 100%, rgba(255, 80, 110, .45), transparent); opacity: 0; transition: opacity .3s;
 }
 .cf__halo {
   position: absolute; left: -18%; right: -18%; top: -98px; aspect-ratio: 628 / 160; pointer-events: none;
@@ -272,7 +274,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 }
 .cf__halo::after {
   content: ""; position: absolute; left: 30%; right: 30%; top: 60%; height: 90px;
-  background: linear-gradient(rgba(255, 120, 140, .35), transparent); filter: blur(12px); opacity: 0; transition: opacity .3s;
+  background: radial-gradient(50% 100% at 50% 0, rgba(255, 120, 140, .3), transparent); opacity: 0; transition: opacity .3s;
 }
 .cf__slide.is-center .cf__base::before, .cf__slide.is-center .cf__halo::after { opacity: 1; }
 /* Акриловая подставка: прозрачная рамка вокруг карточки, вращается вместе с ней */
@@ -280,23 +282,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
 .cf__slide.is-center .face--front { outline-color: rgba(255, 210, 218, .85); }
 .cf__slide.is-center .cf__base, .cf__slide.is-center .cf__halo { opacity: 1; }
 
-.cf__nav {
-  position: absolute; top: 48%; z-index: 20; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; padding: 0;
-  border: 1.5px solid var(--hot); background: rgba(8, 1, 3, .75); color: #fff; box-shadow: 0 0 18px var(--glow), inset 0 0 10px rgba(255, 40, 70, .3);
-  transform: translateY(-50%); transition: background .2s;
-}
-.cf__nav:hover { background: rgba(255, 35, 65, .25); }
-.cf__nav .ico { width: 22px; height: 22px; }
-.cf__nav--prev { left: 6px; }
-.cf__nav--next { right: 6px; }
-
 .cf__dots { display: flex; justify-content: center; gap: 6px; margin-top: -40px; position: relative; }
 .cf__dots i { width: 16px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .22); transition: .3s; }
 .cf__dots i.is-on { width: 34px; background: var(--hot); box-shadow: 0 0 10px var(--glow); }
 
 .cf__info {
   display: flex; align-items: center; gap: 18px; width: min(560px, 100%); margin: 22px auto 0; padding: 12px 12px 12px 22px;
-  background: rgba(21, 5, 10, .72); border: var(--frame); border-radius: var(--radius); box-shadow: 0 0 30px -12px var(--glow); backdrop-filter: blur(8px);
+  background: rgba(21, 5, 10, .72); border: var(--frame); border-radius: var(--radius); box-shadow: 0 0 30px -12px var(--glow);
 }
 .cf__who { flex: 1; min-width: 0; display: grid; line-height: 1.15; }
 .cf__who span { color: var(--hot); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -775,9 +767,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; letter-sp
   .cf__track { gap: 6px; }
   .cf { --cw: min(56vw, 230px); margin-inline: -16px; }
   .cf__track { padding-block: 96px 100px; }
-  .cf__nav { width: 40px; height: 40px; }
-  .cf__nav--prev { left: 10px; }
-  .cf__nav--next { right: 10px; }
   .cf__info { flex-wrap: wrap; gap: 10px 14px; padding: 12px 14px; }
   .cf__who b { font-size: 22px; }
   .cf__act { width: 100%; }
@@ -858,7 +847,6 @@ body {
     radial-gradient(900px 500px at 85% -10%, rgba(255, 30, 60, .16), transparent 70%),
     radial-gradient(700px 500px at -10% 30%, rgba(255, 30, 60, .1), transparent 70%),
     var(--bg);
-  background-attachment: fixed;
 }
 .section--dark { background: linear-gradient(180deg, rgba(255, 30, 60, .05), transparent 30%), var(--night); }
 
@@ -868,7 +856,7 @@ body {
   content: "✦"; position: absolute; right: 0; top: -.15em; font-size: .55em; font-style: normal;
   -webkit-text-fill-color: var(--hot); color: var(--hot); text-shadow: 0 0 10px var(--glow);
 }
-.nav { background: rgba(5, 1, 2, .88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); box-shadow: 0 10px 30px -20px var(--glow); }
+.nav { background: rgba(5, 1, 2, .96); border-bottom: 1px solid var(--line); box-shadow: 0 10px 30px -20px var(--glow); }
 .search { border-radius: 999px; border: 1px solid var(--line); background: rgba(12, 2, 5, .8); }
 .search:focus-within { border-color: var(--hot); box-shadow: 0 0 18px -4px var(--glow); }
 .search__res { border-radius: var(--radius); overflow: hidden; }

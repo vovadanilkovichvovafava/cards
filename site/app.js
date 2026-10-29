@@ -400,7 +400,7 @@
       <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span>${has ? "" : "<em>Под заказ</em>"}</button>`;
   }).join("");
 
-  let cfCenter = -1, cfReady = false, cfAuto = !reduceMotion, cfRaf = null;
+  let cfCenter = -1, cfReady = false, cfRaf = null;
   function cfSetCenter(i) {
     cfCenter = i;
     const w = SHOW[i];
@@ -417,17 +417,31 @@
     $("#cfFav").dataset.fav = workKey(w);
     if (cfReady) syncHearts();
   }
+  // Центры карточек считаем один раз (и при смене ширины), а не в каждом кадре:
+  // чтение offsetLeft после записи стилей заставляло браузер пересчитывать раскладку
+  let cfCenters = [], cfW = 1;
+  const cfMeasure = () => {
+    cfW = cfSlides[0].offsetWidth;
+    cfCenters = cfSlides.map((sl) => sl.offsetLeft + cfW / 2);
+  };
+  const cfLast = [];
   function cfLayout() {
     cfRaf = null;
     const mid = cfTrack.scrollLeft + cfTrack.clientWidth / 2;
     let best = 0, bestD = Infinity;
     cfSlides.forEach((sl, i) => {
-      const d = (sl.offsetLeft + sl.offsetWidth / 2 - mid) / sl.offsetWidth; // в ширинах карточки
-      sl.style.setProperty("--d", d.toFixed(3));
-      sl.style.setProperty("--a", Math.min(Math.abs(d), 3).toFixed(3));
-      sl.style.zIndex = 10 - Math.round(Math.abs(d));
-      cfFlips[i].pose(Math.max(-1, Math.min(1, -d * 1.6)));
+      const d = (cfCenters[i] - mid) / cfW; // в ширинах карточки
+      const a = Math.min(Math.abs(d), 3);
       if (Math.abs(d) < bestD) (bestD = Math.abs(d)), (best = i);
+      // Карточки далеко за краем не трогаем
+      if (a >= 3 && cfLast[i] >= 3) return;
+      cfLast[i] = a;
+      const turn = Math.max(-1, Math.min(1, d)) * -34;
+      sl.style.transform = `translate3d(0, 0, ${(-a * 140).toFixed(1)}px) rotateY(${turn.toFixed(2)}deg) scale(${(1 - Math.min(a, 2) * 0.13).toFixed(3)})`;
+      sl.style.opacity = Math.max(0, Math.min(1, 1.6 - a * 0.45)).toFixed(3);
+      sl.style.zIndex = 10 - Math.round(a);
+      // Перелив и смена кадра — только у карточек рядом с центром
+      if (a < 1.5) cfFlips[i].pose(Math.max(-1, Math.min(1, -d * 1.6)));
     });
     if (best !== cfCenter) cfSetCenter(best);
   }
@@ -435,22 +449,26 @@
   function cfGo(i, smooth = true) {
     i = (i + SHOW.length) % SHOW.length;
     const sl = cfSlides[i];
-    cfTrack.scrollTo({ left: sl.offsetLeft + sl.offsetWidth / 2 - cfTrack.clientWidth / 2, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+    cfTrack.scrollTo({ left: cfCenters[i] - cfTrack.clientWidth / 2, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
   }
-  const cfStop = () => (cfAuto = false);
   cfTrack.addEventListener("scroll", cfQueue, { passive: true });
-  addEventListener("resize", () => { cfGo(cfCenter, false); cfQueue(); });
-  $$("[data-cf]").forEach((b) => b.addEventListener("click", () => { cfStop(); cfGo(cfCenter + +b.dataset.cf); }));
+  // На телефоне resize срабатывает и когда прячется адресная строка — реагируем только на смену ширины
+  let cfWidth = innerWidth;
+  addEventListener("resize", () => {
+    if (innerWidth === cfWidth) return;
+    cfWidth = innerWidth;
+    cfMeasure();
+    cfGo(cfCenter, false);
+    cfQueue();
+  });
   cfTrack.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault(), cfStop(), cfGo(cfCenter + (e.key === "ArrowLeft" ? -1 : 1));
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault(), cfGo(cfCenter + (e.key === "ArrowLeft" ? -1 : 1));
     if (e.key === "Enter") openProduct(WORKS.indexOf(SHOW[cfCenter]));
   });
-  ["touchstart", "wheel"].forEach((ev) => cfTrack.addEventListener(ev, cfStop, { passive: true }));
 
   // Мышью — тянуть, как пальцем; короткий клик по центральной открывает карточку
   let cfDrag = null, cfMoved = false;
   cfTrack.addEventListener("pointerdown", (e) => {
-    cfStop();
     cfMoved = false;
     if (e.pointerType !== "mouse" || e.button > 0) return;
     cfDrag = { x: e.clientX, left: cfTrack.scrollLeft };
@@ -483,30 +501,38 @@
   $("#uniStrip").addEventListener("click", (e) => {
     const t = e.target.closest("[data-u]");
     if (!t) return;
-    cfStop();
     const i = SHOW.findIndex((w) => w.c.universe === t.dataset.u);
     i > -1 ? cfGo(i) : openCollection(t.dataset.u);
   });
 
-  // Сама листается, пока человек её не тронул и пока она на экране
   let cfVisible = true;
   new IntersectionObserver(([en]) => (cfVisible = en.isIntersecting)).observe(cfTrack);
-  setInterval(() => { if (cfAuto && cfVisible && !document.hidden) cfGo(cfCenter + 1); }, 7000);
 
   // Центральная карточка вращается на подиуме: стоит лицом, делает полный оборот
   // (видна и рубашка серии), снова стоит. При смене карточки цикл начинается заново.
   const SPIN = { hold: 1200, turn: 4200, cycle: 7000 };
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-  let spinOf = -1, spinT0 = 0;
+  let spinOf = -1, spinT0 = 0, spinDeg = 0, cfScrollAt = 0;
+  cfTrack.addEventListener("scroll", () => (cfScrollAt = performance.now()), { passive: true });
   const spinLoop = (t) => {
     if (cfCenter !== spinOf) {
       if (spinOf > -1) cfFlips[spinOf].spin(0);
       spinOf = cfCenter;
       spinT0 = t;
+      spinDeg = 0;
     }
-    if (spinOf > -1 && cfVisible && !cfDrag) {
-      const k = (((t - spinT0) % SPIN.cycle) - SPIN.hold) / SPIN.turn;
-      cfFlips[spinOf].spin(k <= 0 || k >= 1 ? 0 : ease(k) * 360);
+    if (spinOf > -1 && cfVisible) {
+      if (cfDrag || t - cfScrollAt < 250) {
+        // Листают — плавно доворачиваем карточку лицом и начинаем цикл заново
+        const to = Math.round(spinDeg / 360) * 360;
+        spinDeg += (to - spinDeg) * 0.2;
+        if (Math.abs(to - spinDeg) < 0.5) spinDeg = 0;
+        spinT0 = t;
+      } else {
+        const k = (((t - spinT0) % SPIN.cycle) - SPIN.hold) / SPIN.turn;
+        spinDeg = k <= 0 || k >= 1 ? 0 : ease(k) * 360;
+      }
+      cfFlips[spinOf].spin(spinDeg);
     }
     requestAnimationFrame(spinLoop);
   };
@@ -514,6 +540,7 @@
 
   // После того как весь скрипт отработал (избранное готово) — встаём на стартовую карточку
   requestAnimationFrame(() => {
+    cfMeasure();
     cfGo(START, false);
     cfLayout();
     cfReady = true;

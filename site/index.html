@@ -12,7 +12,7 @@
   <!-- Шрифты грузятся без блокировки отрисовки -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 
@@ -47,9 +47,7 @@
     <div class="wrap">
       <h1 class="hero__title" id="heroTitle"><span>Коллекционные карточки</span></h1>
       <div class="cf" id="cf">
-        <button type="button" class="cf__nav cf__nav--prev" data-cf="-1" aria-label="Предыдущая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Карточки: листай влево и вправо"></div>
-        <button type="button" class="cf__nav cf__nav--next" data-cf="1" aria-label="Следующая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
       <div class="cf__dots" id="cfDots" aria-hidden="true"></div>
       <div class="cf__info">
@@ -480,6 +478,6 @@
 
 <script src="data.js?v=6" defer></script>
 <script src="catalog.js" defer></script>
-<script src="app.js?v=17" defer></script>
+<script src="app.js?v=18" defer></script>
 </body>
 </html>

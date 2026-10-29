@@ -1967,3 +1967,12 @@ body { background: var(--bg); }                                   /* без «з
 @media (max-width: 860px) { .pack__top::before, .pack__body::before { height: 10px; } }
 .pack.is-open .pack__top { transform: translate(-6%, -70%) rotate(-14deg) !important; opacity: 0 !important; }
 .pack.is-open .pack__card { transform: translateY(-26%) rotate(-3deg) !important; }
+/* Перелив логотипа — как в «голографической» версии: «FLIP» течёт градиентом, «ANIVERSE» — ровный белый */
+.logo { background: none; -webkit-text-fill-color: var(--text); color: var(--text); animation: none; }
+.logo__accent {
+  background: linear-gradient(100deg, #ff5fa2, #a77bff 35%, #5ee7ff 65%, #ffd36e);
+  background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: logo-flow 8s ease-in-out infinite alternate;
+}
+.logo::after { -webkit-text-fill-color: #a77bff; color: #a77bff; }
+@media (prefers-reduced-motion: reduce) { .logo__accent { animation: none; } }

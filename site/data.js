@@ -33,6 +33,7 @@ window.UNIVERSES = [
     banner: "assets/brand/banner-berserk.jpg?v=3",
     back: "assets/backs/berserk.jpg",
     accent: "#e0262b",
+    glow: "#ff3b4e", // цвет подсветки сцены на главной
   },
   {
     id: "mushoku",
@@ -42,6 +43,7 @@ window.UNIVERSES = [
     banner: null,
     back: "assets/backs/mushoku.jpg",
     accent: "#e9b44c",
+    glow: "#ffc35a", // цвет подсветки сцены на главной
   },
   {
     id: "aot",
@@ -50,6 +52,7 @@ window.UNIVERSES = [
     banner: "assets/brand/banner-aot.jpg?v=3",
     back: "assets/backs/aot.jpg",
     accent: "#4f8a4b",
+    glow: "#58d987", // цвет подсветки сцены на главной
   },
   {
     id: "onepiece",
@@ -58,6 +61,7 @@ window.UNIVERSES = [
     banner: "assets/brand/banner-onepiece.jpg?v=3",
     back: "assets/backs/onepiece.jpg",
     accent: "#2f7fd6",
+    glow: "#4aa8ff", // цвет подсветки сцены на главной
   },
 ];
 

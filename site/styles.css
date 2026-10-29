@@ -1460,3 +1460,150 @@ body { background: radial-gradient(900px 600px at 50% -10%, rgba(255, 50, 100, .
 /* Точки стоят рядом с витриной, а не внутри неё, поэтому отступ — в пикселях */
 .cf__dots { margin-top: 0; position: relative; z-index: 2; }
 @media (min-width: 861px) { .cf__dots { margin-top: -112px; } }
+
+/* ============================================================
+   «Голографическая галерея».
+   Спокойная чернильная основа, тонкие линии, много воздуха.
+   Яркое — только две вещи: цвет текущей серии на сцене
+   и голографический перелив (на карточках и в акцентах).
+   ============================================================ */
+@property --acc { syntax: "<color>"; inherits: true; initial-value: #ff3b4e; }
+:root {
+  --bg: #0b0a10;
+  --paper: #14131b;
+  --paper-2: #1c1a25;
+  --well: #100f16;
+  --night: #0b0a10;
+  --text: #f4f2f8;
+  --grey: #9b97ab;
+  --line: rgba(255, 255, 255, .09);
+  --hot: #ff5fa2;
+  --red: #ff4d8d;
+  --glow: rgba(167, 123, 255, .35);
+  --holo: linear-gradient(100deg, #ff5fa2, #a77bff 35%, #5ee7ff 65%, #ffd36e);
+  --display: "Unbounded", "Golos Text", system-ui, sans-serif;
+}
+body {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--bg);
+}
+.section--dark { background: transparent; }
+.section { border-top: 1px solid var(--line); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -.01em; }
+
+/* --- кнопки: главная — светлая, второстепенная — контур --- */
+.btn { background: var(--text); color: var(--bg); border: 0; border-radius: 999px; box-shadow: none; font-weight: 700; }
+.btn:hover { background: #fff; box-shadow: 0 0 0 3px rgba(167, 123, 255, .35); }
+.btn:active { transform: scale(.98); box-shadow: none; }
+.btn--ghost { background: transparent; color: var(--text); border: 1px solid rgba(255, 255, 255, .22); }
+.btn--ghost:hover { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .45); box-shadow: none; }
+.btn--sm { box-shadow: none; }
+.seg button.is-on, .chip.is-on, .cpick button.is-on { background: var(--text); color: var(--bg); box-shadow: none; }
+.step::before, .field__n { background: var(--holo); color: #120f1a; box-shadow: none; border: 0; }
+.price--hot { box-shadow: 0 0 0 1px rgba(167, 123, 255, .7), 0 24px 60px -30px rgba(167, 123, 255, .6); }
+.price__tag { background: var(--holo); color: #120f1a; box-shadow: none; }
+.pick__item.is-on .pick__img { box-shadow: 0 0 0 2px #a77bff; }
+.pick__item.is-on .pick__name { color: var(--text); }
+.step, .builder__form, .preview, .summary, .price, .about li, .lightbox__meta, .omodal__box {
+  background: var(--paper); box-shadow: 0 0 0 1px var(--line);
+}
+.lightbox__close, .vslider__nav, .unis__next { border: 1px solid var(--line); box-shadow: none; background: var(--paper); }
+.badge { background: var(--holo); color: #120f1a; box-shadow: none; }
+
+/* --- заголовки разделов --- */
+.h2 { font-size: clamp(28px, 4vw, 46px); font-weight: 600; font-style: normal; }
+.h2::after { width: 40px; height: 2px; background: var(--holo); }
+.h2__accent { background: var(--holo); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* --- шапка: тихая, без подсветки --- */
+.nav { background: rgba(11, 10, 16, .94); border-bottom: 1px solid var(--line); }
+.nav__bar::after { background: var(--line); }
+.logo { font-family: var(--display); font-style: normal; font-weight: 700; letter-spacing: -.02em; text-transform: uppercase;
+  background: none; -webkit-text-fill-color: var(--text); color: var(--text); }
+.logo__accent { background: var(--holo); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: logo-flow 8s ease-in-out infinite alternate; }
+.logo::before { content: none; }
+.logo::after { -webkit-text-fill-color: #a77bff; color: #a77bff; text-shadow: none; }
+.soc, .nav__social .sound-toggle { background: transparent; border: 1px solid var(--line); border-radius: 50%; }
+.burger { color: var(--text); }
+.burger svg { filter: none; }
+.search { background: var(--paper); border-color: var(--line); }
+.search:focus-within { border-color: rgba(167, 123, 255, .7); box-shadow: none; }
+.region { background: var(--paper); border-color: var(--line); }
+.icon-btn--fav, .icon-btn--cart { background: var(--paper); border: 1px solid var(--line); color: var(--text); box-shadow: none; border-radius: 50%; }
+.icon-btn--fav:hover, .icon-btn--cart:hover { border-color: rgba(255, 255, 255, .35); background: var(--paper-2); }
+
+/* --- сцена: окрашивается в цвет серии --- */
+.hero { position: relative; overflow: hidden; border-radius: 0; transition: --acc .7s ease;
+  background: radial-gradient(60% 48% at 50% 50%, color-mix(in srgb, var(--acc) 22%, transparent), transparent 72%), var(--bg); }
+.cf::before, .cf::after { content: none; }
+.hero__title { font: 500 11px/1 var(--body); letter-spacing: .38em; color: var(--grey); text-shadow: none; }
+.hero__title::before, .hero__title::after { height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .25)); box-shadow: none; }
+.hero__title::after { background: linear-gradient(270deg, transparent, rgba(255, 255, 255, .25)); }
+.hero__mark {
+  position: absolute; left: 50%; top: 21%; transform: translateX(-50%); z-index: 0; pointer-events: none; white-space: nowrap;
+  font: 800 clamp(64px, 19vw, 240px)/1 var(--display); letter-spacing: -.03em;
+  color: transparent; -webkit-text-stroke: 1px color-mix(in srgb, var(--acc) 70%, white); opacity: .32;
+  -webkit-mask: linear-gradient(180deg, #000 30%, transparent 95%); mask: linear-gradient(180deg, #000 30%, transparent 95%);
+}
+.cf { z-index: 1; }
+.cf__track { padding-block: calc(var(--cw) * .12) calc(var(--cw) * .5); }
+/* Карточка без держателя и подиума: парит, под ней — тень и пятно цвета серии на полу */
+.cf__item::before, .cf__glare::after { content: none; }
+.cf__base { left: 8%; right: 8%; bottom: calc(var(--cw) * -.2); height: calc(var(--cw) * .14); aspect-ratio: auto; background: radial-gradient(closest-side, rgba(0, 0, 0, .75), transparent); filter: none; z-index: -1; }
+.cf__slide.is-center .cf__base { background: radial-gradient(closest-side, color-mix(in srgb, var(--acc) 60%, transparent), transparent); filter: blur(4px); }
+.cf__base::before, .cf__base::after { content: none; }
+.cf__slide .face--front { box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), 0 30px 50px -22px #000; }
+.cf__slide.is-center .face--front { box-shadow: 0 0 0 1px rgba(255, 255, 255, .3), 0 0 46px -8px var(--acc), 0 40px 60px -24px #000; }
+/* Отражение центральной карточки в полу */
+.cf__slide.is-center .flip { -webkit-box-reflect: below 10px linear-gradient(transparent 72%, rgba(255, 255, 255, .14)); }
+.cf__label {
+  bottom: calc(var(--cw) * -.34); font: 600 11px/1 var(--display); letter-spacing: .16em; color: var(--text); text-shadow: none;
+}
+/* Голографическая полоса изредка проходит по центральной карточке */
+.cf__glare { inset: 0; border-radius: 4.5% / 3.4%; z-index: 3; }
+.cf__glare::before {
+  width: 45%; background: linear-gradient(100deg, transparent, rgba(255, 95, 162, .0) 15%, rgba(255, 95, 162, .22) 35%, rgba(94, 231, 255, .22) 55%, rgba(255, 211, 110, .16) 70%, transparent 85%);
+  mix-blend-mode: screen; animation: glare 7s ease-in-out infinite;
+}
+.cf__dots { margin-top: 0; gap: 6px; }
+.cf__dots i { width: 14px; height: 2px; border-radius: 1px; background: rgba(255, 255, 255, .22); }
+.cf__dots i.is-on { width: 30px; height: 2px; background: var(--acc); box-shadow: 0 0 10px var(--acc); transition: width .3s, background-color .7s; }
+@media (min-width: 861px) { .cf__dots { margin-top: 0; } .hero__mark { top: 16%; } }
+
+/* --- полоса коллекций: аккуратные «пилюли» с иконкой серии --- */
+.unis-wrap { margin-top: 18px; justify-content: center; }
+.unis { flex: 0 1 auto; justify-content: flex-start; gap: 8px; }
+.uni {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; height: 48px; padding: 4px 18px 4px 4px; grid-template-rows: none;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--paper); box-shadow: none; transition: background .3s, border-color .3s;
+}
+.uni img { position: static; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; opacity: 1; filter: none; flex: none; }
+.uni .uni__name { position: static; height: auto; display: block; padding: 0; font: 600 13px/1 var(--body); color: var(--grey); text-shadow: none; white-space: nowrap; }
+.uni.is-on { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, var(--paper)); box-shadow: none; }
+.uni.is-on .uni__name { color: var(--text); }
+.unis__next { display: none; }
+.hero > .wrap { padding-bottom: 36px; }
+
+@media (max-width: 860px) {
+  .logo { font-size: 15px; }
+  .hero__mark { font-size: 26vw; top: 17%; }
+  .cf { --cw: 46vw; }
+  .uni { height: 40px; padding: 3px 14px 3px 3px; gap: 8px; }
+  .uni img { width: 34px; height: 34px; }
+  .uni .uni__name { font-size: 12px; }
+  .unis-wrap { justify-content: flex-start; }
+}
+@media (max-width: 370px) { .logo { font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .hero { transition: none; } }
+/* «Пилюли»: перебиваем старые правила плашек-баннеров */
+.unis > .uni > span.uni__name { position: static; display: block; height: auto; padding: 0; font: 600 13px/1 var(--body); letter-spacing: 0; color: var(--grey); text-shadow: none; overflow-wrap: normal; }
+.unis > .uni.is-on > span.uni__name { color: var(--text); }
+.unis > .uni > img { position: static; width: 40px; height: 40px; border-radius: 50%; }
+.hero__mark { opacity: .55; -webkit-text-stroke: 1.2px color-mix(in srgb, var(--acc) 80%, white); }
+@media (max-width: 860px) {
+  .unis > .uni { flex: 0 0 auto; }
+  .unis > .uni > span.uni__name { font-size: 12px; }
+  .unis > .uni > img { width: 34px; height: 34px; }
+  .hero__mark { opacity: .7; -webkit-text-stroke-width: 1px; }
+}

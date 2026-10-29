@@ -436,10 +436,9 @@
   });
   $("#cfDots").innerHTML = UNIVERSES.map(() => "<i></i>").join("");
   $("#uniStrip").innerHTML = UNIVERSES.map((u) => `
-    <button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
-      <img src="${u.banner || u.back}" alt="" width="720" height="240" loading="lazy">
-      <span class="sr">${esc(u.name)}</span>
-      <span class="uni__cap"><small>Коллекция</small><b>${esc(u.short || u.name)}</b></span></button>`).join("");
+    <button type="button" class="uni" role="tab" aria-selected="false" data-u="${u.id}" style="--c:${u.glow || u.accent}">
+      <img src="${u.icon}" alt="" width="40" height="40" loading="lazy">
+      <span class="uni__name">${esc(u.short || u.name)}</span></button>`).join("");
   $("#uniNext").addEventListener("click", () => $("#uniStrip").scrollBy({ left: $("#uniStrip").clientWidth * 0.8, behavior: reduceMotion ? "auto" : "smooth" }));
 
   let cfCenter = -1, cfRaf = null;
@@ -447,6 +446,9 @@
     cfCenter = i;
     const u = SHOW[i];
     cfSlides.forEach((sl, j) => sl.classList.toggle("is-center", j === i));
+    // Сцена окрашивается в цвет серии, за карточкой — её название
+    $(".hero").style.setProperty("--acc", u.glow || u.accent);
+    $("#cfMark").textContent = (u.short || u.name).toUpperCase();
     $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i % N));
     $$("#uniStrip [data-u]").forEach((t) => {
       const on = t.dataset.u === u.id;
@@ -1222,7 +1224,7 @@
   ];
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка
-  const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 340px)");
+  const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 400px)");
   const setPh = () => (sInput.placeholder = tiny.matches ? "Поиск" : narrow.matches ? "Найти героя..." : "Найти героя, коллекцию или карточку...");
   setPh();
   [narrow, tiny].forEach((m) => m.addEventListener("change", setPh));

@@ -2308,3 +2308,5 @@ body:has(.lightbox:not([hidden])) .toast, body:has(.omodal:not([hidden])) .toast
 h1.h2 { margin: 0; }
 .promo__col em { display: grid; justify-items: end; line-height: 1.1; }
 .promo__col em s { font: 500 11px var(--body); color: var(--grey); }
+/* Фон за окнами — ровное затемнение, без точек */
+.omodal, .drawer { background: rgba(5, 4, 6, .9); }

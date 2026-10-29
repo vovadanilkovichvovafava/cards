@@ -1607,3 +1607,67 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -.01
   .unis > .uni > img { width: 34px; height: 34px; }
   .hero__mark { opacity: .7; -webkit-text-stroke-width: 1px; }
 }
+
+/* ============================================================
+   Плавность на телефоне: ничего не перерисовывается в покое
+   и как можно меньше — при свайпе
+   ============================================================ */
+body { background: var(--bg); }                                   /* без «зерна» */
+.cf__slide.is-center .flip { -webkit-box-reflect: none; }        /* отражение пересчитывалось каждый кадр */
+.logo__accent { animation: none; }                               /* бесконечный перелив логотипа */
+.cf__glare { display: none; }                                    /* бегущий блик по карточке */
+.cf__slide.is-center .cf__base { filter: none; }                 /* размытие под карточкой */
+.hero { transition: none; }
+/* Карточки в витрине стоят обложкой — перелив с режимами наложения им не нужен */
+.cf__slide .face__holo, .cf__slide .face__sheen, .cf__slide .face__lines { display: none !important; }
+
+/* ============================================================
+   Мрачнее и агрессивнее: почти чёрная основа, тёмно-кровавый красный
+   ============================================================ */
+@property --acc { syntax: "<color>"; inherits: true; initial-value: #c3122f; }
+:root {
+  --bg: #060507;
+  --paper: #0f0c0e;
+  --paper-2: #171215;
+  --well: #0b090b;
+  --night: #060507;
+  --text: #f2eeee;
+  --grey: #8f8689;
+  --line: rgba(255, 255, 255, .07);
+  --red: #d8112f;
+  --red-dark: #8e0a1e;
+  --hot: #e0163a;
+  --glow: rgba(216, 17, 47, .5);
+  --holo: linear-gradient(100deg, #8e0a1e, #d8112f 55%, #ff2a45);
+}
+/* Заголовки — жирнее, выделенное слово — просто красным, без градиента */
+.h2 { font-weight: 800; letter-spacing: -.02em; }
+.h2__accent { background: none; -webkit-text-fill-color: var(--hot); color: var(--hot); }
+.h2::after { background: var(--hot); width: 36px; height: 3px; }
+/* Кнопки и выделения — красные, углы жёстче */
+.btn { background: var(--red); color: #fff; border-radius: 8px; font-weight: 800; letter-spacing: .01em; }
+.btn:hover { background: #f0183a; box-shadow: 0 0 0 3px rgba(216, 17, 47, .3); }
+.btn--ghost { background: transparent; color: var(--text); border: 1px solid rgba(255, 255, 255, .2); }
+.btn--ghost:hover { background: rgba(216, 17, 47, .1); border-color: var(--red); box-shadow: none; }
+.seg button.is-on, .chip.is-on, .cpick button.is-on { background: var(--red); color: #fff; }
+.step::before, .field__n { background: var(--red); color: #fff; border-radius: 6px; }
+.price--hot { box-shadow: 0 0 0 1px rgba(216, 17, 47, .8), 0 24px 60px -30px rgba(216, 17, 47, .7); }
+.price__tag, .badge { background: var(--red); color: #fff; }
+.pick__item.is-on .pick__img { box-shadow: 0 0 0 2px var(--red); }
+.step, .builder__form, .preview, .summary, .price, .about li, .lightbox__meta, .omodal__box { background: var(--paper); border-radius: 10px; }
+/* Логотип: «FLIP» — тёмно-красный, без анимации */
+.logo__accent { background: linear-gradient(180deg, #ff2a45, #b30d27); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.logo::after { -webkit-text-fill-color: var(--red); color: var(--red); }
+/* Сцена — темнее, по краям виньетка, цвет серии приглушён */
+.hero {
+  background:
+    radial-gradient(58% 46% at 50% 50%, color-mix(in srgb, var(--acc) 20%, transparent), transparent 70%),
+    radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, .7)),
+    var(--bg);
+}
+.hero__mark { -webkit-text-stroke: 1.2px color-mix(in srgb, var(--acc) 85%, black); opacity: .65; }
+.cf__slide.is-center .face--front { box-shadow: 0 0 0 1px rgba(255, 255, 255, .22), 0 0 40px -10px var(--acc), 0 40px 60px -24px #000; }
+.cf__dots i.is-on { background: var(--red); box-shadow: none; }
+.uni.is-on { border-color: color-mix(in srgb, var(--c) 70%, black); background: color-mix(in srgb, var(--c) 14%, var(--paper)); }
+.hero__title::before, .hero__title::after { background: linear-gradient(90deg, transparent, rgba(216, 17, 47, .7)); }
+.hero__title::after { background: linear-gradient(270deg, transparent, rgba(216, 17, 47, .7)); }

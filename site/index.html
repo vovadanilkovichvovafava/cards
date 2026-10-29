@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Шрифты грузятся без блокировки отрисовки -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=30">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 
@@ -50,15 +50,9 @@
         <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Коллекции: листай влево и вправо"></div>
       </div>
       <div class="cf__dots" id="cfDots" aria-hidden="true"></div>
-      <p class="cf__cap" aria-live="polite"><b id="cfName"></b><span id="cfMeta"></span></p>
-      <div class="unis" id="uniStrip" role="tablist" aria-label="Коллекции"></div>
-      <div class="hero__text">
-        <p class="lead">Стерео-карточки по аниме: наклони — и персонаж оживает. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
-        <div class="hero__cta">
-          <a href="#builder" class="btn">Собрать свою карточку</a>
-          <a href="#works" class="btn btn--ghost">Все коллекции</a>
-        </div>
-        <p class="hero__meta">Карточка от&nbsp;<b data-price-min>350 ₽</b>, печать за&nbsp;<span data-production>3–7 дней</span>.</p>
+      <div class="unis-wrap">
+        <div class="unis" id="uniStrip" role="tablist" aria-label="Коллекции"></div>
+        <button type="button" class="unis__next" id="uniNext" aria-label="Ещё коллекции"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
     </div>
   </section>
@@ -471,6 +465,6 @@
 
 <script src="data.js?v=6" defer></script>
 <script src="catalog.js" defer></script>
-<script src="app.js?v=25" defer></script>
+<script src="app.js?v=26" defer></script>
 </body>
 </html>

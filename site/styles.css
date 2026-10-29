@@ -973,3 +973,103 @@ body {
   .soc svg { width: 20px; height: 20px; }
   .icon-btn--fav, .icon-btn--cart { width: 38px; height: 38px; }
 }
+
+/* ============================================================
+   Точно по арту заказчика: сцена из пяти карточек, заголовок,
+   полоса коллекций, шапка. Перекрывает правила выше.
+   ============================================================ */
+/* Шапка: красная вспышка за названием, крупный логотип со взмахом под FLIP */
+.nav { background: radial-gradient(38% 160% at 28% -30%, rgba(255, 30, 60, .22), transparent 70%), linear-gradient(100deg, transparent 40%, rgba(255, 40, 70, .1) 55%, transparent 70%), rgba(5, 1, 2, .97); }
+.logo { font-size: 58px; line-height: 1; letter-spacing: -.02em;
+  background: linear-gradient(100deg, #b80d22 0%, #ff1f3d 38%, #ff5a72 56%, #fff1f4 64%, #ffd3db 82%, #ff9fb0 100%);
+  background-size: 160% 100%; -webkit-background-clip: text; background-clip: text;
+  animation: logo-flow 6s ease-in-out infinite alternate;
+}
+@keyframes logo-flow { from { background-position: 0 0; } to { background-position: 100% 0; } }
+.logo::before {
+  content: ""; position: absolute; right: .55em; bottom: -.16em; width: 2.4em; height: .42em; pointer-events: none;
+  border-bottom: .05em solid var(--hot); border-radius: 0 0 60% 60% / 0 0 100% 100%; transform: rotate(-5deg);
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+.logo::after { top: -.05em; font-size: .5em; }
+.nav__social .sound-toggle { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .03); }
+.soc svg { width: 34px; height: 34px; }
+.soc { width: 38px; height: 38px; }
+.nav__social { gap: 22px; }
+.nav__sep { height: 40px; }
+
+/* Заголовок — узкий жирный шрифт вразрядку, светится */
+.hero { padding-top: 22px; }
+.hero__title { font: 700 26px/1 "Oswald", var(--body); letter-spacing: .55em; color: #ffd0d8; text-shadow: 0 0 16px rgba(255, 60, 90, .65); gap: 28px; }
+.hero__title span { margin-right: -.55em; }
+.hero__title::before, .hero__title::after { flex: 0 1 220px; }
+
+/* Сцена: шаг ленты — 1,1 ширины карточки, соседи меньше и ближе (геометрию задаёт скрипт) */
+.cf { --cw: 300px; }
+.cf__track { gap: 0; padding: 130px calc(50% - var(--cw) * .55) 150px; }
+.cf__slide { width: calc(var(--cw) * 1.1); perspective: 1200px; }
+.cf__item { width: var(--cw); margin-inline: auto; }
+/* Отражение подиума в глянцевом полу */
+.cf__base::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 78%; height: 100%; pointer-events: none;
+  background: inherit; transform: scaleY(-1); opacity: .25;
+  -webkit-mask: linear-gradient(to top, #000, transparent 75%); mask: linear-gradient(to top, #000, transparent 75%);
+}
+/* Тёмный зал: красные огни-боке на заднем плане */
+.cf::after {
+  background:
+    radial-gradient(4px 4px at 22% 8%, rgba(255, 70, 100, .9), transparent),
+    radial-gradient(5px 5px at 78% 12%, rgba(255, 70, 100, .8), transparent),
+    radial-gradient(3px 3px at 64% 4%, rgba(255, 120, 140, .8), transparent),
+    radial-gradient(22% 30% at 50% 26%, rgba(255, 90, 120, .4), transparent 70%),
+    radial-gradient(55% 60% at 50% 22%, rgba(255, 30, 60, .2), transparent 72%),
+    radial-gradient(80% 100% at 50% 0, rgba(40, 8, 14, .9), transparent 75%);
+}
+.cf__dots { margin-top: -54px; }
+
+/* Полоса коллекций: крупные плашки, активная залита красным, в конце — «дальше» */
+.unis-wrap { display: flex; align-items: center; gap: 14px; margin-top: 34px; }
+.unis { flex: 1; min-width: 0; margin-top: 0; gap: 14px; }
+.uni { flex: 0 0 236px; height: 132px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .1); }
+.uni::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; transition: background .2s; }
+.uni.is-on { border: 2px solid #ff4a62; box-shadow: 0 0 26px rgba(255, 35, 65, .7), inset 0 0 22px rgba(255, 40, 70, .5); }
+.uni.is-on::after { background: linear-gradient(180deg, rgba(255, 30, 60, .38), rgba(255, 30, 60, .12)); }
+.uni span:not(.sr) { font-size: 20px; }
+.unis__next {
+  flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; padding: 0;
+  border: 1.5px solid var(--hot); background: rgba(8, 1, 3, .8); color: #fff; box-shadow: 0 0 18px var(--glow);
+}
+.unis__next .ico { width: 24px; height: 24px; }
+
+@media (max-width: 860px) {
+  .logo { font-size: 19px; }
+  .soc { width: 24px; height: 24px; }
+  .soc svg { width: 23px; height: 23px; }
+  .nav__social { gap: 10px; }
+  .nav__sep { height: 20px; }
+  .nav__social .sound-toggle { width: 32px; height: 32px; }
+  .hero__title { font-size: 14px; letter-spacing: .34em; gap: 10px; }
+  .hero__title span { margin-right: -.34em; }
+  .hero__title::before, .hero__title::after { flex-basis: 34px; }
+  .cf { --cw: 50vw; }
+  .cf__track { padding-block: 92px 116px; }
+  .cf__slide { perspective: 800px; }
+  .cf__dots { margin-top: -46px; }
+  .unis-wrap { margin-top: 24px; }
+  .uni { flex: 0 0 31%; height: 82px; }
+  .uni span:not(.sr) { font-size: 12px; }
+  .unis__next { display: none; }
+}
+@media (max-width: 370px) {
+  .logo { font-size: 16px; }
+}
+/* Подсветка зала — отдельным нижним слоем, контент витрины над ним
+   (иначе прокручиваемая полоса коллекций перекрывала подсветку тёмным прямоугольником) */
+.hero::before, .hero::after { z-index: 0; }
+.hero > .wrap { position: relative; z-index: 1; }
+@media (max-width: 860px) {
+  .uni span:not(.sr) { font-size: 10.5px; padding: 0 6px; overflow-wrap: anywhere; }
+}
+/* Свечение активной плашки обрезалось краем прокрутки — даём полосе запас со всех сторон */
+.unis { padding: 26px 22px; margin: -26px -22px; scroll-padding-inline: 22px; }
+@media (max-width: 860px) { .unis { padding: 22px 16px; margin: -22px -16px; scroll-padding-inline: 16px; } }

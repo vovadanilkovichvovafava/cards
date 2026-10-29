@@ -404,12 +404,13 @@
   $("#uniStrip").innerHTML = UNIVERSES.map((u) => `
     <button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
       <img src="${u.banner || u.back}" alt="" width="720" height="240" loading="lazy">
-      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span>${count(u) ? "" : "<em>Под заказ</em>"}</button>`).join("");
+      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span></button>`).join("");
+  $("#uniNext").addEventListener("click", () => $("#uniStrip").scrollBy({ left: $("#uniStrip").clientWidth * 0.8, behavior: reduceMotion ? "auto" : "smooth" }));
 
   let cfCenter = -1, cfRaf = null;
   function cfSetCenter(i) {
     cfCenter = i;
-    const u = SHOW[i], n = count(u);
+    const u = SHOW[i];
     cfSlides.forEach((sl, j) => sl.classList.toggle("is-center", j === i));
     $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i % N));
     $$("#uniStrip [data-u]").forEach((t) => {
@@ -417,15 +418,14 @@
       t.classList.toggle("is-on", on);
       t.setAttribute("aria-selected", on);
     });
-    $("#cfName").textContent = u.name;
-    $("#cfMeta").textContent = n ? `${plural(n, "карточка", "карточки", "карточек")}. Нажми, чтобы открыть` : "Нарисуем любого героя серии под заказ";
   }
   // Центры карточек считаем один раз (и при смене ширины), а не в каждом кадре:
   // чтение offsetLeft после записи стилей заставляло браузер пересчитывать раскладку
   const CF_REST = -0.6;
-  let cfCenters = [], cfW = 1, cfStep = 1;
+  let cfCenters = [], cfW = 1, cfStep = 1, cfCard = 1;
   const cfMeasure = () => {
     cfW = cfSlides[0].offsetWidth;
+    cfCard = cfItems[0].offsetWidth;
     cfCenters = cfSlides.map((sl) => sl.offsetLeft + cfW / 2);
     cfStep = cfCenters[1] - cfCenters[0];
   };
@@ -441,11 +441,14 @@
       // Карточки далеко за краем не трогаем
       if (a >= 3 && cfLast[i] >= 3) return;
       cfLast[i] = a;
-      // Соседи уходят в глубину, разворачиваются к центру и сдвигаются к нему — как витрина по дуге
-      const k = Math.max(-1, Math.min(1, d));
-      const pull = Math.sign(d) * Math.min(a, 2) * cfW * (innerWidth > 860 ? 0.04 : 0.16);
-      cfItems[i].style.transform = `translate3d(${(-pull).toFixed(1)}px, ${(Math.min(a, 2) * 18).toFixed(1)}px, ${(-Math.min(a, 2.5) * 230).toFixed(1)}px) rotateY(${(k * -38).toFixed(2)}deg)`;
-      cfItems[i].style.opacity = Math.max(0, Math.min(1, 1.5 - a * 0.42)).toFixed(3);
+      // Пропорции сняты с макета: соседняя карточка — 0,69 центральной на расстоянии 1,1 ширины,
+      // дальняя — 0,58 на расстоянии 1,83; все слегка развёрнуты к центру
+      const side = Math.sign(d);
+      const scale = a <= 1 ? 1 - 0.31 * a : a <= 2 ? 0.69 - 0.11 * (a - 1) : 0.58 - 0.1 * (a - 2);
+      const shift = a > 1 ? -side * (a - 1) * 0.37 * cfCard : 0;
+      const turn = -side * Math.min(a, 2) * 12;
+      cfItems[i].style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0) rotateY(${turn.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+      cfItems[i].style.opacity = (a <= 2 ? 1 - 0.08 * a : Math.max(0, 0.84 - (a - 2) * 1.4)).toFixed(3);
       sl.style.zIndex = 10 - Math.round(a);
       // Перелив и смена кадра — только у карточек рядом с центром.
       // В покое — чуть повёрнута к первому кадру: ровно «в лоб» оба кадра смешаны пополам
@@ -1223,7 +1226,7 @@
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка
   const narrow = matchMedia("(max-width: 860px)"), tiny = matchMedia("(max-width: 340px)");
-  const setPh = () => (sInput.placeholder = tiny.matches ? "Поиск" : narrow.matches ? "Найти героя" : "Найти персонажа или аниме");
+  const setPh = () => (sInput.placeholder = tiny.matches ? "Поиск" : narrow.matches ? "Найти героя..." : "Найти героя, коллекцию или карточку...");
   setPh();
   [narrow, tiny].forEach((m) => m.addEventListener("change", setPh));
   let sHits = [];

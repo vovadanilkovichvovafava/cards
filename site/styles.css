@@ -2336,3 +2336,16 @@ h1.h2 { margin: 0; }
 .gift21__title { margin: 0 0 6px; font-size: 14px; color: var(--grey); }
 .gift21__title b { font-family: var(--display); color: var(--hot); }
 .gift21 select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .12); background: var(--well); color: var(--text); font: 16px var(--body); }
+.omodal .cpick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Лёгкость для iPhone: меньше постоянных слоёв на главной */
+.cf__item, .newcards .newcards__track .newc { will-change: auto; }
+/* Safari/iPhone: лицо и рубашка в одной плоскости «мерцали», и наверх вылезала
+   зеркальная рубашка. Разносим их на 1 px; в витрине рубашка не нужна вовсе. */
+.flip:not([data-free]) .face--front, .flip:not([data-free]) .face--back { --t: 1px; }
+.flip .face { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.cf__slide .face--back { display: none; }
+/* Видна только сторона, повёрнутая к зрителю (надёжно и в Safari) */
+.flip[data-side="front"] .face--back, .flip[data-side="back"] .face--front { visibility: hidden; }
+/* Перелив: «осветление» (screen) вместо color-dodge — Safari рисовал color-dodge кислотными полосами */
+.face__holo { mix-blend-mode: screen; }
+.face--front .face__holo { opacity: calc(var(--holo, 0) * .22); }

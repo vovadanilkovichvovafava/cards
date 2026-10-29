@@ -70,9 +70,9 @@
     el.innerHTML = `
       <div class="flip__tilt">
         <div class="flip__turn">
+          ${free ? Array.from({ length: 9 }, (_, k) => `<i class="flip__layer" style="--k:${(k / 8 - 0.5).toFixed(3)}"></i>`).join("") : ""}
           <div class="face face--front"></div>
           <div class="face face--back"><img alt="Обратная сторона карточки" loading="lazy" width="600" height="824"><div class="face__holo"></div></div>
-          ${free ? Array.from({ length: 9 }, (_, k) => `<i class="flip__layer" style="--k:${(k / 8 - 0.5).toFixed(3)}"></i>`).join("") : ""}
         </div>
       </div>`;
     if (free) el.dataset.free = "";
@@ -92,6 +92,8 @@
       tilt.style.transform = `rotateX(${ax}deg) rotateY(${ay}deg)`;
       // Кадр: правее нормали — B, левее — A, с плавным переходом ±9°
       const s = Math.sin(rad(ay)), v = Math.sin(rad(ax));
+      const side = Math.cos(rad(ax)) * Math.cos(rad(ay)) >= 0 ? "front" : "back";
+      if (el.dataset.side !== side) el.dataset.side = side;
       el.style.setProperty("--mix", smooth(-0.15, 0.15, s).toFixed(3));
       // Перелив: чем дальше от «в лоб», тем ярче; полоса бежит по поверхности
       el.style.setProperty("--holo", Math.min(0.75, (Math.abs(s) + Math.abs(v)) * 1.1 + 0.06).toFixed(3));
@@ -380,19 +382,31 @@
     };
     ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, sync));
 
+    // На iPhone громкость менять нельзя (audio.volume всегда 1), поэтому затухание там
+    // не работает — звук останавливаем сразу, а на остальных плавно, но не дольше 300 мс
+    let hard = null;
     function stop() {
       clearInterval(fade);
-      if (audio.paused) return (src = null);
-      // Затухание за ~300 мс, чтобы не обрывать фразу резко
+      clearTimeout(hard);
+      src = null;
+      if (audio.paused) return;
+      const v0 = audio.volume;
+      audio.volume = Math.max(0, v0 - 0.1);
+      if (audio.volume === v0) return void (audio.pause(), (audio.currentTime = 0));
       fade = setInterval(() => {
         audio.volume = Math.max(0, audio.volume - 0.1);
-        if (audio.volume === 0) clearInterval(fade), audio.pause(), (src = null);
+        if (audio.volume === 0) clearInterval(fade), audio.pause();
       }, 30);
+      hard = setTimeout(() => { clearInterval(fade); audio.pause(); }, 320);
     }
+    // Ушли со страницы, свернули браузер — тишина
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
+    addEventListener("pagehide", () => stop());
 
     function play(next) {
       if (!on || !next) return;
       clearInterval(fade);
+      clearTimeout(hard);
       audio.volume = 1;
       if (src === next && !audio.paused) return;
       src = next;
@@ -916,7 +930,6 @@
   const CONTACT = {
     tg: { name: "Telegram", label: "Ник в Telegram", ph: "@nickname", mode: "text", ac: "username" },
     wa: { name: "WhatsApp", label: "Номер WhatsApp", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
-    vk: { name: "ВК", label: "Ссылка или ник ВКонтакте", ph: "vk.com/nickname", mode: "text", ac: "off" },
     tt: { name: "TikTok", label: "Ник в TikTok", ph: "@nickname", mode: "text", ac: "off" },
     ph: { name: "Телефон", label: "Номер телефона", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
   };
@@ -960,7 +973,7 @@
       $("#omErr").hidden = false;
       return $("#omContact").focus();
     }
-    // В заказе сразу видно, куда писать: «ВК: vk.com/…», «TikTok: @nick»
+    // В заказе сразу видно, куда писать: «Telegram: @nick», «TikTok: @nick»
     const contact = `${CONTACT[contactMethod].name}: ${value}`;
     if (!$("#omConsent").checked) {
       $("#omErr").textContent = "Отметь согласие — без него мы не можем принять контакт.";

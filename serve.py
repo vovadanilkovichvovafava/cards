@@ -1,6 +1,8 @@
 # Сервер сайта: отдаёт папку site/ без кеширования и принимает заказы.
 #
 #   POST /api/order  →  сообщение в Telegram через бота (+ фото, если есть)
+#   GET  /, /catalog, /catalog/<коллекция>, /builder, /prices, /about  →  страницы сайта
+#        (общие шапка, подвал и окна подставляются из site/partials/)
 #   GET  /catalog.js →  карточки, добавленные через бота (хранятся в DATABASE_URL)
 #   GET  /assets/cards/[sm/]db/<id>-<a|b>.jpg  →  их кадры из базы
 #
@@ -67,6 +69,18 @@ def clean(value, limit):
 
 COMPRESSIBLE = (".html", ".css", ".js", ".json", ".svg")
 DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
+SITE = os.path.join(ROOT, "site")
+# Красивые адреса страниц → файлы
+PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
+         "/prices": "prices.html", "/about": "about.html"}
+COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
+INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
+
+
+def render_page(name):
+    """Страница с подставленными общими кусками (шапка, подвал, окна)."""
+    html = open(os.path.join(SITE, name), encoding="utf-8").read()
+    return INCLUDE.sub(lambda m: open(os.path.join(SITE, "partials", m[1] + ".html"), encoding="utf-8").read(), html)
 
 # База нужна только для карточек из бота; без неё сайт и заказы работают как раньше
 STORE = Store(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else None
@@ -108,6 +122,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path_only == "/catalog.js":
             body = ("window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
             return self.send_body(200, "application/javascript; charset=utf-8", body)
+        page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only) else None)
+        if path_only.endswith(".html") and os.path.isfile(os.path.join(SITE, path_only.lstrip("/"))) and "/partials/" not in path_only:
+            page = path_only.lstrip("/")
+        if page:
+            return self.send_text(render_page(page).encode(), "text/html; charset=utf-8")
+        if path_only.startswith("/partials/"):
+            return self.reply(404, {"ok": False, "error": "not found"})
         m = DB_IMAGE.match(path_only)
         if m:
             data = None
@@ -134,6 +155,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(body)
             return
         super().do_GET()
+
+    def send_text(self, body, ctype):
+        # Сжимаем, если браузер умеет
+        if "gzip" in self.headers.get("Accept-Encoding", ""):
+            body = gzip.compress(body)
+            self.send_response(200)
+            self.send_header("Content-Encoding", "gzip")
+        else:
+            self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def send_body(self, code, ctype, body):
         self.send_response(code)
@@ -201,5 +235,5 @@ _env = load_env()
 if STORE and _env.get("TELEGRAM_BOT_TOKEN") and _env.get("TELEGRAM_CHAT_ID") and os.environ.get("BOT_POLLING", "1") != "0":
     Bot(_env["TELEGRAM_BOT_TOKEN"], _env["TELEGRAM_CHAT_ID"], STORE, os.environ.get("SITE_URL", "")).start()
 
-handler = functools.partial(Handler, directory=os.path.join(ROOT, "site"))
+handler = functools.partial(Handler, directory=SITE)
 http.server.ThreadingHTTPServer(("", PORT), handler).serve_forever()

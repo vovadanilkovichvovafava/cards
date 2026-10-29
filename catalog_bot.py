@@ -232,7 +232,7 @@ class Bot:
                             [[{"text": label, "callback_data": f"r:{key}"} for key, label in RARITY.items()]])
         self.state.pop(chat, None)
         uni = dict(universes()).get(st["universe"], st["universe"])
-        link = f"\n{self.site}/#works" if self.site else ""
+        link = f"\n{self.site}/catalog/{st['universe']}" if self.site else ""
         self.say(chat, f"Готово! {st['name']} ({RARITY[rarity].lower()}) теперь в коллекции «{uni}»." + link,
                  [[{"text": "Удалить эту карточку", "callback_data": f"del:{card_id}"}]])
 

@@ -18,6 +18,11 @@
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
   const sm = (src) => src.replace("assets/cards/", "assets/cards/sm/");
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Какая это страница сайта (body data-page): index, catalog, collection, builder, prices, about
+  const PAGE = document.body.dataset.page || "index";
+  const go = (url) => (location.href = url);
+  const plural = (n, one, few, many) =>
+    `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ---------------------------------------------------------------
@@ -262,7 +267,7 @@
   $$("[data-price]").forEach((n) => (n.textContent = money(CONFIG.prices[n.dataset.price])));
   $$("[data-price-min]").forEach((n) => (n.textContent = money(Math.min(...Object.values(CONFIG.prices)))));
   $$("[data-tg-handle]").forEach((n) => (n.textContent = `@${CONFIG.telegram}`));
-  document.title = `${CONFIG.brand} — ${CONFIG.tagline.toLowerCase()}`;
+  if (PAGE === "index") document.title = `${CONFIG.brand} — ${CONFIG.tagline.toLowerCase()}`;
   const tgUrl = `https://t.me/${CONFIG.telegram}`;
   $("#tgLink").href = tgUrl;
 
@@ -382,6 +387,7 @@
   //  На подиуме — обложка серии; при наклоне и обороте видна карточка её героя.
   //  Нажатие на центральную — открывает коллекцию со всеми карточками.
   // ---------------------------------------------------------------
+  if ($("#cfTrack")) (() => {
   const cfTrack = $("#cfTrack");
   const hero = (u) => WORKS.find((w) => w.c.universe === u.id && w.rarity === "special") || WORKS.find((w) => w.c.universe === u.id);
   const count = (u) => WORKS.filter((w) => w.c.universe === u.id).length;
@@ -496,7 +502,7 @@
     cfGo(cfCenter, false);
     cfQueue();
   });
-  const cfOpen = () => openCollection(SHOW[cfCenter].id);
+  const cfOpen = () => go(`catalog/${SHOW[cfCenter].id}`);
   cfTrack.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault(), cfGo(cfCenter + (e.key === "ArrowLeft" ? -1 : 1));
     if (e.key === "Enter") cfOpen();
@@ -581,10 +587,13 @@
     cfLayout();
     setTimeout(() => spinOnce(cfCenter), 300);
   });
+  })();
 
   // ---------------------------------------------------------------
   //  Конструктор
   // ---------------------------------------------------------------
+  // Конструктор есть только на странице /builder
+  const initBuilder = () => {
   const state = {
     recipient: "self", giftName: "",
     mode: "character",
@@ -788,6 +797,37 @@
   $("#mbarThumb").addEventListener("click", () => $(".preview").scrollIntoView({ block: "center" }));
   $("#mbarOrder").addEventListener("click", () => $("#orderBtn").click());
 
+  $("#orderBtn").addEventListener("click", () =>
+    sendOrder([
+      `Привет! Хочу заказать карточку:`,
+      `• Для кого: ${state.recipient === "gift" ? "в подарок" + (state.giftName ? ` (${state.giftName})` : "") : "себе"}`,
+      `• Карточка: ${describeCard()}`,
+      state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
+      state.mode === "photo" && state.photoText ? `• Текст: ${state.photoText}` : null,
+      `• Количество: ${state.qty}`,
+      `• Сумма: ${money(unitPrice() * state.qty)}`,
+    ], { photos: state.mode === "photo" ? state.photos : [] })
+  );
+
+  // С других страниц сюда приходят с готовым выбором в адресе:
+  //   ?c=guts&r=special&q=2 — карточка из каталога, ?other=Имя&u=aot — свой персонаж,
+  //   ?preset=common|special|photo — кнопка «Выбрать» на странице цен
+  const qp = new URLSearchParams(location.search);
+  const pc = char(qp.get("c"));
+  if (pc) Object.assign(state, { mode: "character", universe: pc.universe, character: pc.id, rarity: pc.variants[qp.get("r")] ? qp.get("r") : state.rarity, qty: Math.min(50, Math.max(1, +qp.get("q") || 1)) });
+  if (qp.has("other")) {
+    Object.assign(state, { mode: "character", universe: uni(qp.get("u")) ? qp.get("u") : state.universe, character: "other", otherChar: qp.get("other").slice(0, 60), rarity: "special" });
+    $("#otherChar").value = state.otherChar;
+  }
+  const preset = qp.get("preset");
+  if (preset === "photo") state.mode = "photo";
+  else if (preset === "common" || preset === "special") {
+    state.rarity = preset;
+    if (preset === "common" && !char(state.character)?.variants.common) Object.assign(state, { universe: "berserk", character: "guts" });
+  }
+  render();
+  };
+
   // ---------------------------------------------------------------
   //  Оформление заказа: форма → /api/order → бот присылает заказ в Telegram.
   //  Если сервер недоступен — запасной путь: копируем текст и открываем чат.
@@ -926,42 +966,11 @@
     window.open(tgUrl, "_blank", "noopener");
   });
 
-  $("#orderBtn").addEventListener("click", () =>
-    sendOrder([
-      `Привет! Хочу заказать карточку:`,
-      `• Для кого: ${state.recipient === "gift" ? "в подарок" + (state.giftName ? ` (${state.giftName})` : "") : "себе"}`,
-      `• Карточка: ${describeCard()}`,
-      state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
-      state.mode === "photo" && state.photoText ? `• Текст: ${state.photoText}` : null,
-      `• Количество: ${state.qty}`,
-      `• Сумма: ${money(unitPrice() * state.qty)}`,
-    ], { photos: state.mode === "photo" ? state.photos : [] })
-  );
-
-  // Пресеты из блока цен
-  $$("[data-preset]").forEach((a) =>
-    a.addEventListener("click", () => {
-      const p = a.dataset.preset;
-      if (p === "photo") state.mode = "photo";
-      else {
-        state.mode = "character";
-        state.rarity = p;
-        if (p === "common" && !char(state.character)?.variants.common) {
-          state.universe = "berserk";
-          state.character = "guts";
-        }
-      }
-      render();
-    })
-  );
-
   // ---------------------------------------------------------------
   //  Коллекции: плитки вселенных → мини-карточки серии
   // ---------------------------------------------------------------
-  const plural = (n, one, few, many) =>
-    `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;
-
-  $("#collections").innerHTML = UNIVERSES.map((u) => {
+  const collectionsEl = $("#collections"), collectionEl = $("#collection"), gallery = $("#gallery");
+  if (collectionsEl) collectionsEl.innerHTML = UNIVERSES.map((u) => {
     const n = WORKS.filter((w) => w.c.universe === u.id).length;
     return `
       <button type="button" class="col-tile ${n ? "" : "col-tile--soon"}" data-col="${u.id}" style="--c:${u.accent}">
@@ -974,7 +983,6 @@
       </button>`;
   }).join("");
 
-  const collectionsEl = $("#collections"), collectionEl = $("#collection"), gallery = $("#gallery");
   let galleryFlips = [];
 
   function openCollection(id) {
@@ -986,7 +994,8 @@
       ? `${plural(items.length, "карточка", "карточки", "карточек")}. Нажми на карточку, чтобы заказать`
       : "Арты этой серии ещё не на сайте";
     $("#colEmpty").hidden = items.length > 0;
-    $("#colCustom").dataset.u = id;
+    $("#colCustom").href = `builder?u=${id}&other=`;
+    document.title = `${u.name} — ${CONFIG.brand}`;
 
     gallery.innerHTML = "";
     galleryFlips = items.map((w) => {
@@ -1009,28 +1018,24 @@
     });
 
     syncHearts();
-    collectionsEl.hidden = true;
-    collectionEl.hidden = false;
-    $("#works").scrollIntoView({ block: "start" });
   }
 
-  function closeCollection() {
-    collectionEl.hidden = true;
-    collectionsEl.hidden = false;
-    gallery.innerHTML = "";
-    Sound.stop();
-    $("#works").scrollIntoView({ block: "start" });
+  // Какая коллекция открыта на странице /catalog/<id>
+  const pageCollection = PAGE === "collection" ? location.pathname.split("/").filter(Boolean)[1] : null;
+  if (collectionsEl) {
+    if (PAGE === "collection") {
+      if (!uni(pageCollection)) location.replace("catalog");
+      else {
+        collectionsEl.hidden = true;
+        collectionEl.hidden = false;
+      }
+    }
+    collectionsEl.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-col]");
+      if (t) go(`catalog/${t.dataset.col}`);
+    });
+    $("#colBack").addEventListener("click", () => go("catalog"));
   }
-
-  collectionsEl.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-col]");
-    if (t) openCollection(t.dataset.col);
-  });
-  $("#colBack").addEventListener("click", closeCollection);
-  $("#colCustom").addEventListener("click", (e) => {
-    Object.assign(state, { mode: "character", universe: e.currentTarget.dataset.u, character: "other", rarity: "special" });
-    render();
-  });
 
   // ---------------------------------------------------------------
   //  Окно товара: вращаемая карточка, версия, количество, заказ
@@ -1097,10 +1102,7 @@
   });
   $("#lbWant").addEventListener("click", () => {
     const { c, rarity, qty } = lbState;
-    Object.assign(state, { mode: "character", universe: c.universe, character: c.id, rarity, qty });
-    closeLightbox();
-    render();
-    $("#builder").scrollIntoView();
+    go(`builder?c=${c.id}&r=${rarity}&q=${qty}`);
   });
 
   $("#lbCart").addEventListener("click", () => {
@@ -1164,7 +1166,7 @@
   }
 
   const emptyState = (text) => `
-    <div class="dempty"><p>${text}</p><a href="#works" class="btn btn--ghost btn--full">Открыть каталог</a></div>`;
+    <div class="dempty"><p>${text}</p><a href="catalog" class="btn btn--ghost btn--full">Открыть каталог</a></div>`;
   const itemHead = (w) => `
     <button type="button" class="ditem__img" data-open="${workKey(w)}" ${thumbOf(w)} aria-label="Открыть ${esc(w.c.name)}"></button>
     <div class="ditem__info"><b>${esc(w.c.name)}</b><span>${esc(uni(w.c.universe).name)}, ${RARITY[w.rarity].toLowerCase()}</span>`;
@@ -1261,15 +1263,12 @@
     sInput.value = "";
     sRes.hidden = true;
     sInput.blur();
-    if (i === "custom") {
-      Object.assign(state, { mode: "character", character: "other", otherChar: q.slice(0, 60), rarity: "special" });
-      $("#otherChar").value = state.otherChar;
-      render();
-      return $("#builder").scrollIntoView();
-    }
-    if (it.u) return openCollection(it.u.id);
+    if (i === "custom") return go(`builder?other=${encodeURIComponent(q.slice(0, 60))}`);
+    if (it.u) return go(`catalog/${it.u.id}`);
     const w = WORKS.find((x) => x.c === it.c && x.rarity === "special") || WORKS.find((x) => x.c === it.c);
-    openProduct(WORKS.indexOf(w));
+    // Уже на странице этой коллекции — открываем окно здесь, иначе переходим в неё
+    if (pageCollection === it.c.universe) openProduct(WORKS.indexOf(w));
+    else go(`catalog/${it.c.universe}?card=${workKey(w)}`);
   }
   sInput.addEventListener("input", renderSearch);
   sInput.addEventListener("focus", renderSearch);
@@ -1287,6 +1286,7 @@
   //  Слайдер видео: по центру одно, соседние выглядывают по бокам.
   //  Играет только активное; досмотрел — листается дальше.
   // ---------------------------------------------------------------
+  if ($("#vstage")) (() => {
   const vstage = $("#vstage"), vdots = $("#vdots");
   vstage.innerHTML = VIDEOS.map((v, i) => `
     <div class="vslide" data-i="${i}">
@@ -1365,6 +1365,13 @@
   }, { rootMargin: "1200px" }).observe(vstage);
   new IntersectionObserver(([en]) => { vVisible = en.isIntersecting; playActive(); }, { threshold: 0.35 }).observe(vstage);
   layoutSlides();
+  })();
 
-  render();
+  if (PAGE === "builder") initBuilder();
+  // Карточки коллекции рисуем в конце: им нужны уже готовые избранное и окно товара
+  if (PAGE === "collection" && uni(pageCollection)) openCollection(pageCollection);
+
+  // Пришли из поиска или избранного с другой страницы — сразу открываем карточку
+  const openCard = workByKey(new URLSearchParams(location.search).get("card"));
+  if (openCard) openProduct(WORKS.indexOf(openCard));
 })();

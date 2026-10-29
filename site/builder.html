@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Страницы живут по адресам /catalog, /catalog/berserk… — все пути считаем от корня сайта -->
+  <base href="/">
+  <title>Собрать карточку — Aniverse Flip</title>
+  <meta name="description" content="Собери свою стерео-карточку: персонаж из аниме или ты сам по фото.">
+<!--#include head-->
+</head>
+<body data-page="builder">
+
+<!--#include header-->
+
+<main id="top">
+  <!-- BUILDER -->
+  <section class="section section--dark" id="builder">
+    <div class="wrap">
+      <h2 class="h2" data-jp="カスタム">Собери свою карточку</h2>
+      <p class="sub">Превью меняется сразу — его можно крутить.</p>
+
+      <div class="builder">
+        <div class="builder__form">
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Для кого карточка?</legend>
+            <div class="seg" data-group="recipient">
+              <button type="button" data-value="self" class="is-on">Себе</button>
+              <button type="button" data-value="gift">В подарок</button>
+            </div>
+            <div class="reveal" data-show-when="recipient=gift">
+              <label class="input">
+                <span>Имя получателя</span>
+                <input type="text" id="giftName" maxlength="40" placeholder="Например, Саша">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Кто будет на карточке?</legend>
+            <div class="seg" data-group="mode">
+              <button type="button" data-value="character" class="is-on">Персонаж аниме</button>
+              <button type="button" data-value="photo">Я / друг по фото</button>
+            </div>
+
+            <div class="reveal is-open" data-show-when="mode=character">
+              <div class="chips" id="universeChips"></div>
+              <div class="pick" id="characterGrid"></div>
+              <div class="reveal" id="otherCharBox">
+                <label class="input">
+                  <span>Какой персонаж нужен?</span>
+                  <input type="text" id="otherChar" maxlength="60" placeholder="Например, Леви Аккерман">
+                </label>
+                <p class="note">Нарисуем любого героя этой вселенной. Превью покажет оформление серии.</p>
+              </div>
+            </div>
+
+            <div class="reveal" data-show-when="mode=photo">
+              <div class="uploads">
+                <label class="upload" id="up1">
+                  <input type="file" accept="image/*" data-slot="0">
+                  <span class="upload__img"></span>
+                  <span class="upload__txt"><b>Кадр 1</b>видно прямо</span>
+                </label>
+                <label class="upload" id="up2">
+                  <input type="file" accept="image/*" data-slot="1">
+                  <span class="upload__img"></span>
+                  <span class="upload__txt"><b>Кадр 2</b>видно при наклоне, можно не добавлять</span>
+                </label>
+              </div>
+              <label class="input">
+                <span>Имя на карточке</span>
+                <input type="text" id="photoName" maxlength="24" placeholder="Твоё имя или ник">
+              </label>
+              <label class="input">
+                <span>Текст на карточке</span>
+                <textarea id="photoText" maxlength="180" rows="3" placeholder="Пара строк о герое: титул, суперсила, любимая фраза"></textarea>
+              </label>
+              <span class="input__label">Стиль серии</span>
+              <div class="chips" id="styleChips"></div>
+              <p class="note">Фото остаются у тебя в браузере — никуда не загружаются, пока ты сам не отправишь их нам.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="field" id="rarityField">
+            <legend><span class="field__n" aria-hidden="true"></span>Версия карточки</legend>
+            <div class="seg" data-group="rarity">
+              <button type="button" data-value="common">Обычная</button>
+              <button type="button" data-value="special" class="is-on">Особая</button>
+            </div>
+            <p class="note" id="rarityNote"></p>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend><span class="field__n" aria-hidden="true"></span>Количество</legend>
+            <div class="qty">
+              <button type="button" data-qty="-1" aria-label="Меньше">−</button>
+              <output id="qty">1</output>
+              <button type="button" data-qty="1" aria-label="Больше">+</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <aside class="builder__preview">
+          <div class="preview">
+            <div class="flip flip--big" id="previewCard"></div>
+            <div class="preview__tools">
+              <button type="button" class="tool" id="tiltBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg>Наклонить</button>
+              <button type="button" class="tool" id="turnBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
+            </div>
+          </div>
+          <div class="summary">
+            <div class="summary__rows" id="summaryRows"></div>
+            <div class="summary__total">
+              <span>Итого</span>
+              <b id="total">—</b>
+            </div>
+            <button type="button" class="btn btn--full" id="orderBtn">Оформить заказ</button>
+            <p class="note note--center">Заказ сразу придёт нам — мы напишем тебе сами</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!--#include footer-->
+
+<!--#include overlays-->
+<!--#include mbar-->
+<!--#include scripts-->
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!-- Меню, избранное, корзина: выезжают справа -->
+<div class="drawer" id="menuDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Меню">
+    <div class="drawer__head"><h3>Меню</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <nav class="menu">
+      <a href="./">Главная</a>
+      <a href="catalog">Каталог</a>
+      <a href="builder">Собрать свою карточку</a>
+      <a href="prices">Цены и заказ</a>
+      <a href="about">О нас</a>
+    </nav>
+    <div class="drawer__foot">
+      <div class="menu__social" id="menuSocial"></div>
+      <a href="builder" class="btn btn--full" data-dlink>Заказать карточку</a>
+    </div>
+  </div>
+</div>
+
+<div class="drawer" id="favDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Избранное">
+    <div class="drawer__head"><h3>Избранное</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="dlist" id="favList"></div>
+  </div>
+</div>
+
+<div class="drawer" id="cartDrawer" hidden>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-label="Корзина">
+    <div class="drawer__head"><h3>Корзина</h3><button type="button" class="icon-btn" data-dclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="dlist" id="cartList"></div>
+    <div class="drawer__foot" id="cartFoot">
+      <div class="cart-total"><span>Итого</span><b id="cartTotal"></b></div>
+      <button type="button" class="btn btn--full" id="cartOrder">Оформить заказ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox__inner" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <button type="button" class="lightbox__close" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="lightbox__card">
+      <div class="flip flip--big" id="lightboxCard"></div>
+      <p class="hint"><span class="on-hover">Тяни карточку мышкой — она вращается</span><span class="on-touch">Крути карточку пальцем ← →</span></p>
+    </div>
+    <div class="lightbox__meta">
+      <span class="lb-uni" id="lbUni"></span>
+      <h3 id="lbTitle"></h3>
+      <div class="seg seg--sm" id="lbRarity"></div>
+      <div class="lb-buy">
+        <div class="qty">
+          <button type="button" data-lbqty="-1" aria-label="Меньше">−</button>
+          <output id="lbQty">1</output>
+          <button type="button" data-lbqty="1" aria-label="Больше">+</button>
+        </div>
+        <div class="lb-buy__price">
+          <span class="note" id="lbUnit"></span>
+          <b id="lbTotal"></b>
+        </div>
+      </div>
+      <div class="lb-cta">
+        <button type="button" class="btn" id="lbOrder">Заказать</button>
+        <button type="button" class="btn btn--ghost" id="lbCart">В корзину</button>
+        <button type="button" class="heart heart--lg" id="lbFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
+      </div>
+      <div class="lb-links">
+        <button type="button" class="tool" id="lbTurn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
+        <button type="button" class="tool" id="lbWant"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>В подарок или настроить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Оформление заказа -->
+<div class="omodal" id="orderModal" hidden>
+  <form class="omodal__box" id="orderForm" role="dialog" aria-modal="true" aria-labelledby="omTitle" novalidate>
+    <button type="button" class="lightbox__close" data-oclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="omodal__step" id="omForm">
+      <h3 id="omTitle">Оформление заказа</h3>
+      <dl class="omodal__lines" id="omLines"></dl>
+      <label class="input">
+        <span>Как к тебе обращаться</span>
+        <input type="text" id="omName" maxlength="80" autocomplete="name" placeholder="Имя">
+      </label>
+      <div class="input">
+        <span id="omMethodLabel">Где тебе написать *</span>
+        <div class="cpick" id="omMethod" role="radiogroup" aria-labelledby="omMethodLabel">
+          <button type="button" role="radio" data-m="tg" aria-checked="true" class="is-on">Telegram</button>
+          <button type="button" role="radio" data-m="wa" aria-checked="false">WhatsApp</button>
+          <button type="button" role="radio" data-m="vk" aria-checked="false">ВК</button>
+          <button type="button" role="radio" data-m="tt" aria-checked="false">TikTok</button>
+          <button type="button" role="radio" data-m="ph" aria-checked="false">Телефон</button>
+        </div>
+      </div>
+      <label class="input">
+        <span id="omContactLabel">Ник в Telegram *</span>
+        <input type="text" id="omContact" maxlength="100" autocomplete="username" placeholder="@nickname" required>
+      </label>
+      <label class="input">
+        <span>Комментарий</span>
+        <textarea id="omComment" maxlength="600" rows="2" placeholder="Пожелания, сроки, доставка"></textarea>
+      </label>
+      <label class="consent">
+        <input type="checkbox" id="omConsent">
+        <span>Согласен(на), что вы используете имя и контакт только чтобы связаться со мной по этому заказу</span>
+      </label>
+      <p class="omodal__err" id="omErr" hidden></p>
+      <button type="submit" class="btn btn--full" id="omSubmit">Отправить заказ</button>
+      <button type="button" class="omodal__alt" id="omAlt">или написать нам в Telegram самому</button>
+    </div>
+    <div class="omodal__step omodal__done" id="omDone" hidden>
+      <div class="omodal__ok"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></div>
+      <h3>Заказ отправлен!</h3>
+      <p>Мы уже получили его и скоро напишем тебе, чтобы согласовать детали и оплату.</p>
+      <button type="button" class="btn btn--full" data-oclose>Отлично</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden></div>

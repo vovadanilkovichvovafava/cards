@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Страницы живут по адресам /catalog, /catalog/berserk… — все пути считаем от корня сайта -->
+  <base href="/">
+  <title>Каталог — Aniverse Flip</title>
+  <meta name="description" content="Все коллекции стерео-карточек Aniverse Flip: Берсерк, Реинкарнация безработного, Атака титанов, Ван Пис.">
+<!--#include head-->
+</head>
+<body data-page="catalog">
+
+<!--#include header-->
+
+<main id="top">
+  <!-- WORKS -->
+  <section class="section" id="works">
+    <div class="wrap">
+      <h2 class="h2" data-jp="コレクション">Коллекции</h2>
+      <p class="sub">Выбери вселенную — внутри все карточки серии. <span class="on-hover">Тяни карточку мышкой, чтобы повернуть.</span><span class="on-touch">Крути карточки пальцем.</span></p>
+
+      <div class="collections" id="collections"></div>
+
+      <div class="collection" id="collection" hidden>
+        <div class="collection__head">
+          <button type="button" class="tool" id="colBack"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Все коллекции</button>
+          <img class="collection__icon" id="colIcon" alt="">
+          <div>
+            <h3 id="colTitle"></h3>
+            <span class="note" id="colCount"></span>
+          </div>
+        </div>
+        <div class="gallery" id="gallery"></div>
+        <div class="collection__empty" id="colEmpty" hidden>
+          <p>Арты этой серии ещё не выложены на сайт.<br>Любого героя можно заказать уже сейчас.</p>
+          <a href="builder" class="btn" id="colCustom">Заказать своего персонажа</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!--#include footer-->
+
+<!--#include overlays-->
+<!--#include scripts-->
+</body>
+</html>

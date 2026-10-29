@@ -1146,3 +1146,5 @@ body {
 .cf__slide .face--front .face__holo { opacity: clamp(0, calc((var(--holo, 0) - .2) * .6), .4); }
 /* Верхнего кольца нет — сверху остаётся только небольшой отступ */
 .cf__track { padding-top: calc(var(--cw) * .14); }
+/* Центральную карточку крутят пальцем (горизонтальный жест — ей), листают за боковые */
+.cf__slide.is-center .flip { touch-action: pan-y; cursor: grab; }

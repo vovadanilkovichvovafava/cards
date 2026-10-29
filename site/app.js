@@ -42,7 +42,8 @@
   const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
 
   // mirror — элемент, которому тоже передаётся угол перелива (заголовок первого экрана)
-  function Flip(el, { interactive = true, free = false, mirror = null } = {}) {
+  // rest — наклон в покое; canDrag — можно ли сейчас крутить; springBack — после отпускания вернуться лицом
+  function Flip(el, { interactive = true, free = false, mirror = null, rest = REST, canDrag = null, springBack = false } = {}) {
     el.innerHTML = `
       <div class="flip__tilt">
         <div class="flip__turn">
@@ -99,13 +100,13 @@
     // Сразу (для покадровых анимаций) и плавно (для курсора)
     function pose(x, y = 0) { hx = thx = x; hy = thy = y; render(); }
     function lean(x, y = 0) { thx = x; thy = y; wake(); }
-    pose(REST);
+    pose(rest);
 
     function stopAnim() { if (anim) cancelAnimationFrame(anim), (anim = null); }
 
     if (interactive) {
       el.addEventListener("pointerdown", (e) => {
-        if (e.button > 0) return;
+        if (e.button > 0 || (canDrag && !canDrag())) return;
         stopAnim();
         const r = el.getBoundingClientRect();
         dragging = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, t: performance.now(), sx: tgt.x, sy: tgt.y, w: r.width, touch: e.pointerType !== "mouse",
@@ -139,7 +140,7 @@
             return;
           }
         }
-        if (e.pointerType === "mouse") {
+        if (e.pointerType === "mouse" && (!canDrag || canDrag())) {
           const r = el.getBoundingClientRect();
           lean(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
         }
@@ -148,9 +149,14 @@
         // Если палец/мышь замерли перед отпусканием — без инерции
         if (dragging && performance.now() - dragging.t > 80) vel.x = vel.y = 0;
         if (!dragging || !moved) vel.x = vel.y = 0;
+        if (springBack && dragging) {
+          vel.x = vel.y = 0;
+          tgt.y = Math.round(tgt.y / 360) * 360;
+          tgt.x = 0;
+        }
         dragging = null;
         el.classList.remove("is-dragging");
-        lean(REST, 0);
+        lean(rest, 0);
       };
       el.addEventListener("pointerup", release);
       el.addEventListener("pointercancel", release);
@@ -196,16 +202,16 @@
         }
       },
       // Сразу (без анимации) поставить лицом
-      reset() { tgt.x = tgt.y = cur.x = cur.y = vel.x = vel.y = 0; pose(REST); },
+      reset() { tgt.x = tgt.y = cur.x = cur.y = vel.x = vel.y = 0; pose(rest); },
       // Покачать карточку: показать оба кадра
       sweep(duration = 1800) {
         stopAnim();
         const t0 = performance.now();
         const step = (t) => {
           const p = Math.min(1, (t - t0) / duration);
-          pose(REST + Math.sin(p * Math.PI * 2) * 0.9 * (1 - p * 0.3));
+          pose(rest + Math.sin(p * Math.PI * 2) * 0.9 * (1 - p * 0.3));
           anim = p < 1 ? requestAnimationFrame(step) : null;
-          if (!anim) pose(REST);
+          if (!anim) pose(rest);
         };
         anim = requestAnimationFrame(step);
       },
@@ -323,7 +329,14 @@
     const audio = new Audio();
     audio.preload = "none";
     // Звук выключен, пока пользователь сам его не включит
-    let on = false, src = null, fade = null;
+    let on = false, src = null, fade = null, pending = null;
+    const unlock = () => {
+      removeEventListener("pointerdown", unlock, true);
+      removeEventListener("keydown", unlock, true);
+      if (pending && on) { const p = pending; pending = src = null; play(p); }
+    };
+    addEventListener("pointerdown", unlock, true);
+    addEventListener("keydown", unlock, true);
     try { on = localStorage.getItem("sound") === "on"; } catch {}
 
     const sync = () => {
@@ -333,6 +346,7 @@
     ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, sync));
 
     function stop() {
+      pending = null;
       clearInterval(fade);
       if (audio.paused) return (src = null);
       // Затухание за ~300 мс, чтобы не обрывать фразу резко
@@ -349,8 +363,8 @@
       if (src === next && !audio.paused) return;
       src = next;
       audio.src = next;
-      // До первого клика по странице браузер может запретить звук — молча пропускаем
-      audio.play().catch(() => {});
+      // До первого клика по странице браузер запрещает звук — цитата сыграет сразу после него
+      audio.play().then(() => (pending = null), () => (pending = next));
     }
 
     btn.addEventListener("click", () => {
@@ -394,9 +408,11 @@
   const cfItems = cfSlides.map((sl) => sl.firstElementChild);
   const cfFlips = cfSlides.map((sl, i) => {
     const u = SHOW[i], w = hero(u);
-    const f = Flip($(".flip", sl), { interactive: false });
-    f.setImages(u.back, w ? w.a : u.back, Math.abs(i - START) > 1);
-    f.setBack(w ? w.a : u.back);
+    // Центральную можно покрутить пальцем или мышью и увидеть переход кадров; отпустил — встаёт лицом
+    const f = Flip($(".flip", sl), { rest: -0.6, springBack: true, canDrag: () => sl.classList.contains("is-center") });
+    if (w) f.setImages(w.a, w.b, Math.abs(i - START) > 1);
+    else f.setImages(u.back, u.back, Math.abs(i - START) > 1); // у серии ещё нет артов — показываем её обложку
+    f.setBack(u.back);
     return f;
   });
   $("#cfDots").innerHTML = UNIVERSES.map(() => "<i></i>").join("");
@@ -489,7 +505,7 @@
   let cfDrag = null, cfMoved = false;
   cfTrack.addEventListener("pointerdown", (e) => {
     cfMoved = false;
-    if (e.pointerType !== "mouse" || e.button > 0) return;
+    if (e.pointerType !== "mouse" || e.button > 0 || e.target.closest(".cf__slide.is-center .flip")) return;
     cfDrag = { x: e.clientX, left: cfTrack.scrollLeft };
   });
   addEventListener("pointermove", (e) => {
@@ -511,7 +527,7 @@
     const i = cfSlides.indexOf(sl);
     i === cfCenter ? cfOpen() : cfGo(i);
   });
-  cfTrack.addEventListener("pointerover", (e) => {
+  cfTrack.addEventListener("pointermove", (e) => {
     if (e.pointerType !== "mouse" || !e.target.closest(".cf__slide.is-center")) return;
     const q = CHARACTERS.find((c) => c.universe === SHOW[cfCenter].id && c.quote);
     if (q) Sound.play(q.quote);
@@ -544,6 +560,8 @@
       t0 ??= t + SPIN_DELAY;
       const k = (t - t0) / SPIN_MS;
       // Начали листать — оборот прерываем, карточка встаёт лицом
+      // Человек сам крутит карточку — автооборот уступает ему
+      if (cfFlips[i].el.classList.contains("is-dragging")) return void (spinRaf = null);
       if (cfCenter !== i || t - cfScrollAt < 120) {
         if (k <= 0) spun.delete(id); // ещё не начала оборачиваться — обернётся в следующий раз
         return cfFlips[i].spin(0), (spinRaf = null);

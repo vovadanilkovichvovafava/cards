@@ -279,7 +279,7 @@
   const SOCIAL = {
     instagram: { name: "Instagram", url: CONFIG.instagram },
     tiktok: { name: "TikTok", url: CONFIG.tiktok },
-    telegram: { name: "Telegram", url: tgUrl },
+    telegram: { name: "Telegram", url: CONFIG.telegramChannel || tgUrl },
   };
   $("#menuSocial").innerHTML = $$(".nav__social [data-social]")
     .map((a) => a.outerHTML.replace('class="icon-btn"', 'class="icon-btn icon-btn--label"').replace("</svg>", `</svg>${SOCIAL[a.dataset.social].name}`))

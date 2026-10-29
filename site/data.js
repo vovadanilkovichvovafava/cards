@@ -8,8 +8,9 @@ window.CONFIG = {
   // Ник в Telegram без @ — на него ведёт кнопка «Заказать»
   telegram: "bakayaarou",
   // Соцсети для иконок в шапке: полная ссылка. Пусто — иконка покажет «скоро».
-  instagram: "",
-  tiktok: "",
+  instagram: "https://www.instagram.com/aniverse_3dcards",
+  tiktok: "https://www.tiktok.com/@aniverse_3dcards",
+  telegramChannel: "https://t.me/Aniverse_3Dcards", // канал; заказы по-прежнему идут на ник выше
   // Цены — ЗАМЕНИ на свои
   prices: {
     common: 350,   // обычная карточка

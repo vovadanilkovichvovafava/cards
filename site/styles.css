@@ -1671,3 +1671,5 @@ body { background: var(--bg); }                                   /* без «з
 .uni.is-on { border-color: color-mix(in srgb, var(--c) 70%, black); background: color-mix(in srgb, var(--c) 14%, var(--paper)); }
 .hero__title::before, .hero__title::after { background: linear-gradient(90deg, transparent, rgba(216, 17, 47, .7)); }
 .hero__title::after { background: linear-gradient(270deg, transparent, rgba(216, 17, 47, .7)); }
+/* Полоса коллекций под витриной убрана — коллекции листаются в самой витрине */
+.unis-wrap { display: none; }

@@ -17,7 +17,10 @@
       <input type="search" id="searchInput" placeholder="Найти персонажа или аниме" aria-label="Поиск по каталогу" autocomplete="off" enterkeyhint="search">
       <div class="search__res" id="searchRes" hidden></div>
     </div>
-      <button type="button" class="icon-btn icon-btn--fav" id="favBtn" aria-label="Избранное" aria-controls="favDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg><span class="badge" id="favCount" hidden></span></button>
+      <div class="region" role="group" aria-label="Валюта цен">
+      <button type="button" data-region="BYN" aria-pressed="false">BYN</button><span aria-hidden="true">|</span><button type="button" data-region="RUS" aria-pressed="true">RUS</button>
+    </div>
+    <button type="button" class="icon-btn icon-btn--fav" id="favBtn" aria-label="Избранное" aria-controls="favDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg><span class="badge" id="favCount" hidden></span></button>
       <button type="button" class="icon-btn icon-btn--cart" id="cartBtn" aria-label="Корзина" aria-controls="cartDrawer"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11h10.6l2-7.5H6.4"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/></svg><span class="badge" id="cartCount" hidden></span></button>
   </div>
 </header>

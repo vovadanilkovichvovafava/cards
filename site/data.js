@@ -18,6 +18,9 @@ window.CONFIG = {
     custom: 900,   // карточка по фото (ты / друг)
   },
   currency: "₽",
+  // Переключатель BYN | RUS в шапке: цены в белорусских рублях считаются по этому курсу
+  // (сколько BYN за 1 ₽) и округляются до целого. ПРОВЕРЬ курс перед запуском.
+  bynPerRub: 0.035,
   production: "3–7 дней",
 };
 
@@ -34,6 +37,7 @@ window.UNIVERSES = [
   {
     id: "mushoku",
     name: "Реинкарнация безработного",
+    short: "Реинкарнация", // короткое имя — для плашек и подписи на витрине
     icon: "assets/brand/icon-mushoku.jpg",
     banner: null,
     back: "assets/backs/mushoku.jpg",

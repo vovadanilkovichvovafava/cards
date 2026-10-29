@@ -13,7 +13,12 @@
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   const uni = (id) => UNIVERSES.find((u) => u.id === id);
   const char = (id) => CHARACTERS.find((c) => c.id === id);
-  const money = (v) => `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
+  // Валюта выбирается переключателем BYN | RUS в шапке и запоминается
+  let REGION = "RUS";
+  try { if (localStorage.getItem("region") === "BYN") REGION = "BYN"; } catch {}
+  const money = (v) => REGION === "BYN"
+    ? `${Math.max(1, Math.round(v * CONFIG.bynPerRub)).toLocaleString("ru-RU")} BYN`
+    : `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
   const RARITY = { common: "Обычная", special: "Особая" };
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
   const sm = (src) => src.replace("assets/cards/", "assets/cards/sm/");
@@ -261,7 +266,21 @@
   // ---------------------------------------------------------------
   //  Общий контент из конфига
   // ---------------------------------------------------------------
-  $$("[data-brand]").forEach((n) => (n.textContent = CONFIG.brand));
+  // Название в две краски, как на макете: первое слово светлое, последнее — розовое
+  $$("[data-brand]").forEach((n) => {
+    const words = CONFIG.brand.split(" ");
+    const last = words.pop();
+    n.innerHTML = `${esc(words.join(" "))} <span class="logo__accent">${esc(last)}</span>`;
+  });
+  $$("[data-region]").forEach((b) => {
+    b.classList.toggle("is-on", b.dataset.region === REGION);
+    b.setAttribute("aria-pressed", b.dataset.region === REGION);
+    b.addEventListener("click", () => {
+      if (b.dataset.region === REGION) return;
+      try { localStorage.setItem("region", b.dataset.region); } catch {}
+      location.reload(); // все цены на странице пересчитаются в выбранной валюте
+    });
+  });
   $$("[data-tagline]").forEach((n) => (n.textContent = CONFIG.tagline));
   $$("[data-production]").forEach((n) => (n.textContent = CONFIG.production));
   $$("[data-price]").forEach((n) => (n.textContent = money(CONFIG.prices[n.dataset.price])));
@@ -399,6 +418,7 @@
     <div class="cf__slide" role="group" aria-label="Коллекция ${esc(u.name)}" ${Math.floor(i / N) === 1 ? "" : 'aria-hidden="true"'}>
       <div class="cf__item">
         <div class="flip"></div>
+        <span class="cf__label">${esc(u.short || u.name)}</span>
         <span class="cf__base" aria-hidden="true"></span>
       </div>
     </div>`).join("");
@@ -419,7 +439,8 @@
   $("#uniStrip").innerHTML = UNIVERSES.map((u) => `
     <button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
       <img src="${u.banner || u.back}" alt="" width="720" height="240" loading="lazy">
-      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span></button>`).join("");
+      <span class="sr">${esc(u.name)}</span>
+      <span class="uni__cap"><small>Коллекция</small><b>${esc(u.short || u.name)}</b></span></button>`).join("");
   $("#uniNext").addEventListener("click", () => $("#uniStrip").scrollBy({ left: $("#uniStrip").clientWidth * 0.8, behavior: reduceMotion ? "auto" : "smooth" }));
 
   let cfCenter = -1, cfRaf = null;
@@ -459,9 +480,9 @@
       // Пропорции сняты с макета: соседняя карточка — 0,69 центральной на расстоянии 1,1 ширины,
       // дальняя — 0,58 на расстоянии 1,83; все слегка развёрнуты к центру
       const side = Math.sign(d);
-      const scale = a <= 1 ? 1 - 0.31 * a : a <= 2 ? 0.69 - 0.11 * (a - 1) : 0.58 - 0.1 * (a - 2);
-      const shift = a > 1 ? -side * (a - 1) * 0.37 * cfCard : 0;
-      const turn = -side * Math.min(a, 2) * 12;
+      const scale = a <= 1 ? 1 - 0.34 * a : a <= 2 ? 0.66 - 0.12 * (a - 1) : 0.54 - 0.1 * (a - 2);
+      const shift = -side * (Math.min(a, 1) * 0.13 + Math.max(0, a - 1) * 0.4) * cfCard;
+      const turn = -side * Math.min(a, 2) * 16;
       cfItems[i].style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0) rotateY(${turn.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       // Прозрачность у 3D-карточки ломает скрытие рубашки (на Android она просвечивает сквозь лицо),
       // поэтому карточки не полупрозрачные — дальние просто прячем

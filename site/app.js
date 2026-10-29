@@ -174,6 +174,8 @@
         const set = (src) => (src.includes("/sm/") ? "" : `srcset="${sm(src)} 400w, ${src} 780w" sizes="(max-width: 600px) 66vw, 400px"`);
         front.innerHTML = `<img class="frame-a" src="${a}" ${set(a)} alt="" width="780" height="1051" ${load}><img class="frame-b" src="${b}" ${set(b)} alt="" width="780" height="1051" ${lazy ? load : 'fetchpriority="low"'}><div class="face__lines"></div><div class="face__holo"></div><div class="face__sheen"></div>`;
       },
+      // Поставить наклон сразу, без анимации (витрина двигает карточки при прокрутке)
+      pose,
       setCustom(html) { front.innerHTML = html; },
       setBack(src) { backImg.src = src; },
       setBadge(text) {
@@ -365,42 +367,136 @@
   );
 
   // ---------------------------------------------------------------
-  //  Hero
+  //  Витрина первого экрана: карточки на подиумах.
+  //  Листается пальцем (родная прокрутка со «снапом»), мышью, стрелками.
+  //  Проезжая через центр, карточка наклоняется и переливается.
   // ---------------------------------------------------------------
-  const hero = Flip($("#heroCard"), { mirror: $(".hero") });
-  const heroList = WORKS.filter((w) => w.rarity === "special");
-  let heroIdx = 0;
-  let heroBack = false; // задник первого экрана грузим только после первого действия
-  const showHero = () => {
-    const w = heroList[heroIdx % heroList.length];
-    hero.setImages(w.a, w.b, false);
-    if (heroBack) hero.setBack(uni(w.c.universe).back);
-  };
-  showHero();
-  hero.autoplay();
-  let heroHover = false;
-  // Листать персонажей начинаем только после первого действия пользователя:
-  // так первая загрузка не тянет лишние картинки, и замер скорости честный.
-  // Пока курсор на карточке — не листаем, чтобы цитата не оборвалась.
-  const startHeroRotation = () => {
-    ["pointerdown", "scroll", "keydown", "mousemove"].forEach((ev) => removeEventListener(ev, startHeroRotation));
-    heroBack = true;
-    showHero();
-    heroList.slice(1).forEach((w) => [w.a, w.b].forEach((src) => (new Image().src = src)));
-    setInterval(() => { if (!heroHover) heroIdx++, showHero(); }, 6500);
-  };
-  ["pointerdown", "scroll", "keydown", "mousemove"].forEach((ev) => addEventListener(ev, startHeroRotation, { passive: true, once: true }));
-  $("#heroCard").addEventListener("pointerenter", (e) => {
-    if (e.pointerType !== "mouse") return;
-    heroHover = true;
-    Sound.play(heroList[heroIdx % heroList.length].c.quote);
+  const cfTrack = $("#cfTrack");
+  const SHOW = WORKS.filter((w) => w.rarity === "special" || !w.c.variants.special);
+  // Гатс — в центре при загрузке, по бокам уже видны соседи
+  const START = Math.min(2, SHOW.length - 1);
+  const gi = SHOW.findIndex((w) => w.c.id === "guts");
+  if (gi > -1) SHOW.splice(START, 0, ...SHOW.splice(gi, 1));
+  cfTrack.innerHTML = SHOW.map((w) => `
+    <div class="cf__slide" role="group" aria-label="${esc(w.c.name)}, ${esc(uni(w.c.universe).name)}">
+      <span class="cf__halo" aria-hidden="true"></span>
+      <div class="flip"></div>
+      <span class="cf__base" aria-hidden="true"></span>
+    </div>`).join("");
+  const cfSlides = $$(".cf__slide", cfTrack);
+  const cfFlips = cfSlides.map((sl, i) => {
+    const f = Flip($(".flip", sl), { interactive: false });
+    f.setImages(SHOW[i].a, SHOW[i].b, Math.abs(i - START) > 1);
+    return f;
   });
-  $("#heroCard").addEventListener("pointerleave", () => { heroHover = false; Sound.stop(); });
+  $("#cfDots").innerHTML = SHOW.map(() => "<i></i>").join("");
+  $("#uniStrip").innerHTML = UNIVERSES.map((u) => {
+    const has = SHOW.some((w) => w.c.universe === u.id);
+    return `<button type="button" class="uni ${u.banner ? "" : "uni--text"}" role="tab" aria-selected="false" data-u="${u.id}">
+      <img src="${u.banner || u.back}" alt="" width="720" height="240" loading="lazy">
+      <span class="${u.banner ? "sr" : ""}">${esc(u.name)}</span>${has ? "" : "<em>Под заказ</em>"}</button>`;
+  }).join("");
 
-  // Бегущая лента баннеров
-  const banners = UNIVERSES.filter((u) => u.banner);
-  $("#bannerTrack").innerHTML = Array(4).fill(banners).flat()
-    .map((u) => `<img src="${u.banner}" alt="${esc(u.name)}" width="720" height="240" loading="lazy">`).join("");
+  let cfCenter = -1, cfReady = false, cfAuto = !reduceMotion, cfRaf = null;
+  function cfSetCenter(i) {
+    cfCenter = i;
+    const w = SHOW[i];
+    cfSlides.forEach((sl, j) => sl.classList.toggle("is-center", j === i));
+    $$("#cfDots i").forEach((d, j) => d.classList.toggle("is-on", j === i));
+    $$("#uniStrip [data-u]").forEach((t) => {
+      const on = t.dataset.u === w.c.universe;
+      t.classList.toggle("is-on", on);
+      t.setAttribute("aria-selected", on);
+    });
+    $("#cfUni").textContent = uni(w.c.universe).name;
+    $("#cfName").textContent = w.c.name;
+    $("#cfPrice").textContent = money(CONFIG.prices[w.rarity]);
+    $("#cfFav").dataset.fav = workKey(w);
+    if (cfReady) syncHearts();
+  }
+  function cfLayout() {
+    cfRaf = null;
+    const mid = cfTrack.scrollLeft + cfTrack.clientWidth / 2;
+    let best = 0, bestD = Infinity;
+    cfSlides.forEach((sl, i) => {
+      const d = (sl.offsetLeft + sl.offsetWidth / 2 - mid) / sl.offsetWidth; // в ширинах карточки
+      sl.style.setProperty("--d", d.toFixed(3));
+      sl.style.setProperty("--a", Math.min(Math.abs(d), 3).toFixed(3));
+      sl.style.zIndex = 10 - Math.round(Math.abs(d));
+      cfFlips[i].pose(Math.max(-1, Math.min(1, -d * 1.6)));
+      if (Math.abs(d) < bestD) (bestD = Math.abs(d)), (best = i);
+    });
+    if (best !== cfCenter) cfSetCenter(best);
+  }
+  const cfQueue = () => { if (!cfRaf) cfRaf = requestAnimationFrame(cfLayout); };
+  function cfGo(i, smooth = true) {
+    i = (i + SHOW.length) % SHOW.length;
+    const sl = cfSlides[i];
+    cfTrack.scrollTo({ left: sl.offsetLeft + sl.offsetWidth / 2 - cfTrack.clientWidth / 2, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
+  }
+  const cfStop = () => (cfAuto = false);
+  cfTrack.addEventListener("scroll", cfQueue, { passive: true });
+  addEventListener("resize", () => { cfGo(cfCenter, false); cfQueue(); });
+  $$("[data-cf]").forEach((b) => b.addEventListener("click", () => { cfStop(); cfGo(cfCenter + +b.dataset.cf); }));
+  cfTrack.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") e.preventDefault(), cfStop(), cfGo(cfCenter + (e.key === "ArrowLeft" ? -1 : 1));
+    if (e.key === "Enter") openProduct(WORKS.indexOf(SHOW[cfCenter]));
+  });
+  ["touchstart", "wheel"].forEach((ev) => cfTrack.addEventListener(ev, cfStop, { passive: true }));
+
+  // Мышью — тянуть, как пальцем; короткий клик по центральной открывает карточку
+  let cfDrag = null, cfMoved = false;
+  cfTrack.addEventListener("pointerdown", (e) => {
+    cfStop();
+    cfMoved = false;
+    if (e.pointerType !== "mouse" || e.button > 0) return;
+    cfDrag = { x: e.clientX, left: cfTrack.scrollLeft };
+  });
+  addEventListener("pointermove", (e) => {
+    if (!cfDrag) return;
+    const dx = e.clientX - cfDrag.x;
+    if (!cfMoved && Math.abs(dx) > 5) (cfMoved = true), cfTrack.classList.add("is-drag");
+    if (cfMoved) cfTrack.scrollLeft = cfDrag.left - dx;
+  });
+  addEventListener("pointerup", () => {
+    if (!cfDrag) return;
+    cfDrag = null;
+    if (!cfMoved) return;
+    cfTrack.classList.remove("is-drag");
+    cfGo(cfCenter);
+  });
+  cfTrack.addEventListener("click", (e) => {
+    const sl = e.target.closest(".cf__slide");
+    if (!sl || cfMoved) return;
+    const i = cfSlides.indexOf(sl);
+    i === cfCenter ? openProduct(WORKS.indexOf(SHOW[i])) : cfGo(i);
+  });
+  cfTrack.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "mouse" && e.target.closest(".cf__slide.is-center")) Sound.play(SHOW[cfCenter].c.quote);
+  });
+  cfTrack.addEventListener("pointerleave", () => Sound.stop());
+
+  $("#cfOrder").addEventListener("click", () => openProduct(WORKS.indexOf(SHOW[cfCenter])));
+  $("#uniStrip").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-u]");
+    if (!t) return;
+    cfStop();
+    const i = SHOW.findIndex((w) => w.c.universe === t.dataset.u);
+    i > -1 ? cfGo(i) : openCollection(t.dataset.u);
+  });
+
+  // Сама листается, пока человек её не тронул и пока она на экране
+  let cfVisible = true;
+  new IntersectionObserver(([en]) => (cfVisible = en.isIntersecting)).observe(cfTrack);
+  setInterval(() => { if (cfAuto && cfVisible && !document.hidden) cfGo(cfCenter + 1); }, 4200);
+
+  // После того как весь скрипт отработал (избранное готово) — встаём на стартовую карточку
+  requestAnimationFrame(() => {
+    cfGo(START, false);
+    cfLayout();
+    cfReady = true;
+    syncHearts();
+  });
 
   // ---------------------------------------------------------------
   //  Конструктор

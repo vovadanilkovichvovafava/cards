@@ -12,7 +12,7 @@
   <!-- Шрифты грузятся без блокировки отрисовки -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Golos+Text:wght@400;500;600;700&display=swap"></noscript>
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 
@@ -42,34 +42,34 @@
 
 <main id="top">
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="wrap hero__grid">
-      <span class="sfx" aria-hidden="true">ドン！</span>
+  <!-- HERO: витрина карточек на подиумах — листается пальцем или мышью -->
+  <section class="hero" aria-labelledby="heroTitle">
+    <div class="wrap">
+      <h1 class="hero__title" id="heroTitle"><span>Коллекционные карточки</span></h1>
+      <div class="cf" id="cf">
+        <button type="button" class="cf__nav cf__nav--prev" data-cf="-1" aria-label="Предыдущая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="cf__track" id="cfTrack" tabindex="0" aria-roledescription="карусель" aria-label="Карточки: листай влево и вправо"></div>
+        <button type="button" class="cf__nav cf__nav--next" data-cf="1" aria-label="Следующая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <div class="cf__dots" id="cfDots" aria-hidden="true"></div>
+      <div class="cf__info">
+        <div class="cf__who"><span id="cfUni"></span><b id="cfName"></b></div>
+        <b class="cf__price" id="cfPrice"></b>
+        <div class="cf__act">
+          <button type="button" class="btn" id="cfOrder">Заказать</button>
+          <button type="button" class="heart heart--lg" id="cfFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
+        </div>
+      </div>
+      <div class="unis" id="uniStrip" role="tablist" aria-label="Коллекции"></div>
       <div class="hero__text">
-        <h1>Наклони —<br> и&nbsp;персонаж оживает!</h1>
-        <p class="lead">Коллекционные стерео-карточки по аниме: под одним углом один кадр, под другим — второй. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
+        <p class="lead">Стерео-карточки по аниме: наклони — и персонаж оживает. Выбери героя из каталога или закажи карточку с&nbsp;собой или другом по фото.</p>
         <div class="hero__cta">
           <a href="#builder" class="btn">Собрать свою карточку</a>
-          <a href="#works" class="btn btn--ghost">Смотреть коллекции</a>
+          <a href="#works" class="btn btn--ghost">Все коллекции</a>
         </div>
-        <p class="hero__meta">Карточка от&nbsp;<b data-price-min>350 ₽</b>, печать за&nbsp;<span data-production>3–7 дней</span>. Любого персонажа нарисуем под заказ.</p>
-      </div>
-      <div class="hero__card">
-        <div class="flip" id="heroCard">
-          <!-- Статичная копия первого кадра: видна сразу, ещё до загрузки скрипта -->
-          <div class="flip__tilt" style="transform: rotateY(-3.6deg)"><div class="flip__turn"><div class="face face--front">
-            <img class="frame-a" src="assets/cards/guts-special-a.jpg" srcset="assets/cards/sm/guts-special-a.jpg 400w, assets/cards/guts-special-a.jpg 780w" sizes="(max-width: 600px) 66vw, 400px" alt="Стерео-карточка Гатс, особая версия" width="780" height="1051" fetchpriority="high">
-          </div></div></div>
-        </div>
-        <p class="hint"><span class="on-hover">Проведи курсором по карточке</span><span class="on-touch">Проведи пальцем по карточке ← →</span></p>
+        <p class="hero__meta">Карточка от&nbsp;<b data-price-min>350 ₽</b>, печать за&nbsp;<span data-production>3–7 дней</span>.</p>
       </div>
     </div>
-  </section>
-
-  <!-- UNIVERSES MARQUEE -->
-  <section class="banners" aria-label="Вселенные">
-    <div class="banners__track" id="bannerTrack"></div>
   </section>
 
   <!-- HOW -->
@@ -480,6 +480,6 @@
 
 <script src="data.js?v=6" defer></script>
 <script src="catalog.js" defer></script>
-<script src="app.js?v=14" defer></script>
+<script src="app.js?v=16" defer></script>
 </body>
 </html>

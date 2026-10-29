@@ -2043,3 +2043,39 @@ h3, .step h3, .howp__txt h3, .promo h3, .col-tile__info b, .collection__head h3 
 @media (hover: none) { .col-tile.pack:hover > img.pack__card { opacity: 0; transform: none !important; } .col-tile.pack.is-open > img.pack__card { opacity: 1; transform: translateY(-42%) !important; } }
 /* Карточка в паке — почти во всю ширину */
 .col-tile.pack > img.pack__card { left: 6%; width: 88%; }
+/* «Коллекционные карточки» — тонкий вытянутый шрифт, разрядка меньше */
+.hero__title { font: 300 15px/1 "Oswald", var(--body); letter-spacing: .3em; text-transform: uppercase; color: #c9c3c6; }
+.hero__title span { margin-right: -.3em; }
+@media (max-width: 860px) { .hero__title { font-size: 13px; letter-spacing: .24em; } .hero__title span { margin-right: -.24em; } }
+
+/* ============================================================
+   Аудит телефона: исправления
+   ============================================================ */
+/* 1. Галерея коллекции не шире экрана: колонки могут сжиматься, цена и кнопка переносятся */
+@media (max-width: 520px) {
+  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 10px; }
+  .work { min-width: 0; max-width: none; }
+  .work__meta { flex-wrap: wrap; gap: 2px 6px; font-size: 13px; }
+  .work__meta span { font-size: 11px; }
+  .work__buy { flex-wrap: wrap; gap: 6px; }
+  .work__buy b { font-size: 17px; }
+  .work__buy .btn { flex: 1 1 auto; padding: 7px 8px; }
+}
+/* 2. Соцсети в меню — ровные «пилюли» с иконкой и названием */
+.menu__social { gap: 8px; }
+.menu__social .icon-btn--label { width: auto; height: 38px; padding: 0 14px 0 10px; gap: 8px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); font: 600 12px var(--body); color: var(--text); }
+.menu__social .icon-btn--label svg { width: 18px; height: 18px; flex: none; }
+/* 3. Сообщения — снизу, над краем экрана (в конструкторе — сверху, там внизу панель заказа) */
+@media (max-width: 860px) {
+  .toast { top: auto; bottom: calc(18px + env(safe-area-inset-bottom)); }
+  body[data-page="builder"] .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; }
+}
+/* 4. Бегущая строка: отступ у каждой карточки, а не у ленты — половинки одинаковые, склейка без скачка;
+      на телефоне не «залипает» на паузе после касания */
+.newcards__track { gap: 0; padding-left: 0; }
+.newcards__track .newc { margin-right: 14px; }
+@media (max-width: 760px) { .newcards__track .newc { margin-right: 10px; } }
+@media (hover: none) {
+  .newcards:hover .newcards__track, .newcards:focus-within .newcards__track { animation-play-state: running; }
+  .newcards:active .newcards__track { animation-play-state: paused; }
+}

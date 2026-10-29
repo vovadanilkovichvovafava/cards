@@ -1,6 +1,8 @@
 # Сервер сайта: отдаёт папку site/ без кеширования и принимает заказы.
 #
 #   POST /api/order  →  сообщение в Telegram через бота (+ фото, если есть)
+#   GET  /catalog.js →  карточки, добавленные через бота (хранятся в DATABASE_URL)
+#   GET  /assets/cards/[sm/]db/<id>-<a|b>.jpg  →  их кадры из базы
 #
 # Токен бота и chat_id берутся из переменных окружения хостинга или из файла
 # .env рядом с этим скриптом (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). В папку
@@ -12,10 +14,13 @@ import gzip
 import http.server
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
 import uuid
+
+from catalog_bot import Bot, Store, image_type
 
 PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", 8080))
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -61,19 +66,53 @@ def clean(value, limit):
 
 
 COMPRESSIBLE = (".html", ".css", ".js", ".json", ".svg")
+DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
+
+# База нужна только для карточек из бота; без неё сайт и заказы работают как раньше
+STORE = Store(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else None
+
+
+def extra_cards():
+    if not STORE:
+        return []
+    try:
+        return STORE.cards()
+    except Exception as e:  # база недоступна — показываем только карточки из data.js
+        print("db error:", e, file=sys.stderr)
+        return []
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    cache_forever = False
+
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store, must-revalidate")
+        # Кадры из базы не меняются (новая версия — новый id), их можно кешировать навсегда
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable" if self.cache_forever
+                         else "no-store, must-revalidate")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         super().end_headers()
 
     def do_GET(self):
         # Проверка здоровья для хостинга: сервер жив — отвечаем 200
-        if self.path == "/health":
+        self.cache_forever = False  # один обработчик может отвечать на несколько запросов подряд
+        path_only = self.path.split("?", 1)[0]
+        if path_only == "/health":
             return self.reply(200, {"ok": True})
+        if path_only == "/catalog.js":
+            body = ("window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
+            return self.send_body(200, "application/javascript; charset=utf-8", body)
+        m = DB_IMAGE.match(path_only)
+        if m:
+            data = None
+            try:
+                data = STORE and STORE.image(int(m[2]), m[3], bool(m[1]))
+            except Exception as e:
+                print("db error:", e, file=sys.stderr)
+            if not data:
+                return self.reply(404, {"ok": False, "error": "not found"})
+            self.cache_forever = True
+            return self.send_body(200, image_type(data), data)
         # Текстовые файлы отдаём сжатыми (gzip) — так они грузятся в 3–4 раза быстрее
         path = self.translate_path(self.path)
         if os.path.isdir(path):
@@ -90,13 +129,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
-    def reply(self, code, payload):
-        body = json.dumps(payload, ensure_ascii=False).encode()
+    def send_body(self, code, ctype, body):
         self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def reply(self, code, payload):
+        self.send_body(code, "application/json; charset=utf-8", json.dumps(payload, ensure_ascii=False).encode())
 
     def do_POST(self):
         if self.path != "/api/order":
@@ -149,6 +190,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.reply(502, {"ok": False, "error": "Не удалось отправить заказ"})
         return self.reply(200, {"ok": True})
 
+
+_env = load_env()
+if STORE and _env.get("TELEGRAM_BOT_TOKEN") and _env.get("TELEGRAM_CHAT_ID") and os.environ.get("BOT_POLLING", "1") != "0":
+    Bot(_env["TELEGRAM_BOT_TOKEN"], _env["TELEGRAM_CHAT_ID"], STORE, os.environ.get("SITE_URL", "")).start()
 
 handler = functools.partial(Handler, directory=os.path.join(ROOT, "site"))
 http.server.ThreadingHTTPServer(("", PORT), handler).serve_forever()

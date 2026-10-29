@@ -1,5 +1,14 @@
 (() => {
   const { CONFIG, UNIVERSES, CHARACTERS, VIDEOS } = window;
+  // Карточки, которые Влад добавил через бота: тот же персонаж дополняется новой версией,
+  // новый — встаёт в конец своей коллекции
+  (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity }) => {
+    if (!UNIVERSES.some((u) => u.id === universe)) return;
+    const pair = [`assets/cards/db/${id}-a.jpg`, `assets/cards/db/${id}-b.jpg`];
+    const same = CHARACTERS.find((c) => c.universe === universe && c.name.toLowerCase() === name.toLowerCase());
+    if (same) same.variants[rarity] = pair;
+    else CHARACTERS.push({ id: `db${id}`, universe, name, variants: { [rarity]: pair } });
+  });
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   const uni = (id) => UNIVERSES.find((u) => u.id === id);
@@ -532,7 +541,7 @@
     if (!avail.includes(state.rarity)) state.rarity = avail[avail.length - 1];
     $$('[data-group="rarity"] button').forEach((b) => (b.disabled = !avail.includes(b.dataset.value)));
     $("#rarityNote").textContent =
-      avail.length === 1 ? (state.character === "other" ? "Персонажи под заказ делаются в особой версии." : "У этого персонажа есть только особая версия.") : "";
+      avail.length === 1 ? (state.character === "other" ? "Персонажи под заказ делаются в особой версии." : `У этого персонажа есть только ${RARITY[avail[0]].toLowerCase()} версия.`) : "";
 
     ["recipient", "mode", "rarity"].forEach((g) => segSet(g, state[g]));
     $("#rarityField").hidden = state.mode === "photo";
@@ -1046,7 +1055,7 @@
   const norm = (t) => String(t || "").toLowerCase().replace(/ё/g, "е");
   const searchIndex = [
     ...UNIVERSES.map((u) => ({ u, text: norm(`${u.name} ${u.id}`) })),
-    ...CHARACTERS.map((c) => ({ c, text: norm(`${c.name} ${c.subtitle} ${c.id} ${uni(c.universe).name}`) })),
+    ...CHARACTERS.map((c) => ({ c, text: norm(`${c.name} ${c.subtitle || ""} ${c.id} ${uni(c.universe).name}`) })),
   ];
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка

@@ -1853,3 +1853,18 @@ body { background: var(--bg); }                                   /* без «з
 .newc b { display: flex; align-items: center; gap: 6px; }
 .newc b em { position: static; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 2px 5px; border-radius: 3px; background: var(--red); color: #fff; }
 .nav { background: var(--bg); }
+
+/* Новинки — бегущая строка; при наведении и касании останавливается */
+.newcards { position: relative; display: block; overflow: hidden; margin-inline: calc(50% - 50vw); padding: 0; scroll-snap-type: none; }
+.newcards::before, .newcards::after { content: ""; position: absolute; top: 0; bottom: 0; width: 8vw; z-index: 2; pointer-events: none; }
+.newcards::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+.newcards::after { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
+.newcards__track { display: flex; gap: 14px; width: max-content; padding-left: 14px; animation: new-run var(--dur, 30s) linear infinite; will-change: transform; }
+.newcards:hover .newcards__track, .newcards:active .newcards__track, .newcards:focus-within .newcards__track { animation-play-state: paused; }
+@keyframes new-run { to { transform: translate3d(-50%, 0, 0); } }
+.newc { flex: 0 0 200px; }
+@media (max-width: 760px) { .newc { flex-basis: 38vw; } .newcards__track { gap: 10px; padding-left: 10px; } }
+@media (prefers-reduced-motion: reduce) {
+  .newcards { overflow-x: auto; }
+  .newcards__track { animation: none; }
+}

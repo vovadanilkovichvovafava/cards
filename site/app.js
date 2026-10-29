@@ -1360,11 +1360,14 @@
   if ($("#newCards")) {
     const seenChar = new Set();
     const fresh = [...WORKS].reverse().filter((w) => !seenChar.has(w.c.id) && seenChar.add(w.c.id)).slice(0, 8);
-    $("#newCards").innerHTML = fresh.map((w) => `
+    const one = fresh.map((w) => `
       <a class="newc" href="catalog/${w.c.universe}?card=${workKey(w)}">
         <span class="newc__img"><img src="${sm(w.a)}" alt="" width="400" height="539" loading="lazy"></span>
         <b>${esc(w.c.name)} <em>Новинка</em></b><span>${esc(uni(w.c.universe).short || uni(w.c.universe).name)}, ${money(CONFIG.prices[w.rarity])}</span>
       </a>`).join("");
+    // Бегущая строка: список дважды подряд, лента сдвигается на половину и начинается заново
+    const copy = one.replace(/<a class="newc"/g, '<a class="newc" tabindex="-1" aria-hidden="true"');
+    $("#newCards").innerHTML = `<div class="newcards__track" style="--dur:${fresh.length * 4}s">${one}${copy}</div>`;
   }
   if ($("#promos") && (CONFIG.promos || []).length) {
     $("#promos").innerHTML = CONFIG.promos.map((p) => `

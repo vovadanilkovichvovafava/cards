@@ -257,13 +257,15 @@
     };
   }
 
-  function customFace({ photos = [], name, text, rarity, accent, num = "01", emptyLabel }) {
+  // crops: [{x, y, z}] — сдвиг фото в % кадра и масштаб, задаются в конструкторе
+  const cropCss = (c) => (c ? `transform: translate(${c.x}%, ${c.y}%) scale(${c.z})` : "");
+  function customFace({ photos = [], crops = [], name, text, rarity, accent, num = "01", emptyLabel }) {
     const [a, b] = photos;
-    const layerA = a ? `<img class="frame-a" src="${a}" alt="">` : `<div class="custom__empty">${SILHOUETTE}</div>`;
+    const layerA = a ? `<img class="frame-a" src="${a}" alt="" style="${cropCss(crops[0])}">` : `<div class="custom__empty">${SILHOUETTE}</div>`;
     // Если второго кадра нет — показываем первый в «боевом» цвете, чтобы эффект было видно
     const layerB = b
-      ? `<img class="frame-b" src="${b}" alt="">`
-      : a ? `<img class="frame-b" src="${a}" alt="" style="filter: contrast(1.25) saturate(1.5) hue-rotate(-12deg) brightness(.9)">` : "";
+      ? `<img class="frame-b" src="${b}" alt="" style="${cropCss(crops[1])}">`
+      : a ? `<img class="frame-b" src="${a}" alt="" style="filter: contrast(1.25) saturate(1.5) hue-rotate(-12deg) brightness(.9); ${cropCss(crops[0])}">` : "";
     return `
       <div class="custom" style="--c:${accent}">
         <div class="custom__photo">${layerA}${layerB}</div>
@@ -617,7 +619,7 @@
     mode: "character",
     universe: "berserk", character: "guts", otherChar: "",
     rarity: "special",
-    photos: [null, null], photoName: "", photoText: "", style: "berserk",
+    photos: [null, null], crops: [{ x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }], photoName: "", photoText: "", style: "berserk",
     qty: 1,
   };
   const preview = Flip($("#previewCard"), { free: true });
@@ -711,7 +713,7 @@
     } else {
       const u = uni(state.style);
       preview.setCustom(customFace({
-        photos: state.photos, name: state.photoName, text: state.photoText,
+        photos: state.photos, crops: state.crops, name: state.photoName, text: state.photoText,
         rarity: state.rarity, accent: u.accent,
       }));
       preview.setBack(u.back);
@@ -776,6 +778,7 @@
     renderUniverseChips();
     renderCharacterGrid();
     renderPreview();
+    renderCropper();
     renderSummary();
     renderBar();
     $("#qty").textContent = state.qty;
@@ -800,14 +803,62 @@
       const slot = +input.dataset.slot;
       if (state.photos[slot]) URL.revokeObjectURL(state.photos[slot]);
       state.photos[slot] = URL.createObjectURL(file);
+      state.crops[slot] = { x: 0, y: 0, z: 1 };
+      cropSlot = slot;
       const thumb = $(".upload__img", input.closest(".upload"));
       thumb.style.backgroundImage = `url(${state.photos[slot]})`;
       thumb.textContent = " ";
+      renderCropper();
       renderPreview();
       renderBar();
       if (slot === 1) preview.sweep();
     })
   );
+
+  // ---- Кадрирование фото: тянешь фото в окошке формата карточки, ползунок — масштаб
+  const cropBox = $("#cropper"), cropView = $("#cropView"), cropImg = $("#cropImg"), cropZoom = $("#cropZoom");
+  let cropSlot = 0;
+  function renderCropper() {
+    const has = state.photos.some(Boolean);
+    cropBox.hidden = !has;
+    if (!has) return;
+    if (!state.photos[cropSlot]) cropSlot = state.photos[0] ? 0 : 1;
+    $$("#cropSlots [data-cs]").forEach((b) => {
+      b.hidden = !state.photos[+b.dataset.cs];
+      b.classList.toggle("is-on", +b.dataset.cs === cropSlot);
+    });
+    const c = state.crops[cropSlot];
+    cropImg.src = state.photos[cropSlot];
+    cropImg.style.transform = cropCss(c).replace("transform: ", "");
+    cropZoom.value = c.z;
+  }
+  const applyCrop = () => { renderCropper(); renderPreview(); };
+  $("#cropSlots").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cs]");
+    if (b) cropSlot = +b.dataset.cs, renderCropper();
+  });
+  cropZoom.addEventListener("input", () => { state.crops[cropSlot].z = +cropZoom.value; applyCrop(); });
+  $("#cropReset").addEventListener("click", () => { state.crops[cropSlot] = { x: 0, y: 0, z: 1 }; applyCrop(); });
+  let cropDrag = null;
+  cropView.addEventListener("pointerdown", (e) => {
+    cropDrag = { x: e.clientX, y: e.clientY, c: { ...state.crops[cropSlot] }, w: cropView.clientWidth, h: cropView.clientHeight };
+    cropView.setPointerCapture(e.pointerId);
+  });
+  cropView.addEventListener("pointermove", (e) => {
+    if (!cropDrag) return;
+    const c = state.crops[cropSlot], lim = 50 * cropDrag.c.z + 10;
+    c.x = Math.max(-lim, Math.min(lim, cropDrag.c.x + ((e.clientX - cropDrag.x) / cropDrag.w) * 100));
+    c.y = Math.max(-lim, Math.min(lim, cropDrag.c.y + ((e.clientY - cropDrag.y) / cropDrag.h) * 100));
+    applyCrop();
+  });
+  ["pointerup", "pointercancel"].forEach((ev) => cropView.addEventListener(ev, () => (cropDrag = null)));
+  // Колёсико мыши — масштаб
+  cropView.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const c = state.crops[cropSlot];
+    c.z = Math.max(1, Math.min(3, c.z - e.deltaY * 0.002));
+    applyCrop();
+  }, { passive: false });
 
   $$("[data-qty]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -848,7 +899,7 @@
       promoLine(p41()),
       gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,
       `• Сумма: ${money(p41().total)}`,
-    ], { photos: state.mode === "photo" ? state.photos : [] })
+    ], { photos: state.mode === "photo" ? state.photos : [], crops: state.mode === "photo" ? state.crops : null })
   );
 
   // С других страниц сюда приходят с готовым выбором в адресе:
@@ -886,12 +937,24 @@
   let omOrder = null;
 
   // Сжать фото в браузере перед отправкой (до 1600 px, JPEG)
-  function shrinkPhoto(src) {
+  function shrinkPhoto(src, crop) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
         const c = document.createElement("canvas");
+        if (crop) {
+          // Кадр карточки: как object-fit: cover + сдвиг и масштаб из конструктора
+          const W = 1200, H = Math.round(1200 * 1051 / 780);
+          c.width = W; c.height = H;
+          const k0 = Math.max(W / img.naturalWidth, H / img.naturalHeight) * crop.z;
+          const dw = img.naturalWidth * k0, dh = img.naturalHeight * k0;
+          const cx = W / 2 + (crop.x / 100) * W, cy = H / 2 + (crop.y / 100) * H;
+          const g = c.getContext("2d");
+          g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+          g.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+          return resolve(c.toDataURL("image/jpeg", 0.88));
+        }
+        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
         c.width = Math.round(img.naturalWidth * k);
         c.height = Math.round(img.naturalHeight * k);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
@@ -902,8 +965,8 @@
     });
   }
 
-  function sendOrder(lines, { photos = [], onSent = null } = {}) {
-    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), onSent };
+  function sendOrder(lines, { photos = [], crops = null, onSent = null } = {}) {
+    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
     // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
     const rows = omOrder.lines.slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s));
     if (omOrder.photos.length) rows.splice(rows.length - 1, 0, ["Фото", String(omOrder.photos.length)]);
@@ -988,7 +1051,7 @@
     btn.textContent = omOrder.photos.length ? "Отправляем фото…" : "Отправляем…";
     $("#omErr").hidden = true;
     try {
-      const photos = (await Promise.all(omOrder.photos.map(shrinkPhoto))).filter(Boolean);
+      const photos = (await Promise.all(omOrder.photos.map((p, i) => shrinkPhoto(p, omOrder.crops && omOrder.crops[i])))).filter(Boolean);
       const res = await fetch("api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

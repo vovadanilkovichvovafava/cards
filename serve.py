@@ -20,6 +20,8 @@ import re
 import sys
 import time
 import urllib.request
+import posixpath
+import urllib.parse
 import uuid
 
 from catalog_bot import Bot, Store, image_type
@@ -79,7 +81,7 @@ COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
 INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
 
 
-def render_page(name):
+def render_page(name):  # noqa: D401
     """Страница с подставленными общими кусками (шапка, подвал, окна)."""
     html = open(os.path.join(SITE, name), encoding="utf-8").read()
     return INCLUDE.sub(lambda m: open(os.path.join(SITE, "partials", m[1] + ".html"), encoding="utf-8").read(), html)
@@ -110,6 +112,31 @@ def extra_cards():
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     cache_forever = False
+    timeout = 20  # медленные/недосланные запросы не держат поток вечно
+
+    def list_directory(self, path):  # списки файлов папок не показываем
+        self.send_404()
+        return None
+
+    def send_404(self):
+        # Своя страница «не найдено» в стиле сайта
+        try:
+            body = render_page("404.html").encode()
+        except Exception:
+            body = b"Not found"
+        self.send_response(404)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def do_HEAD(self):
+        self._head = True
+        try:
+            self.do_GET()
+        finally:
+            self._head = False
 
     def end_headers(self):
         # Кадры из базы не меняются (новая версия — новый id), их можно кешировать навсегда
@@ -122,7 +149,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         # Проверка здоровья для хостинга: сервер жив — отвечаем 200
         self.cache_forever = False  # один обработчик может отвечать на несколько запросов подряд
-        path_only = self.path.split("?", 1)[0]
+        # Нормализуем путь: «..», «%2e», двойные слэши — ничего за пределы site/ не отдаём
+        path_only = posixpath.normpath(urllib.parse.unquote(self.path.split("?", 1)[0].split("#", 1)[0]))
+        if not path_only.startswith("/"):
+            path_only = "/" + path_only
+        if path_only != "/" and self.path.split("?", 1)[0].endswith("/"):
+            path_only = path_only.rstrip("/")
+        if "/partials" in path_only or "/." in path_only:
+            return self.send_404()
         if path_only == "/health":
             db = None
             if STORE:
@@ -141,13 +175,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Location", "/how")
             self.end_headers()
             return
-        page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only) else None)
-        if path_only.endswith(".html") and os.path.isfile(os.path.join(SITE, path_only.lstrip("/"))) and "/partials/" not in path_only:
-            page = path_only.lstrip("/")
+        page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only.lower()) else None)
+        if page is None and path_only.endswith(".html"):
+            name = path_only.lstrip("/")
+            if "/" not in name and os.path.isfile(os.path.join(SITE, name)) and name != "404.html":
+                page = name
         if page:
             return self.send_text(render_page(page).encode(), "text/html; charset=utf-8")
-        if path_only.startswith("/partials/"):
-            return self.reply(404, {"ok": False, "error": "not found"})
         mb = DB_BACK.match(path_only)
         if mb:
             data = None
@@ -171,20 +205,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.cache_forever = True
             return self.send_body(200, image_type(data), data)
         # Текстовые файлы отдаём сжатыми (gzip) — так они грузятся в 3–4 раза быстрее
-        path = self.translate_path(self.path)
-        if os.path.isdir(path):
-            path = os.path.join(path, "index.html")
-        if (path.endswith(COMPRESSIBLE) and os.path.isfile(path)
-                and "gzip" in self.headers.get("Accept-Encoding", "")):
+        path = os.path.realpath(os.path.join(SITE, path_only.lstrip("/")))
+        if not path.startswith(os.path.realpath(SITE) + os.sep) or not os.path.isfile(path):
+            return self.send_404()
+        if path.endswith(".html"):  # страницы — только через PAGES (с подстановкой шапки)
+            return self.send_404()
+        if path.endswith(COMPRESSIBLE) and "gzip" in self.headers.get("Accept-Encoding", ""):
             body = gzip.compress(open(path, "rb").read())
             self.send_response(200)
             self.send_header("Content-Type", self.guess_type(path))
             self.send_header("Content-Encoding", "gzip")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(body)
+            if self.command != "HEAD":
+                self.wfile.write(body)
             return
-        super().do_GET()
+        self.path = path_only
+        super().do_GET() if self.command != "HEAD" else super().do_HEAD()
 
     def send_text(self, body, ctype):
         # Сжимаем, если браузер умеет
@@ -197,9 +234,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def send_body(self, code, ctype, body):
+        if self.command == "HEAD":
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            return
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
@@ -213,51 +257,80 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path != "/api/order":
             return self.reply(404, {"ok": False, "error": "not found"})
 
-        # Ограничение частоты — защита от спама через форму
-        ip = (self.headers.get("CF-Connecting-IP")
-              or (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-              or self.client_address[0])
+        # Ограничение частоты. IP берём только из заголовка нашего прокси (Cloudflare/Сатурн ставят
+        # реальный адрес последним в X-Forwarded-For), подделанные значения слева не помогают обойти лимит.
+        fwd = [x.strip() for x in (self.headers.get("X-Forwarded-For") or "").split(",") if x.strip()]
+        ip = fwd[-1] if fwd else self.client_address[0]
         now = time.time()
-        recent = [t for t in _hits.get(ip, []) if now - t < RATE_WINDOW]
+        for k in [k for k, v in _hits.items() if not v or now - v[-1] > RATE_WINDOW]:
+            _hits.pop(k, None)  # память не растёт
+        recent = _hits.get(ip, [])
         if len(recent) >= RATE_LIMIT:
             return self.reply(429, {"ok": False, "error": "Слишком много заказов подряд, попробуй через минуту"})
-        _hits[ip] = recent + [now]
 
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
         if not 0 < length <= MAX_BODY:
             return self.reply(413, {"ok": False, "error": "Слишком большой заказ"})
         try:
             data = json.loads(self.rfile.read(length))
-        except ValueError:
+        except (ValueError, RecursionError):
+            return self.reply(400, {"ok": False, "error": "Некорректные данные"})
+        if not isinstance(data, dict):
+            return self.reply(400, {"ok": False, "error": "Некорректные данные"})
+        lines = data.get("lines")
+        photos_in = data.get("photos") or []
+        if not isinstance(lines, list) or not isinstance(photos_in, list):
             return self.reply(400, {"ok": False, "error": "Некорректные данные"})
 
         name = clean(data.get("name"), 80)
         contact = clean(data.get("contact"), 120)
         comment = clean(data.get("comment"), 600)
-        order = [clean(line, 300) for line in (data.get("lines") or [])][:30]
+        order = [clean(line, 300) for line in lines if isinstance(line, str)][:30]
         if not contact or not order:
             return self.reply(400, {"ok": False, "error": "Укажи, как с тобой связаться"})
+
+        # Фото проверяем заранее: битое фото не должно ломать заказ на полпути
+        photos = []
+        for photo in photos_in[:MAX_PHOTOS]:
+            try:
+                raw = base64.b64decode(str(photo).split(",", 1)[-1], validate=True)
+            except Exception:
+                continue
+            if raw[:3] == b"\xff\xd8\xff" and len(raw) > 1000:
+                photos.append(raw)
 
         env = load_env()
         token, chat = env.get("TELEGRAM_BOT_TOKEN"), env.get("TELEGRAM_CHAT_ID")
         if not token or not chat:
             return self.reply(503, {"ok": False, "error": "Приём заказов ещё не настроен"})
+        _hits[ip] = recent + [now]  # считаем только принятые заказы
 
         text = "\n".join(
             ["🃏 Новый заказ с сайта", ""]
             + [l for l in order if l]
             + ["", f"👤 {name or 'без имени'}", f"📱 {contact}"]
             + ([f"💬 {comment}"] if comment else [])
+            + ([f"📷 Фото: {len(photos)}"] if photos else [])
         )
         try:
             tg_call(token, "sendMessage", {"chat_id": chat, "text": text})
-            for i, photo in enumerate((data.get("photos") or [])[:MAX_PHOTOS]):
-                raw = base64.b64decode(str(photo).split(",", 1)[-1], validate=False)
-                tg_call(token, "sendPhoto", {"chat_id": chat, "caption": f"Фото {i + 1} к заказу от {contact}"},
-                        {"photo": (f"photo{i + 1}.jpg", raw)})
         except Exception as e:  # сеть или ошибка Telegram — сайт покажет запасной вариант
             print("telegram error:", e, file=sys.stderr)
             return self.reply(502, {"ok": False, "error": "Не удалось отправить заказ"})
+        # Заказ уже у нас: ошибка с фото не повод просить покупателя отправить всё ещё раз
+        for i, raw in enumerate(photos):
+            try:
+                tg_call(token, "sendPhoto", {"chat_id": chat, "caption": f"Фото {i + 1} к заказу от {contact}"},
+                        {"photo": (f"photo{i + 1}.jpg", raw)})
+            except Exception as e:
+                print("telegram photo error:", e, file=sys.stderr)
+                try:
+                    tg_call(token, "sendMessage", {"chat_id": chat, "text": f"⚠️ Фото {i + 1} к заказу от {contact} не дошло — попроси его в чате."})
+                except Exception:
+                    pass
         return self.reply(200, {"ok": True})
 
 

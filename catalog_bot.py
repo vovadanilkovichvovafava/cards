@@ -162,7 +162,8 @@ class Bot:
         self.site = site_url.rstrip("/")
         self.state = {}  # chat_id → черновик карточки
         self.into = {}   # chat_id → (id, название) коллекции, куда сейчас добавляются карточки
-        self.greeted = {}  # покупателям «передали» пишем один раз за запуск
+        self.greeted = {}
+        self.flood = {}    # антифлуд покупателей  # покупателям «передали» пишем один раз за запуск
 
     def api(self, method, **fields):
         req = urllib.request.Request(f"https://api.telegram.org/bot{self.token}/{method}",
@@ -192,7 +193,7 @@ class Bot:
             small = next((p for p in sizes if p["width"] >= 400), sizes[-1])
             return sizes[-1]["file_id"], small["file_id"]
         doc = msg.get("document") or {}
-        if doc.get("mime_type", "").startswith("image/"):
+        if doc.get("mime_type", "") in ("image/jpeg", "image/png", "image/webp"):
             return doc["file_id"], doc["file_id"]
         return None
 
@@ -211,6 +212,8 @@ class Bot:
         chat = str(msg["chat"]["id"])
         text = (msg.get("text") or "").strip()
         if chat != self.admin:
+            if (msg.get("chat") or {}).get("type") != "private":
+                return  # в группах, куда добавили бота, молчим
             return self.on_customer(chat, msg, text)
         # Влад ответил (reply) на пересланное сообщение покупателя — отправляем ответ покупателю
         rep_to = (msg.get("reply_to_message") or {}).get("message_id")
@@ -226,6 +229,14 @@ class Bot:
         self.on_admin(chat, msg, text)
 
     def on_customer(self, chat, msg, text):
+        now = time.time()
+        hits = [t for t in self.flood.get(chat, []) if now - t < 600]
+        if len(hits) >= 20:
+            if len(hits) == 20:
+                self.say(chat, "Слишком много сообщений подряд — подожди немного, мы уже всё получили.")
+            self.flood[chat] = hits + [now]
+            return
+        self.flood[chat] = hits + [now]
         if text.startswith("/start") or text.startswith("/help"):
             link = f"\n\nКаталог и конструктор карточек: {self.site}" if self.site else ""
             return self.say(chat, "Привет! Это Aniverse Flip 🃏\nНапиши сюда вопрос или что хочешь заказать — "
@@ -323,6 +334,9 @@ class Bot:
                             [[{"text": "Да, удалить", "callback_data": f"cdel!:{value}"}, {"text": "Нет", "callback_data": "no:"}]])
         if kind == "cdel!":
             rows = self.store.delete_collection(int(value))
+            st2 = self.state.get(chat)
+            if st2 and st2.get("universe") == f"c{value}":
+                self.state.pop(chat, None)
             if self.into.get(chat, ("",))[0] == f"c{value}":
                 self.into.pop(chat, None)
             return self.say(chat, f"Удалил коллекцию «{rows[0][0]}»." if rows else "Этой коллекции уже нет.")
@@ -331,6 +345,9 @@ class Bot:
         self.say(chat, "Эта кнопка уже не работает. Пришли два кадра, чтобы добавить карточку.")
 
     def save(self, chat, st, rarity):
+        if st["universe"] not in dict(universes(self.store)):
+            self.state.pop(chat, None)
+            return self.say(chat, "Этой коллекции уже нет. Пришли кадры заново и выбери коллекцию.")
         self.say(chat, "Загружаю на сайт…")
         try:
             a, b = self.download(st["a"][0]), self.download(st["b"][0])
@@ -378,7 +395,8 @@ class Bot:
         names = dict(universes(self.store))
         rows = [[{"text": f"✕ {c['name']}, {RARITY.get(c['rarity'], '').lower()} — {names.get(c['universe'], c['universe'])}",
                   "callback_data": f"del:{c['id']}"}] for c in cards[-40:]]
-        self.say(chat, f"Карточки из бота: {len(cards)}. Нажми, чтобы удалить:", rows)
+        more = f" Показаны последние 40." if len(cards) > 40 else ""
+        self.say(chat, f"Карточки из бота: {len(cards)}.{more} Нажми, чтобы удалить:", rows)
 
     # --- опрос Telegram в фоне ---
     def loop(self):

@@ -20,8 +20,15 @@
   // Валюта выбирается переключателем BYN | RUS в шапке и запоминается
   let REGION = "RUS";
   try { if (localStorage.getItem("region") === "BYN") REGION = "BYN"; } catch {}
+  // В BYN каждая цена карточки округляется до целого, а суммы считаются из уже округлённых цен —
+  // поэтому «2 × 25 BYN» всегда даёт 50 BYN. Все цены сайта — кратны цене одной карточки.
+  const UNIT_PRICES = () => Object.values(window.CONFIG.prices);
+  const toByn = (rub) => {
+    for (const p of UNIT_PRICES()) if (p && rub % p === 0) return (rub / p) * Math.max(1, Math.round(p * CONFIG.bynPerRub));
+    return Math.max(1, Math.round(rub * CONFIG.bynPerRub));
+  };
   const money = (v) => REGION === "BYN"
-    ? `${Math.max(1, Math.round(v * CONFIG.bynPerRub)).toLocaleString("ru-RU")} BYN`
+    ? `${toByn(v).toLocaleString("ru-RU")} BYN`
     : `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
   const RARITY = { common: "Обычная", special: "Особая" };
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
@@ -800,6 +807,14 @@
     input.addEventListener("change", () => {
       const file = input.files[0];
       if (!file) return;
+      if (!/^image\//.test(file.type) || /svg/.test(file.type)) {
+        input.value = "";
+        return toast("Это не фото — выбери картинку JPG, PNG или HEIC");
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        input.value = "";
+        return toast("Фото больше 25 МБ — выбери поменьше");
+      }
       const slot = +input.dataset.slot;
       if (state.photos[slot]) URL.revokeObjectURL(state.photos[slot]);
       state.photos[slot] = URL.createObjectURL(file);
@@ -837,7 +852,8 @@
     const b = e.target.closest("[data-cs]");
     if (b) cropSlot = +b.dataset.cs, renderCropper();
   });
-  cropZoom.addEventListener("input", () => { state.crops[cropSlot].z = +cropZoom.value; applyCrop(); });
+  const clampCrop = (c) => { const lim = 50 * (c.z - 1) + 3; c.x = Math.max(-lim, Math.min(lim, c.x)); c.y = Math.max(-lim, Math.min(lim, c.y)); };
+  cropZoom.addEventListener("input", () => { const c = state.crops[cropSlot]; c.z = +cropZoom.value; clampCrop(c); applyCrop(); });
   $("#cropReset").addEventListener("click", () => { state.crops[cropSlot] = { x: 0, y: 0, z: 1 }; applyCrop(); });
   let cropDrag = null;
   cropView.addEventListener("pointerdown", (e) => {
@@ -846,7 +862,8 @@
   });
   cropView.addEventListener("pointermove", (e) => {
     if (!cropDrag) return;
-    const c = state.crops[cropSlot], lim = 50 * cropDrag.c.z + 10;
+    // Фото всегда закрывает рамку целиком: сдвиг не больше «запаса» от увеличения
+    const c = state.crops[cropSlot], lim = 50 * (cropDrag.c.z - 1) + 3;
     c.x = Math.max(-lim, Math.min(lim, cropDrag.c.x + ((e.clientX - cropDrag.x) / cropDrag.w) * 100));
     c.y = Math.max(-lim, Math.min(lim, cropDrag.c.y + ((e.clientY - cropDrag.y) / cropDrag.h) * 100));
     applyCrop();
@@ -857,6 +874,7 @@
     e.preventDefault();
     const c = state.crops[cropSlot];
     c.z = Math.max(1, Math.min(3, c.z - e.deltaY * 0.002));
+    clampCrop(c);
     applyCrop();
   }, { passive: false });
 
@@ -889,7 +907,11 @@
   $("#mbarThumb").addEventListener("click", () => $(".preview").scrollIntoView({ block: "center" }));
   $("#mbarOrder").addEventListener("click", () => $("#orderBtn").click());
 
-  $("#orderBtn").addEventListener("click", () =>
+  $("#orderBtn").addEventListener("click", () => {
+    if (state.mode === "photo" && !state.photos[0]) {
+      toast("Загрузи хотя бы одно фото — без него карточку не нарисовать");
+      return $("#up1").scrollIntoView({ block: "center" });
+    }
     sendOrder([
       `Привет! Хочу заказать карточку:`,
       `• Карточка: ${describeCard()}`,
@@ -899,23 +921,25 @@
       promoLine(p41()),
       gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,
       `• Сумма: ${money(p41().total)}`,
-    ], { photos: state.mode === "photo" ? state.photos : [], crops: state.mode === "photo" ? state.crops : null })
-  );
+    ], { photos: state.mode === "photo" ? state.photos : [], crops: state.mode === "photo" ? state.crops : null });
+  });
 
   // С других страниц сюда приходят с готовым выбором в адресе:
   //   ?c=guts&r=special&q=2 — карточка из каталога, ?other=Имя&u=aot — свой персонаж,
   //   ?preset=common|special|photo — кнопка «Выбрать» на странице цен
   const qp = new URLSearchParams(location.search);
   const pc = char(qp.get("c"));
-  if (pc) Object.assign(state, { mode: "character", universe: pc.universe, character: pc.id, rarity: pc.variants[qp.get("r")] ? qp.get("r") : state.rarity, qty: Math.min(50, Math.max(1, +qp.get("q") || 1)) });
+  if (pc) Object.assign(state, { mode: "character", universe: pc.universe, character: pc.id, rarity: pc.variants[qp.get("r")] ? qp.get("r") : state.rarity, qty: Math.min(50, Math.max(1, Math.floor(+qp.get("q")) || 1)) });
   if (qp.has("other")) {
     Object.assign(state, { mode: "character", universe: uni(qp.get("u")) ? qp.get("u") : state.universe, character: "other", otherChar: qp.get("other").slice(0, 60), rarity: "special" });
     $("#otherChar").value = state.otherChar;
   }
+  if (qp.get("promo") === "21" && qp.get("preset") !== "photo" && state.character !== "other") state.mode = "photo";
   if (qp.get("promo") === "21") {
     state.qty = Math.max(state.qty, 2);
     $("#builder .sub")?.insertAdjacentHTML("afterend", `<p class="promo-note"><b>Акция 2+1</b><span>Закажи 2 индивидуальные карточки — по фото или своего персонажа — и выбери любую карточку из каталога в подарок.</span></p>`);
   }
+  if (qp.get("promo") === "41" && (state.mode === "photo" || state.character === "other")) state.mode = "character", state.character = state.character === "other" ? "guts" : state.character;
   if (qp.get("promo") === "41") {
     state.qty = Math.max(state.qty, 4);
     $("#builder .sub")?.insertAdjacentHTML("afterend", `<p class="promo-note"><b>Акция 4+1</b><span>Выбери 4 карточки — пятую, мистери-карточку, добавим в подарок.</span></p>`);
@@ -1052,11 +1076,17 @@
     $("#omErr").hidden = true;
     try {
       const photos = (await Promise.all(omOrder.photos.map((p, i) => shrinkPhoto(p, omOrder.crops && omOrder.crops[i])))).filter(Boolean);
+      // Фото не прочиталось (не картинка / формат не поддерживается браузером) — не отправляем заказ вслепую
+      if (omOrder.photos.length && !photos.length) throw new Error("Не получилось прочитать фото — выбери другое (JPG или PNG)");
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 25000);
       const res = await fetch("api/order", {
+        signal: ctl.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lines: omOrder.lines.slice(1), name, contact, comment, photos }), // без приветствия
       });
+      clearTimeout(timer);
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || "Не удалось отправить заказ");
       $("#omForm").hidden = true;
@@ -1064,7 +1094,9 @@
       $("#omComment").value = "";
       omOrder.onSent?.();
     } catch (err) {
-      $("#omErr").textContent = `${err.message}. Попробуй ещё раз или напиши нам в Telegram — текст заказа скопируем.`;
+      const why = err.name === "AbortError" ? "Сервер долго не отвечает"
+        : err instanceof TypeError ? "Нет связи с сервером" : err.message;
+      $("#omErr").textContent = `${why}. Попробуй ещё раз или напиши нам в Telegram — текст заказа скопируем.`;
       $("#omErr").hidden = false;
       btn.disabled = false;
       btn.textContent = "Отправить заказ";
@@ -1073,7 +1105,12 @@
 
   // Запасной путь: копируем текст и открываем чат
   $("#omAlt").addEventListener("click", async () => {
-    const text = omOrder.lines.join("\n");
+    const extra = [
+      $("#omName").value.trim() && `Имя: ${$("#omName").value.trim()}`,
+      $("#omContact").value.trim() && `Контакт: ${CONTACT[contactMethod].name}: ${$("#omContact").value.trim()}`,
+      $("#omComment").value.trim() && `Комментарий: ${$("#omComment").value.trim()}`,
+    ].filter(Boolean);
+    const text = [...omOrder.lines, ...(extra.length ? ["", ...extra] : [])].join("\n");
     try {
       await navigator.clipboard.writeText(text);
       toast("Текст заказа скопирован — вставь его в чат");
@@ -1200,7 +1237,8 @@
       if (many) $(`${sel} img`).src = sm(at(k).a);
     });
     $$(".lb-arrow").forEach((x) => (x.hidden = !many));
-    $("#lbDots").innerHTML = many ? list.slice(0, 12).map((_, j) => `<i class="${j === i ? "is-on" : ""}"></i>`).join("") : "";
+    const from = Math.max(0, Math.min(i - 5, list.length - 12));
+    $("#lbDots").innerHTML = many ? list.slice(from, from + 12).map((_, j) => `<i class="${from + j === i ? "is-on" : ""}"></i>`).join("") : "";
     // О персонаже
     $("#lbAbout").hidden = !c.about;
     if (c.about) {
@@ -1227,7 +1265,7 @@
   $("#lbPrevCard").addEventListener("click", () => lbGo(-1));
   $("#lbNextCard").addEventListener("click", () => lbGo(1));
   addEventListener("keydown", (e) => {
-    if (lb.hidden) return;
+    if (lb.hidden || !om.hidden || e.target.closest("input, textarea, select")) return;
     if (e.key === "ArrowLeft") lbGo(-1);
     if (e.key === "ArrowRight") lbGo(1);
   });
@@ -1237,13 +1275,20 @@
     Object.assign(lbState, { c: w.c, rarity: w.rarity, qty: 1 });
     lbCard.reset();
     renderProduct();
+    if (lb.hidden && !(history.state && history.state.lb)) history.pushState({ lb: 1 }, "");
     lb.hidden = false;
     lb.scrollTop = 0;
     document.body.style.overflow = "hidden";
     setTimeout(() => lbCard.sweep(), 250);
     w.c.quote ? Sound.play(w.c.quote) : Sound.stop();
   }
-  function closeLightbox() { lb.hidden = true; document.body.style.overflow = ""; Sound.stop(); }
+  function closeLightbox(fromHistory) {
+    if (lb.hidden) return;
+    lb.hidden = true; document.body.style.overflow = ""; Sound.stop();
+    if (!fromHistory && history.state && history.state.lb) history.back();
+  }
+  // Кнопка «Назад» в браузере/на Android закрывает окно, а не уводит со страницы
+  addEventListener("popstate", () => { if (!lb.hidden) closeLightbox(true); });
 
   $("#lbRarity").addEventListener("click", (e) => {
     const b = e.target.closest("[data-r]");
@@ -1258,9 +1303,9 @@
       renderProduct();
     })
   );
-  $(".lightbox__close").addEventListener("click", closeLightbox);
+  $(".lightbox__close").addEventListener("click", () => closeLightbox());
   lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
-  addEventListener("keydown", (e) => { if (e.key === "Escape" && !lb.hidden) closeLightbox(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !lb.hidden && om.hidden) closeLightbox(); });
   $("#lbTurn").addEventListener("click", () => lbCard.turn());
   $("#lbOrder").addEventListener("click", () => {
     const { c, rarity, qty } = lbState;
@@ -1287,12 +1332,15 @@
   //  Избранное и корзина: хранятся в браузере покупателя
   // ---------------------------------------------------------------
   const MAX_CART = 25; // столько позиций помещается в одно сообщение заказа
-  const load = (key) => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } };
+  const load = (key) => { try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : []; } catch { return []; } };
   const keep = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} };
   const workByKey = (k) => WORKS.find((w) => workKey(w) === k);
   const thumbOf = (w) => `style="background-image:url('${sm(w.a)}')"`;
-  let favs = load("favs").filter(workByKey);
-  let cart = load("cart").filter((it) => workByKey(it.k));
+  let favs = [...new Set(load("favs").filter((k) => typeof k === "string" && workByKey(k)))];
+  let cart = load("cart")
+    .filter((it) => it && typeof it.k === "string" && workByKey(it.k))
+    .map((it) => ({ k: it.k, qty: Math.min(50, Math.max(1, Math.floor(Number(it.qty)) || 1)) }))
+    .slice(0, MAX_CART);
 
   function syncHearts() {
     $$("[data-fav]").forEach((b) => {
@@ -1323,6 +1371,7 @@
 
   function addToCart(k, qty = 1) {
     const it = cart.find((x) => x.k === k);
+    if (it && it.qty >= 50) return toast("Больше 50 одинаковых карточек в один заказ не добавить");
     if (it) it.qty = Math.min(50, it.qty + qty);
     else if (cart.length >= MAX_CART) return toast(`В корзине уже ${MAX_CART} позиций — оформи их, потом добавим ещё`);
     else cart.push({ k, qty });
@@ -1443,7 +1492,7 @@
           const w = WORKS.find((x) => x.c === it.c && x.rarity === "special") || WORKS.find((x) => x.c === it.c);
           return `<button type="button" class="sres" data-hit="${i}"><i ${thumbOf(w)}></i><span><b>${esc(it.c.name)}</b><span>${esc(uni(it.c.universe).name)}, от ${money(Math.min(...Object.keys(it.c.variants).map((r) => CONFIG.prices[r])))}</span></span></button>`;
         }).join("")
-      : `<div class="sres sres--none"><span>Такого героя пока нет в каталоге — нарисуем под заказ.</span><button type="button" class="btn btn--sm" data-hit="custom">Заказать «${esc(q)}»</button></div>`;
+      : `<div class="sres sres--none"><span>Такого героя пока нет в каталоге — нарисуем под заказ.</span><button type="button" class="btn btn--sm" data-hit="custom">Заказать «${esc(q.length > 24 ? q.slice(0, 24) + "…" : q)}»</button></div>`;
     sRes.hidden = false;
   }
   function pickHit(i) {
@@ -1642,7 +1691,7 @@
         `Привет! Хочу коллекцию «${x.u.name}» целиком:`,
         ...x.cards.map((w) => `• ${w.c.name} (${RARITY[w.rarity].toLowerCase()}): 1 × ${money(CONFIG.prices[w.rarity])}`),
         `• Всего карточек: ${x.cards.length}`,
-        f.n ? `• Акция 4+1: ${plural(f.n, "карточка", "карточки", "карточек")} из серии бесплатно, −${money(f.discount)}` : null,
+        f.n ? `• Акция «Вся серия»: ${plural(f.n, "карточка", "карточки", "карточек")} из серии бесплатно, −${money(f.discount)}` : null,
         `• Сумма: ${money(setSum(x) - f.discount)}`,
       ]);
     });

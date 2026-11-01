@@ -2477,3 +2477,30 @@ h1.h2 { margin: 0; }
   .lightbox__meta h3 { font-size: 21px; }
   .lb-others__list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+.nf__code { font: 800 72px/1 var(--display); color: var(--hot); margin: 0 0 8px; }
+
+/* === Исправления по тестам === */
+/* Крестик окна карточки не перекрывает кнопки: на телефоне — над панелью, с отступом под ним */
+@media (max-width: 860px) {
+  .lightbox__inner { padding-top: 0; }
+  .lb-cta { padding-right: 0; }
+  .lightbox__meta { scroll-margin-top: 60px; }
+  .lightbox__close { width: 38px; height: 38px; background: rgba(10, 8, 10, .85); }
+  .lightbox:has(.lightbox__meta) .lightbox__close { top: calc(8px + env(safe-area-inset-top)); }
+}
+.lb-cta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 46px; }
+.lb-cta .btn { white-space: nowrap; padding-inline: 8px; }
+@media (max-width: 360px) { .lb-cta .btn { font-size: 12px; } }
+/* Длинные названия коллекций и персонажей переносятся, а не расширяют страницу */
+#colTitle, .collection__head h3, .lightbox__meta h3, .h2, .col-tile__info b, .lb-top, .sres b, .ditem__info b { overflow-wrap: anywhere; min-width: 0; }
+.collection__head > div { min-width: 0; }
+.lb-top { flex-wrap: wrap; }
+.lb-top .lb-uni { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-oth b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sres--none .btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) {
+  /* Крестик прокручивается вместе со сценой карточки и не висит над кнопками покупки */
+  .lightbox__close { position: absolute; top: calc(8px + env(safe-area-inset-top)); right: 12px; }
+  .lightbox:has(.lightbox__meta) .lightbox__close { position: absolute; }
+  .lightbox__inner { position: relative; }
+}

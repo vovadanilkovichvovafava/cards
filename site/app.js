@@ -11,7 +11,7 @@
   const known = (name) => (window.KNOWN_CHARACTERS || []).find((k) => k.names.some((n) => normName(n) === normName(name)));
   (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity, about }) => {
     if (!UNIVERSES.some((u) => u.id === universe)) return;
-    const pair = [`assets/cards/db/${id}-a.jpg`, `assets/cards/db/${id}-b.jpg`];
+    const pair = [`assets/cards/db/${id}-a.jpg?v=2`, `assets/cards/db/${id}-b.jpg?v=2`];
     let c = CHARACTERS.find((x) => x.universe === universe && x.name.toLowerCase() === name.toLowerCase());
     if (c) c.variants[rarity] = pair;
     else {
@@ -1216,6 +1216,7 @@
   const lb = $("#lightbox");
   const lbCard = Flip($("#lightboxCard"), { free: true });
   const lbState = { c: null, rarity: "special", qty: 1 };
+  const lbPreload = new Map();
 
   // Карточки серии, по которым листается окно товара
   const lbSeries = () => WORKS.filter((w) => w.c.universe === lbState.c.universe);
@@ -1245,6 +1246,8 @@
       $(sel).hidden = !many;
       if (many) $(`${sel} img`).src = sm(at(k).a);
     });
+    // Соседние кадры грузим заранее — стрелка листает сразу, без ожидания картинки
+    if (many) [at(-1), at(1)].forEach((w) => [w.a, w.b].forEach((src) => { if (!lbPreload.has(src)) lbPreload.set(src, Object.assign(new Image(), { src })); }));
     $$(".lb-arrow").forEach((x) => (x.hidden = !many));
     const from = Math.max(0, Math.min(i - 5, list.length - 12));
     $("#lbDots").innerHTML = many ? list.slice(from, from + 12).map((_, j) => `<i class="${from + j === i ? "is-on" : ""}"></i>`).join("") : "";

@@ -2504,3 +2504,7 @@ h1.h2 { margin: 0; }
   .lightbox:has(.lightbox__meta) .lightbox__close { position: absolute; }
   .lightbox__inner { position: relative; }
 }
+
+/* Стрелки окна карточки: быстрые нажатия подряд не считаются двойным тапом (масштабом) на iPhone */
+.lb-arrow, .lb-side { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.lb-arrow { width: 44px; height: 44px; }

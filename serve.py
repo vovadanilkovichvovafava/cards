@@ -26,6 +26,37 @@ import uuid
 
 from catalog_bot import Bot, Store, image_type
 
+# Кадры из бота приходят тяжёлыми PNG (~1 МБ). Отдаём их сжатыми JPEG: полный — 780 px, маленький — 400 px.
+# Без Pillow (не поставился) отдаём как есть.
+try:
+    from PIL import Image
+except Exception:
+    Image = None
+SHRUNK = {}
+
+
+def shrink(key, data, width):
+    if Image is None:
+        return data
+    if key in SHRUNK:
+        return SHRUNK[key]
+    try:
+        import io
+        im = Image.open(io.BytesIO(data))
+        im = im.convert("RGB")
+        if im.width > width:
+            im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
+        out = io.BytesIO()
+        im.save(out, "JPEG", quality=84, optimize=True, progressive=True)
+        small = out.getvalue()
+        data = small if len(small) < len(data) else data
+    except Exception as e:
+        print("shrink error:", e, file=sys.stderr)
+    if len(SHRUNK) > 400:
+        SHRUNK.clear()
+    SHRUNK[key] = data
+    return data
+
 PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", 8080))
 ROOT = os.path.dirname(os.path.abspath(__file__))
 MAX_BODY = 12 * 1024 * 1024   # до ~12 МБ: текст + пара сжатых фото
@@ -94,7 +125,7 @@ def extra_collections():
     if not STORE:
         return []
     try:
-        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg"} for c in STORE.collections()]
+        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg?v=2"} for c in STORE.collections()]
     except Exception as e:
         print("db error:", e, file=sys.stderr)
         return []
@@ -191,6 +222,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print("db error:", e, file=sys.stderr)
             if not data:
                 return self.reply(404, {"ok": False, "error": "not found"})
+            data = shrink(("back", mb[1]), data, 780)
             self.cache_forever = True
             return self.send_body(200, image_type(data), data)
         m = DB_IMAGE.match(path_only)
@@ -202,6 +234,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print("db error:", e, file=sys.stderr)
             if not data:
                 return self.reply(404, {"ok": False, "error": "not found"})
+            data = shrink((m[2], m[3], bool(m[1])), data, 400 if m[1] else 780)
             self.cache_forever = True
             return self.send_body(200, image_type(data), data)
         # Текстовые файлы отдаём сжатыми (gzip) — так они грузятся в 3–4 раза быстрее

@@ -126,7 +126,7 @@ def extra_collections():
     if not STORE:
         return []
     try:
-        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg?v=2"} for c in STORE.collections()]
+        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg?v=3"} for c in STORE.collections()]
     except Exception as e:
         print("db error:", e, file=sys.stderr)
         return []

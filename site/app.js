@@ -11,7 +11,7 @@
   const known = (name) => (window.KNOWN_CHARACTERS || []).find((k) => k.names.some((n) => normName(n) === normName(name)));
   (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity, about }) => {
     if (!UNIVERSES.some((u) => u.id === universe)) return;
-    const pair = [`assets/cards/db/${id}-a.jpg?v=2`, `assets/cards/db/${id}-b.jpg?v=2`];
+    const pair = [`assets/cards/db/${id}-a.jpg?v=3`, `assets/cards/db/${id}-b.jpg?v=3`];
     let c = CHARACTERS.find((x) => x.universe === universe && x.name.toLowerCase() === name.toLowerCase());
     if (c) c.variants[rarity] = pair;
     else {

@@ -28,10 +28,11 @@ from catalog_bot import Bot, Store, image_type
 
 # Кадры из бота приходят тяжёлыми PNG (~1 МБ). Отдаём их сжатыми JPEG: полный — 780 px, маленький — 400 px.
 # Без Pillow (не поставился) отдаём как есть.
+IMAGE_ERR = ""
 try:
     from PIL import Image
-except Exception:
-    Image = None
+except Exception as e:
+    Image, IMAGE_ERR = None, f"{type(e).__name__}: {e}"[:200]
 SHRUNK = {}
 
 
@@ -195,7 +196,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     db = len(STORE.cards())  # сколько карточек добавлено через бота
                 except Exception as e:
                     db = f"error: {type(e).__name__}"
-            return self.reply(200, {"ok": True, "db": db})
+            return self.reply(200, {"ok": True, "db": db, "py": sys.version.split()[0],
+                                    "img": "ok" if Image else (IMAGE_ERR or "no pillow")})
         if path_only == "/catalog.js":
             body = ("window.EXTRA_UNIVERSES = " + json.dumps(extra_collections(), ensure_ascii=False) + ";\n"
                     "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()

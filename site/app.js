@@ -6,12 +6,21 @@
   (window.EXTRA_UNIVERSES || []).forEach(({ id, name, back }) => {
     if (!UNIVERSES.some((u) => u.id === id)) UNIVERSES.push({ id, name, icon: back, banner: null, back, accent: "#d8112f", glow: "#d8112f" });
   });
-  (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity }) => {
+  // Известный персонаж (по имени из бота) получает русское имя и описание для блока «О персонаже»
+  const normName = (s) => s.toLowerCase().replace(/18\+/g, "").replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim();
+  const known = (name) => (window.KNOWN_CHARACTERS || []).find((k) => k.names.some((n) => normName(n) === normName(name)));
+  (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity, about }) => {
     if (!UNIVERSES.some((u) => u.id === universe)) return;
     const pair = [`assets/cards/db/${id}-a.jpg`, `assets/cards/db/${id}-b.jpg`];
-    const same = CHARACTERS.find((c) => c.universe === universe && c.name.toLowerCase() === name.toLowerCase());
-    if (same) same.variants[rarity] = pair;
-    else CHARACTERS.push({ id: `db${id}`, universe, name, variants: { [rarity]: pair } });
+    let c = CHARACTERS.find((x) => x.universe === universe && x.name.toLowerCase() === name.toLowerCase());
+    if (c) c.variants[rarity] = pair;
+    else {
+      const k = known(name);
+      c = { id: `db${id}`, universe, name, variants: { [rarity]: pair } };
+      if (k) Object.assign(c, { full: k.full + (/18\+/.test(name) ? " 18+" : ""), about: k.about });
+      CHARACTERS.push(c);
+    }
+    if (about) c.about = about;
   });
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];

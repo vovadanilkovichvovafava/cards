@@ -59,6 +59,8 @@ class Store:
                 sm_a BYTEA NOT NULL, sm_b BYTEA NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )""")
+        # Текст для блока «О персонаже» в окне карточки (необязательный)
+        self.conn.run("ALTER TABLE cards ADD COLUMN IF NOT EXISTS about TEXT")
         self.conn.run("""
             CREATE TABLE IF NOT EXISTS relay (
                 admin_msg BIGINT PRIMARY KEY,
@@ -92,8 +94,8 @@ class Store:
         return bool(self.run("SELECT pg_try_advisory_lock(7391001)")[0][0])
 
     def cards(self):
-        rows = self.run("SELECT id, universe, name, rarity FROM cards ORDER BY id")
-        return [{"id": r[0], "universe": r[1], "name": r[2], "rarity": r[3]} for r in rows]
+        rows = self.run("SELECT id, universe, name, rarity, about FROM cards ORDER BY id")
+        return [{"id": r[0], "universe": r[1], "name": r[2], "rarity": r[3], "about": r[4] or ""} for r in rows]
 
     def image(self, card_id, side, small):
         col = ("sm_" if small else "img_") + side
@@ -101,12 +103,19 @@ class Store:
         return bytes(rows[0][0]) if rows else None
 
     def add(self, universe, name, rarity, a, b, sm_a, sm_b):
-        # Та же карточка (персонаж + версия) заменяется новой, а не дублируется
-        self.run("DELETE FROM cards WHERE universe = :u AND lower(name) = lower(:n) AND rarity = :r",
-                 u=universe, n=name, r=rarity)
-        return self.run("""INSERT INTO cards (universe, name, rarity, img_a, img_b, sm_a, sm_b)
-                           VALUES (:u, :n, :r, :a, :b, :sa, :sb) RETURNING id""",
-                        u=universe, n=name, r=rarity, a=a, b=b, sa=sm_a, sb=sm_b)[0][0]
+        # Та же карточка (персонаж + версия) заменяется новой, а не дублируется; описание переходит к новой
+        old = self.run("""DELETE FROM cards WHERE universe = :u AND lower(name) = lower(:n) AND rarity = :r
+                          RETURNING about""", u=universe, n=name, r=rarity)
+        about = next((r[0] for r in old if r[0]), None)
+        return self.run("""INSERT INTO cards (universe, name, rarity, img_a, img_b, sm_a, sm_b, about)
+                           VALUES (:u, :n, :r, :a, :b, :sa, :sb, :ab) RETURNING id""",
+                        u=universe, n=name, r=rarity, a=a, b=b, sa=sm_a, sb=sm_b, ab=about)[0][0]
+
+    def set_about(self, card_id, about):
+        # Описание общее для персонажа: пишем во все его версии в этой коллекции
+        return self.run("""UPDATE cards SET about = :ab WHERE (universe, lower(name)) =
+                           (SELECT universe, lower(name) FROM cards WHERE id = :id) RETURNING name""",
+                        ab=about or None, id=card_id)
 
     def delete(self, card_id):
         return self.run("DELETE FROM cards WHERE id = :id RETURNING name", id=card_id)
@@ -264,7 +273,8 @@ class Bot:
             return self.say(chat, "Чтобы добавить карточку на сайт, пришли два кадра — как она выглядит прямо и после наклона. "
                                   "Можно одним альбомом. Дальше я спрошу коллекцию, имя и версию.\n\n"
                                   "/collection — новая коллекция (название, рубашка, потом карточки)\n"
-                                  "/list — карточки и коллекции из бота (там же удаление)\n/cancel — отменить добавление")
+                                  "/list — карточки и коллекции из бота (там же удаление)\n"
+                                  "/about — описание персонажа для окна карточки на сайте\n/cancel — отменить добавление")
         if text == "/cancel":
             self.state.pop(chat, None)
             self.into.pop(chat, None)
@@ -282,6 +292,14 @@ class Bot:
             return self.save_collection(chat, st, pic)
         if text == "/list":
             return self.show_list(chat)
+        if text.startswith("/about"):
+            return self.ask_about(chat)
+        if st and st.get("step") == "about":
+            if text == "/skip":
+                self.state.pop(chat, None)
+                return self.say(chat, "Ок, без своего описания. Для известных персонажей сайт покажет своё.")
+            if text and not text.startswith("/"):
+                return self.save_about(chat, st, text)
 
         pic = self.pick(msg)
         if pic:
@@ -302,7 +320,7 @@ class Bot:
                             [[{"text": label, "callback_data": f"r:{key}"} for key, label in RARITY.items()]])
         if st:
             hint = {"universe": "Выбери коллекцию кнопкой выше.", "name": "Напиши имя персонажа текстом.",
-                    "rarity": "Выбери версию кнопкой выше."}.get(st["step"], "")
+                    "rarity": "Выбери версию кнопкой выше.", "about": "Напиши описание текстом или /skip."}.get(st["step"], "")
             return self.say(chat, f"{hint} Или /cancel, чтобы начать заново.")
         self.say(chat, "Чтобы добавить карточку на сайт, пришли два её кадра. Подсказка — /help")
 
@@ -340,6 +358,13 @@ class Bot:
             if self.into.get(chat, ("",))[0] == f"c{value}":
                 self.into.pop(chat, None)
             return self.say(chat, f"Удалил коллекцию «{rows[0][0]}»." if rows else "Этой коллекции уже нет.")
+        if kind == "ab":
+            name = dict((str(c["id"]), c["name"]) for c in self.store.cards()).get(value)
+            if not name:
+                return self.say(chat, "Этой карточки уже нет.")
+            self.state[chat] = {"step": "about", "id": int(value), "name": name}
+            return self.say(chat, f"Напиши описание для «{name}» — 2–4 предложения о персонаже. "
+                                  "Пришли «-», чтобы убрать своё описание, или /skip.")
         if kind == "no":
             return self.say(chat, "Оставил как есть.")
         self.say(chat, "Эта кнопка уже не работает. Пришли два кадра, чтобы добавить карточку.")
@@ -358,7 +383,7 @@ class Bot:
             print("bot save error:", e, file=sys.stderr)
             return self.say(chat, f"Не получилось сохранить: {e}. Попробуй выбрать версию ещё раз.",
                             [[{"text": label, "callback_data": f"r:{key}"} for key, label in RARITY.items()]])
-        self.state.pop(chat, None)
+        self.state[chat] = {"step": "about", "id": card_id, "name": st["name"]}
         uni = dict(universes(self.store)).get(st["universe"], st["universe"])
         link = f"\n{self.site}/catalog/{st['universe']}" if self.site else ""
         buttons = [[{"text": "Удалить эту карточку", "callback_data": f"del:{card_id}"}]]
@@ -367,6 +392,37 @@ class Bot:
             more = "\n\nПришли следующие два кадра — карточка тоже попадёт в эту коллекцию."
             buttons.append([{"text": "Закончить коллекцию", "callback_data": "done:"}])
         self.say(chat, f"Готово! {st['name']} ({RARITY[rarity].lower()}) теперь в коллекции «{uni}»." + link + more, buttons)
+        self.say(chat, f"Напиши пару предложений о персонаже — они появятся на сайте в блоке «О персонаже». "
+                       "Или /skip — тогда для известных персонажей сайт покажет своё описание.")
+
+    def ask_about(self, chat):
+        cards = self.store.cards()
+        if not cards:
+            return self.say(chat, "Через бота карточек пока не добавляли.")
+        seen, rows = set(), []
+        names = dict(universes(self.store))
+        for c in reversed(cards):  # один раз на персонажа, свежие сверху
+            key = (c["universe"], c["name"].lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            mark = "✓ " if c["about"] else ""
+            rows.append([{"text": f"{mark}{c['name']} — {names.get(c['universe'], c['universe'])}", "callback_data": f"ab:{c['id']}"}])
+        self.say(chat, "Чьё описание написать или поменять? ✓ — своё описание уже есть.", rows[:40])
+
+    def save_about(self, chat, st, text):
+        about = "" if text.strip() in ("-", "—") else text.strip()[:600]
+        try:
+            rows = self.store.set_about(st["id"], about)
+        except Exception as e:
+            print("bot about error:", e, file=sys.stderr)
+            return self.say(chat, f"Не получилось сохранить описание: {e}. Пришли его ещё раз.")
+        self.state.pop(chat, None)
+        if not rows:
+            return self.say(chat, "Этой карточки уже нет.")
+        more = "\n\nПришли следующие два кадра — карточка попадёт в эту же коллекцию." if self.into.get(chat) else ""
+        self.say(chat, (f"Убрал своё описание у «{st['name']}»." if not about else
+                        f"Описание «{st['name']}» сохранено, на сайте оно уже есть.") + more)
 
     def save_collection(self, chat, st, pic):
         self.say(chat, "Создаю коллекцию…")

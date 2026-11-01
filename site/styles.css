@@ -2384,3 +2384,8 @@ h1.h2 { margin: 0; }
 .work { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .work > * { min-width: 0; }
 .work__meta b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Подпись карточки: имя (до 2 строк) и версия под ним, сердечко справа */
+.work__meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 6px; row-gap: 1px; align-items: start; }
+.work__meta b { grid-column: 1; white-space: normal; overflow: hidden; text-overflow: clip; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; overflow-wrap: anywhere; }
+.work__meta span { grid-column: 1; grid-row: 2; margin: 0; white-space: nowrap; overflow: visible; }
+.work__meta .heart { grid-column: 2; grid-row: 1 / span 2; align-self: start; margin: -6px -6px 0 0; }

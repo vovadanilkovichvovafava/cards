@@ -2380,3 +2380,7 @@ h1.h2 { margin: 0; }
 .cropper__ctl .note { margin: 0; font-size: 12px; }
 .cropper__ctl .tool { justify-self: start; min-height: 34px !important; }
 .custom__photo img { transform-origin: center; }
+/* Карточки коллекции строго в ширину колонки: длинное имя больше не растягивает карточку */
+.work { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.work > * { min-width: 0; }
+.work__meta b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

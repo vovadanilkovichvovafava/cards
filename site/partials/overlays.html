@@ -35,38 +35,49 @@
   </div>
 </div>
 
-<!-- Lightbox -->
+<!-- Окно карточки: карусель карточек серии, покупка, о персонаже, другие коллекции -->
 <div class="lightbox" id="lightbox" hidden>
   <div class="lightbox__inner" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
     <button type="button" class="lightbox__close" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <div class="lightbox__card">
+    <div class="lightbox__card lb-stage">
+      <button type="button" class="lb-side lb-side--prev" id="lbPrevCard" aria-label="Предыдущая карточка"><img alt=""></button>
       <div class="flip flip--big" id="lightboxCard"></div>
-      <p class="hint"><span class="on-hover">Тяни карточку мышкой — она вращается</span><span class="on-touch">Крути карточку пальцем ← →</span></p>
+      <button type="button" class="lb-side lb-side--next" id="lbNextCard" aria-label="Следующая карточка"><img alt=""></button>
+      <button type="button" class="lb-arrow lb-arrow--prev" data-lbnav="-1" aria-label="Предыдущая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button type="button" class="lb-arrow lb-arrow--next" data-lbnav="1" aria-label="Следующая карточка"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      <div class="lb-dots" id="lbDots" aria-hidden="true"></div>
     </div>
-    <div class="lightbox__meta">
-      <span class="lb-uni" id="lbUni"></span>
-      <h3 id="lbTitle"></h3>
-      <div class="seg seg--sm" id="lbRarity"></div>
-      <div class="lb-buy">
-        <div class="qty">
-          <button type="button" data-lbqty="-1" aria-label="Меньше">−</button>
-          <output id="lbQty">1</output>
-          <button type="button" data-lbqty="1" aria-label="Больше">+</button>
+    <div class="lb-col">
+      <div class="lightbox__meta">
+        <div class="lb-top"><span class="lb-uni" id="lbUni"></span><span class="lb-num" id="lbNum"></span><span class="lb-stock" id="lbStock"></span></div>
+        <h3 id="lbTitle"></h3>
+        <div class="seg seg--sm" id="lbRarity"></div>
+        <div class="lb-buy">
+          <div class="lb-buy__price"><b id="lbTotal"></b><span class="note" id="lbUnit"></span></div>
+          <div class="qty">
+            <button type="button" data-lbqty="-1" aria-label="Меньше">−</button>
+            <output id="lbQty">1</output>
+            <button type="button" data-lbqty="1" aria-label="Больше">+</button>
+          </div>
         </div>
-        <div class="lb-buy__price">
-          <span class="note" id="lbUnit"></span>
-          <b id="lbTotal"></b>
+        <div class="lb-cta">
+          <button type="button" class="btn" id="lbOrder">Заказать</button>
+          <button type="button" class="btn btn--ghost" id="lbCart">В корзину</button>
+          <button type="button" class="heart heart--lg" id="lbFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
+        </div>
+        <div class="lb-links">
+          <button type="button" class="tool" id="lbTurn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
+          <button type="button" class="tool" id="lbWant"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>В подарок или настроить</button>
         </div>
       </div>
-      <div class="lb-cta">
-        <button type="button" class="btn" id="lbOrder">Заказать</button>
-        <button type="button" class="btn btn--ghost" id="lbCart">В корзину</button>
-        <button type="button" class="heart heart--lg" id="lbFav" aria-pressed="false" aria-label="В избранное"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg></button>
-      </div>
-      <div class="lb-links">
-        <button type="button" class="tool" id="lbTurn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14a4 4 0 0 1 0 8h-2M17 20l4-4-4-4M21 16H7"/></svg>Обратная сторона</button>
-        <button type="button" class="tool" id="lbWant"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>В подарок или настроить</button>
-      </div>
+      <section class="lb-about" id="lbAbout" hidden>
+        <div class="lb-about__txt"><h4 class="lb-kicker">О персонаже</h4><p id="lbAboutText"></p></div>
+        <img class="lb-about__img" id="lbAboutImg" alt="">
+      </section>
+      <section class="lb-others">
+        <div class="lb-others__head"><h4 class="lb-kicker lb-kicker--big">Другие коллекции</h4><a href="catalog" class="lb-more">Смотреть все →</a></div>
+        <div class="lb-others__list" id="lbOthers"></div>
+      </section>
     </div>
   </div>
 </div>

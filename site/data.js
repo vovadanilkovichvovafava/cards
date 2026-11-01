@@ -20,6 +20,8 @@ window.CONFIG = {
     custom: 1800,  // индивидуальная: по фото или свой персонаж под заказ
   },
   currency: "₽",
+  // Плашка в окне карточки
+  stockLabel: "В наличии",
   // Переключатель BYN | RUS в шапке: цены в белорусских рублях считаются по этому курсу
   // (сколько BYN за 1 ₽) и округляются до целого. ПРОВЕРЬ курс перед запуском.
   bynPerRub: 0.035,
@@ -91,6 +93,8 @@ window.UNIVERSES = [
 window.CHARACTERS = [
   {
     id: "guts", universe: "berserk", name: "Гатс", subtitle: "Black Swordsman",
+    full: "Гатс",
+    about: "Чёрный мечник, наёмник с гигантским мечом «Убийца драконов». Прошёл через Затмение, выжил с клеймом жертвы и ведёт бесконечную войну с демонами, не сдаваясь ни судьбе, ни богам.",
     quote: "assets/audio/guts.mp3",
     variants: {
       common: ["assets/cards/guts-common-a.jpg", "assets/cards/guts-common-b.jpg"],
@@ -99,6 +103,8 @@ window.CHARACTERS = [
   },
   {
     id: "griffith", universe: "berserk", name: "Гриффит", subtitle: "White Hawk",
+    full: "Гриффит",
+    about: "Белый ястреб, лидер Отряда ястреба. Харизматичный и безупречный стратег, ради мечты о собственном королевстве готовый заплатить любую цену.",
     variants: {
       common: ["assets/cards/griffith-common-a.jpg", "assets/cards/griffith-common-b.jpg"],
       special: ["assets/cards/griffith-special-a.jpg", "assets/cards/griffith-special-b.jpg"],
@@ -106,22 +112,32 @@ window.CHARACTERS = [
   },
   {
     id: "rudeus", universe: "mushoku", name: "Рудеус",
+    full: "Рудеус Грейрат",
+    about: "Переродившийся в мире магии парень, решивший прожить новую жизнь всерьёз. Гений магии, глава большой семьи и один из сильнейших магов своего времени.",
     variants: { special: ["assets/cards/rudeus-special-a.jpg", "assets/cards/rudeus-special-b.jpg"] },
   },
   {
     id: "roxy", universe: "mushoku", name: "Рокси",
+    full: "Рокси Мигурдия",
+    about: "Первая наставница Рудеуса, маг воды королевского ранга. Спокойная, мудрая и заботливая — именно она научила его не бояться мира за порогом дома.",
     variants: { special: ["assets/cards/roxy-special-a.jpg", "assets/cards/roxy-special-b.jpg"] },
   },
   {
     id: "eris", universe: "mushoku", name: "Эрис",
+    full: "Эрис Грейрат",
+    about: "Вспыльчивая и бесстрашная мечница. Ученица Бога Меча, которая тренировалась годами, чтобы стоять рядом с Рудеусом и защищать его.",
     variants: { special: ["assets/cards/eris-special-a.jpg", "assets/cards/eris-special-b.jpg"] },
   },
   {
     id: "sylphy", universe: "mushoku", name: "Сильфи",
+    full: "Сильфиетта",
+    about: "Подруга детства Рудеуса с редким даром безмолвной магии. Телохранитель принцессы Ариэль, добрая и преданная — одна из самых тёплых героинь серии.",
     variants: { special: ["assets/cards/sylphy-special-a.jpg", "assets/cards/sylphy-special-b.jpg"] },
   },
   {
     id: "ruijerd", universe: "mushoku", name: "Руиджерд",
+    full: "Руиджерд Супердия",
+    about: "Воин народа супардов с копьём и третьим глазом. Суровый с виду защитник детей, который годами пытается вернуть доброе имя своему народу.",
     variants: { special: ["assets/cards/ruijerd-special-a.jpg", "assets/cards/ruijerd-special-b.jpg"] },
   },
 ];

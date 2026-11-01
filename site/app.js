@@ -1171,22 +1171,66 @@
   const lbCard = Flip($("#lightboxCard"), { free: true });
   const lbState = { c: null, rarity: "special", qty: 1 };
 
+  // Карточки серии, по которым листается окно товара
+  const lbSeries = () => WORKS.filter((w) => w.c.universe === lbState.c.universe);
+  const lbIndex = () => lbSeries().findIndex((w) => w.c === lbState.c && w.rarity === lbState.rarity);
+
   function renderProduct() {
     const { c, rarity, qty } = lbState;
     const [a, b] = c.variants[rarity];
+    const u = uni(c.universe), list = lbSeries(), i = Math.max(0, lbIndex());
     lbCard.setImages(a, b);
-    lbCard.setBack(uni(c.universe).back);
-    $("#lbUni").textContent = uni(c.universe).name;
-    $("#lbTitle").textContent = c.name;
+    lbCard.setBack(u.back);
+    $("#lbUni").textContent = u.short || u.name;
+    $("#lbNum").textContent = `№ ${String(i + 1).padStart(3, "0")}`;
+    $("#lbStock").textContent = CONFIG.stockLabel || "В наличии";
+    $("#lbTitle").textContent = c.full || c.name;
     const rs = Object.keys(c.variants);
     $("#lbRarity").hidden = rs.length < 2;
     $("#lbRarity").innerHTML = rs.map((r) => `<button type="button" data-r="${r}" class="${r === rarity ? "is-on" : ""}">${RARITY[r]}</button>`).join("");
     $("#lbQty").textContent = qty;
-    $("#lbUnit").textContent = `${money(CONFIG.prices[rarity])} за штуку`;
+    $("#lbUnit").textContent = qty > 1 ? `${money(CONFIG.prices[rarity])} за штуку` : "за 1 штуку";
     $("#lbTotal").textContent = money(promo41(CONFIG.prices[rarity], qty).total);
     $("#lbFav").dataset.fav = `${c.id}:${rarity}`;
+    // Соседние карточки серии по бокам
+    const at = (k) => list[(i + k + list.length) % list.length];
+    const many = list.length > 1;
+    [["#lbPrevCard", -1], ["#lbNextCard", 1]].forEach(([sel, k]) => {
+      $(sel).hidden = !many;
+      if (many) $(`${sel} img`).src = sm(at(k).a);
+    });
+    $$(".lb-arrow").forEach((x) => (x.hidden = !many));
+    $("#lbDots").innerHTML = many ? list.slice(0, 12).map((_, j) => `<i class="${j === i ? "is-on" : ""}"></i>`).join("") : "";
+    // О персонаже
+    $("#lbAbout").hidden = !c.about;
+    if (c.about) {
+      $("#lbAboutText").textContent = c.about;
+      $("#lbAboutImg").src = sm(b || a);
+    }
+    // Другие коллекции
+    $("#lbOthers").innerHTML = UNIVERSES.filter((x) => x.id !== c.universe).map((x) => {
+      const n = WORKS.filter((w) => w.c.universe === x.id).length;
+      return `<a class="lb-oth" href="catalog/${x.id}"><img src="${x.icon}" alt="" loading="lazy"><b>${esc(x.short || x.name)}</b><span>${n ? plural(n, "карточка", "карточки", "карточек") : "под заказ"}</span></a>`;
+    }).join("");
     syncHearts();
   }
+
+  function lbGo(k) {
+    const list = lbSeries(), w = list[(Math.max(0, lbIndex()) + k + list.length) % list.length];
+    Object.assign(lbState, { c: w.c, rarity: w.rarity, qty: 1 });
+    lbCard.reset();
+    renderProduct();
+    lbCard.sweep(1200);
+    w.c.quote ? Sound.play(w.c.quote) : Sound.stop();
+  }
+  $$("[data-lbnav]").forEach((x) => x.addEventListener("click", () => lbGo(+x.dataset.lbnav)));
+  $("#lbPrevCard").addEventListener("click", () => lbGo(-1));
+  $("#lbNextCard").addEventListener("click", () => lbGo(1));
+  addEventListener("keydown", (e) => {
+    if (lb.hidden) return;
+    if (e.key === "ArrowLeft") lbGo(-1);
+    if (e.key === "ArrowRight") lbGo(1);
+  });
 
   function openProduct(i) {
     const w = WORKS[i];
@@ -1194,6 +1238,7 @@
     lbCard.reset();
     renderProduct();
     lb.hidden = false;
+    lb.scrollTop = 0;
     document.body.style.overflow = "hidden";
     setTimeout(() => lbCard.sweep(), 250);
     w.c.quote ? Sound.play(w.c.quote) : Sound.stop();

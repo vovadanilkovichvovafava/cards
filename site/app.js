@@ -1037,6 +1037,7 @@
     tg: { name: "Telegram", label: "Ник в Telegram", ph: "@nickname", mode: "text", ac: "username" },
     wa: { name: "WhatsApp", label: "Номер WhatsApp", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
     tt: { name: "TikTok", label: "Ник в TikTok", ph: "@nickname", mode: "text", ac: "off" },
+    ig: { name: "Instagram", label: "Ник в Instagram", ph: "@nickname", mode: "text", ac: "off" },
     ph: { name: "Телефон", label: "Номер телефона", ph: "+7 900 000-00-00", mode: "tel", ac: "tel" },
   };
   let contactMethod = "tg";

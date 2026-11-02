@@ -435,6 +435,8 @@
     if (m) return `<a href="https://t.me/${m[1]}" target="_blank" rel="noopener">${esc(c)}</a>`;
     const t = /^TikTok:\s*@?([A-Za-z0-9_.]{2,32})$/.exec(c || "");
     if (t) return `<a href="https://www.tiktok.com/@${t[1]}" target="_blank" rel="noopener">${esc(c)}</a>`;
+    const g = /^Instagram:\s*@?([A-Za-z0-9_.]{1,30})$/.exec(c || "");
+    if (g) return `<a href="https://www.instagram.com/${g[1]}/" target="_blank" rel="noopener">${esc(c)}</a>`;
     return esc(c);
   };
   async function viewOrders(q) {

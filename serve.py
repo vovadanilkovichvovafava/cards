@@ -5,6 +5,7 @@
 #        (общие шапка, подвал и окна подставляются из site/partials/)
 #   GET  /catalog.js →  карточки, добавленные через бота (хранятся в DATABASE_URL)
 #   GET  /assets/cards/[sm/]db/<id>-<a|b>.jpg  →  их кадры из базы
+#   GET  /admin, /api/admin/*, POST /api/t  →  админка и запись сессий (см. admin.py)
 #
 # Токен бота и chat_id берутся из переменных окружения хостинга или из файла
 # .env рядом с этим скриптом (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). В папку
@@ -24,6 +25,7 @@ import posixpath
 import urllib.parse
 import uuid
 
+from admin import Admin
 from catalog_bot import Bot, Store, image_type
 
 # Кадры из бота приходят тяжёлыми PNG (~1 МБ). Отдаём их сжатыми JPEG: полный — 780 px, маленький — 400 px.
@@ -120,6 +122,13 @@ def render_page(name):  # noqa: D401
 
 # База нужна только для карточек из бота; без неё сайт и заказы работают как раньше
 STORE = Store(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else None
+ADMIN = Admin(STORE) if STORE else None
+# Страница админки: картинки и стили записанных сессий — только со своего сервера и Google Fonts,
+# чтобы подделанная запись не могла ничего загрузить с чужого сайта
+ADMIN_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+             "font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; "
+             "connect-src 'self'; frame-src 'self' about: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; "
+             "frame-ancestors 'none'")
 
 
 def extra_collections():
@@ -178,6 +187,41 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         super().end_headers()
 
+    def client_ip(self):
+        # IP берём только из заголовка нашего прокси (Cloudflare/Сатурн ставят реальный адрес последним
+        # в X-Forwarded-For), подделанные значения слева не помогают обойти лимиты.
+        fwd = [x.strip() for x in (self.headers.get("X-Forwarded-For") or "").split(",") if x.strip()]
+        return fwd[-1] if fwd else self.client_address[0]
+
+    def read_body(self, limit):
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if not 0 < length <= limit:
+            return None
+        return self.rfile.read(length)
+
+    def admin_api(self, method, path_only, query, body=None):
+        if not ADMIN:
+            return self.reply(503, {"ok": False, "error": "Админке нужна база данных (DATABASE_URL)"})
+        try:
+            res = ADMIN.api(self, method, path_only[len("/api/admin"):], query, body)
+        except Exception as e:
+            print("admin error:", repr(e), file=sys.stderr)
+            return self.reply(500, {"ok": False, "error": "Ошибка сервера"})
+        code, payload = res[0], res[1]
+        ctype, headers = (res[2], res[4]) if len(res) > 2 else (None, {})
+        body = payload if isinstance(payload, bytes) else json.dumps(payload, ensure_ascii=False).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", ctype or "application/json; charset=utf-8")
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
     def do_GET(self):
         # Проверка здоровья для хостинга: сервер жив — отвечаем 200
         self.cache_forever = False  # один обработчик может отвечать на несколько запросов подряд
@@ -198,6 +242,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     db = f"error: {type(e).__name__}"
             return self.reply(200, {"ok": True, "db": db, "py": sys.version.split()[0],
                                     "img": "ok" if Image else (IMAGE_ERR or "no pillow")})
+        if path_only.startswith("/api/admin/"):
+            return self.admin_api("GET", path_only, self.path.partition("?")[2])
+        if path_only in ("/admin", "/admin.html"):
+            body = open(os.path.join(SITE, "admin.html"), "rb").read()
+            if "gzip" in self.headers.get("Accept-Encoding", ""):
+                body = gzip.compress(body)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            if body[:2] == b"\x1f\x8b":
+                self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Security-Policy", ADMIN_CSP)
+            self.send_header("X-Robots-Tag", "noindex, nofollow")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return
         if path_only == "/catalog.js":
             body = ("window.EXTRA_UNIVERSES = " + json.dumps(extra_collections(), ensure_ascii=False) + ";\n"
                     "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
@@ -211,7 +272,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         page = PAGES.get(path_only.rstrip("/") or "/") or ("collection.html" if COLLECTION.match(path_only.lower()) else None)
         if page is None and path_only.endswith(".html"):
             name = path_only.lstrip("/")
-            if "/" not in name and os.path.isfile(os.path.join(SITE, name)) and name != "404.html":
+            if "/" not in name and os.path.isfile(os.path.join(SITE, name)) and name not in ("404.html", "admin.html"):
                 page = name
         if page:
             return self.send_text(render_page(page).encode(), "text/html; charset=utf-8")
@@ -289,13 +350,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_body(code, "application/json; charset=utf-8", json.dumps(payload, ensure_ascii=False).encode())
 
     def do_POST(self):
+        path_only, _, query = self.path.partition("?")
+        if path_only == "/api/t":  # запись сессии с сайта
+            body = self.read_body(2 * 1024 * 1024)
+            if body is None:
+                return self.reply(413, {"ok": False})
+            if not ADMIN:
+                return self.reply(200, {"ok": True})
+            try:
+                code, payload = ADMIN.ingest(self, self.client_ip(), body)
+            except Exception as e:
+                print("ingest error:", repr(e), file=sys.stderr)
+                code, payload = 500, {"ok": False}
+            return self.reply(code, payload)
+        if path_only.startswith("/api/admin/"):
+            body = self.read_body(64 * 1024)
+            return self.admin_api("POST", path_only, query, body or b"{}")
         if self.path != "/api/order":
             return self.reply(404, {"ok": False, "error": "not found"})
 
-        # Ограничение частоты. IP берём только из заголовка нашего прокси (Cloudflare/Сатурн ставят
-        # реальный адрес последним в X-Forwarded-For), подделанные значения слева не помогают обойти лимит.
-        fwd = [x.strip() for x in (self.headers.get("X-Forwarded-For") or "").split(",") if x.strip()]
-        ip = fwd[-1] if fwd else self.client_address[0]
+        # Ограничение частоты (см. client_ip)
+        ip = self.client_ip()
         now = time.time()
         for k in [k for k, v in _hits.items() if not v or now - v[-1] > RATE_WINDOW]:
             _hits.pop(k, None)  # память не растёт
@@ -366,6 +441,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     tg_call(token, "sendMessage", {"chat_id": chat, "text": f"⚠️ Фото {i + 1} к заказу от {contact} не дошло — попроси его в чате."})
                 except Exception:
                     pass
+        if ADMIN:  # копия заказа — в админку, со ссылкой на запись сессии
+            try:
+                ADMIN.save_order(clean(data.get("sid"), 40), name, contact, comment, order, clean(data.get("total"), 40), len(photos))
+            except Exception as e:
+                print("admin order error:", repr(e), file=sys.stderr)
         return self.reply(200, {"ok": True})
 
 

@@ -274,7 +274,8 @@ class Bot:
                                   "Можно одним альбомом. Дальше я спрошу коллекцию, имя и версию.\n\n"
                                   "/collection — новая коллекция (название, рубашка, потом карточки)\n"
                                   "/list — карточки и коллекции из бота (там же удаление)\n"
-                                  "/about — описание персонажа для окна карточки на сайте\n/cancel — отменить добавление")
+                                  "/about — описание персонажа для окна карточки на сайте\n"
+                                  "/admin — ссылка-приглашение в админку сайта\n/cancel — отменить добавление")
         if text == "/cancel":
             self.state.pop(chat, None)
             self.into.pop(chat, None)
@@ -294,6 +295,8 @@ class Bot:
             return self.show_list(chat)
         if text.startswith("/about"):
             return self.ask_about(chat)
+        if text == "/admin":
+            return self.admin_invite(chat)
         if st and st.get("step") == "about":
             if text == "/skip":
                 self.state.pop(chat, None)
@@ -365,6 +368,8 @@ class Bot:
             self.state[chat] = {"step": "about", "id": int(value), "name": name}
             return self.say(chat, f"Напиши описание для «{name}» — 2–4 предложения о персонаже. "
                                   "Пришли «-», чтобы убрать своё описание, или /skip.")
+        if kind == "inv" and value in ("owner", "admin", "viewer"):
+            return self.admin_invite(chat, value)
         if kind == "no":
             return self.say(chat, "Оставил как есть.")
         self.say(chat, "Эта кнопка уже не работает. Пришли два кадра, чтобы добавить карточку.")
@@ -394,6 +399,23 @@ class Bot:
         self.say(chat, f"Готово! {st['name']} ({RARITY[rarity].lower()}) теперь в коллекции «{uni}»." + link + more, buttons)
         self.say(chat, f"Напиши пару предложений о персонаже — они появятся на сайте в блоке «О персонаже». "
                        "Или /skip — тогда для известных персонажей сайт покажет своё описание.")
+
+    def admin_invite(self, chat, role=None):
+        """Одноразовая ссылка в админку. Первый вход — всегда владелец."""
+        from admin import Admin, ROLE_NAMES
+        adm = Admin(self.store)
+        try:
+            first = adm.admins_count() == 0
+            if not role and not first:
+                return self.say(chat, "Кого пригласить в админку?", [[{"text": ROLE_NAMES[r], "callback_data": f"inv:{r}"}] for r in ("owner", "admin", "viewer")])
+            role = "owner" if first else role
+            code = adm.create_invite(role)
+        except Exception as e:
+            print("bot admin invite error:", e, file=sys.stderr)
+            return self.say(chat, f"Не получилось создать приглашение: {e}")
+        base = self.site or "https://cards-rwc16u.saturn.ac"
+        self.say(chat, f"Приглашение в админку ({ROLE_NAMES[role].lower()}), одноразовое, действует 7 дней:\n{base}/admin?invite={code}\n\n"
+                       "Открой ссылку, укажи почту и пароль — дальше входи на /admin. Не пересылай её посторонним.")
 
     def ask_about(self, chat):
         cards = self.store.cards()

@@ -25,6 +25,8 @@
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   const uni = (id) => UNIVERSES.find((u) => u.id === id);
+  // События для админки (site/track.js); без него — просто ничего не делает
+  const track = (type, data) => { try { window.track?.(type, data); } catch {} };
   const char = (id) => CHARACTERS.find((c) => c.id === id);
   // Валюта выбирается переключателем BYN | RUS в шапке и запоминается
   let REGION = "RUS";
@@ -311,6 +313,7 @@
     b.addEventListener("click", () => {
       if (b.dataset.region === REGION) return;
       try { localStorage.setItem("region", b.dataset.region); } catch {}
+      track("region", { to: b.dataset.region });
       location.reload(); // все цены на странице пересчитаются в выбранной валюте
     });
   });
@@ -998,6 +1001,8 @@
     });
   }
 
+  // Сумма заказа — последняя строка чека («Итого: …»)
+  const orderTotal = () => (omOrder.lines[omOrder.lines.length - 1] || "").split(/:\s/).pop().slice(0, 40);
   function sendOrder(lines, { photos = [], crops = null, onSent = null } = {}) {
     omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
     // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
@@ -1020,6 +1025,7 @@
     $("#omSubmit").textContent = "Отправить заказ";
     om.hidden = false;
     document.body.style.overflow = "hidden";
+    track("order_open", { total: orderTotal() });
     setTimeout(() => ($("#omContact").value ? $("#omSubmit") : $("#omContact")).focus(), 50);
   }
 
@@ -1093,11 +1099,12 @@
         signal: ctl.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines: omOrder.lines.slice(1), name, contact, comment, photos }), // без приветствия
+        body: JSON.stringify({ lines: omOrder.lines.slice(1), name, contact, comment, photos, total: orderTotal(), sid: window.trackSid || "" }), // без приветствия
       });
       clearTimeout(timer);
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || "Не удалось отправить заказ");
+      track("order_sent", { total: orderTotal(), photos: photos.length });
       $("#omForm").hidden = true;
       $("#omDone").hidden = false;
       $("#omComment").value = "";
@@ -1105,6 +1112,7 @@
     } catch (err) {
       const why = err.name === "AbortError" ? "Сервер долго не отвечает"
         : err instanceof TypeError ? "Нет связи с сервером" : err.message;
+      track("order_fail", { why });
       $("#omErr").textContent = `${why}. Попробуй ещё раз или напиши нам в Telegram — текст заказа скопируем.`;
       $("#omErr").hidden = false;
       btn.disabled = false;
@@ -1265,8 +1273,10 @@
     syncHearts();
   }
 
+  const trackCard = (w) => track("card_open", { id: w.c.id, name: w.c.full || w.c.name, uni: uni(w.c.universe)?.name || w.c.universe, r: w.rarity });
   function lbGo(k) {
     const list = lbSeries(), w = list[(Math.max(0, lbIndex()) + k + list.length) % list.length];
+    trackCard(w);
     Object.assign(lbState, { c: w.c, rarity: w.rarity, qty: 1 });
     lbCard.reset();
     renderProduct();
@@ -1291,6 +1301,7 @@
     lb.hidden = false;
     lb.scrollTop = 0;
     document.body.style.overflow = "hidden";
+    trackCard(w);
     setTimeout(() => lbCard.sweep(), 250);
     w.c.quote ? Sound.play(w.c.quote) : Sound.stop();
   }
@@ -1370,6 +1381,7 @@
     el.classList.add("is-bump");
   }
   function toggleFav(k) {
+    if (!favs.includes(k) && workByKey(k)) track("fav", { name: workByKey(k).c.full || workByKey(k).c.name, uni: uni(workByKey(k).c.universe)?.name || "" });
     favs = favs.includes(k) ? favs.filter((x) => x !== k) : [k, ...favs];
     keep("favs", favs);
     bump($("#favCount"), favs.length);
@@ -1390,6 +1402,7 @@
     keep("cart", cart);
     bump($("#cartCount"), cart.reduce((n, x) => n + x.qty, 0));
     renderCart();
+    track("cart_add", { name: workByKey(k).c.full || workByKey(k).c.name, uni: uni(workByKey(k).c.universe)?.name || "", r: workByKey(k).rarity, qty });
     toast(`${workByKey(k).c.name} в корзине`);
   }
   function setCart(next) {
@@ -1509,6 +1522,7 @@
   }
   function pickHit(i) {
     const q = sInput.value.trim(), it = sHits[i];
+    if (q) track("search", { q: q.slice(0, 60), pick: it ? (it.u ? it.u.name : it.c.name) : "свой персонаж" });
     sInput.value = "";
     sRes.hidden = true;
     sInput.blur();

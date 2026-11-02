@@ -2509,3 +2509,20 @@ h1.h2 { margin: 0; }
 /* Стрелки окна карточки: быстрые нажатия подряд не считаются двойным тапом (масштабом) на iPhone */
 .lb-arrow, .lb-side { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .lb-arrow { width: 44px; height: 44px; }
+
+/* Быстро в корзину с плитки коллекции: рядом с сердечком, зелёная — как корзина в шапке */
+.tocart { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; padding: 0; margin: -8px 0; align-self: center;
+  border: 1px solid rgba(62, 224, 131, .35); border-radius: 50%; background: rgba(62, 224, 131, .06); color: #3ee083; cursor: pointer; transition: background .2s, border-color .2s, transform .15s; }
+.tocart .ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tocart:hover { border-color: #3ee083; background: rgba(62, 224, 131, .15); }
+.tocart:active { transform: scale(.88); }
+.tocart.is-on { border-color: #3ee083; background: rgba(62, 224, 131, .18); }
+.tocart.is-on::after { content: attr(data-n); position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: #3ee083; color: #06120b; font: 700 10px/16px var(--body); text-align: center; }
+.work__meta:has(.tocart) { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 8px; }
+.work__meta .tocart { grid-column: 2; grid-row: 1 / span 2; align-self: start; margin: -4px 0 0; }
+.work__meta .tocart + .heart { grid-column: 3; }
+@media (max-width: 560px) {
+  .tocart { width: 32px; height: 32px; margin: -6px 0; }
+  .tocart .ico { width: 16px; height: 16px; }
+}

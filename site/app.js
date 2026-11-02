@@ -71,6 +71,9 @@
   const GIFT_ICON = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3.5-5-1.5S10 7 12 7c2 0 5-.5 5-1.5S13.5 4 12 7"/></svg>`;
   const HEART = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg>`;
   const heartBtn = (k) => `<button type="button" class="heart" data-fav="${k}" aria-pressed="false" aria-label="В избранное">${HEART}</button>`;
+  const CART_ICON = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.3 11h10.6l2-7.5H6.4"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/></svg>`;
+  // Быстро в корзину прямо с плитки — без окна товара
+  const cartBtn = (k) => `<button type="button" class="tocart" data-quick="${k}" aria-label="В корзину">${CART_ICON}</button>`;
   const workKey = (w) => `${w.c.id}:${w.rarity}`;
   const SILHOUETTE = `<svg viewBox="0 0 100 100" fill="currentColor"><circle cx="50" cy="34" r="18"/><path d="M14 98c0-22 16-38 36-38s36 16 36 38z"/></svg>`;
   const REST = -0.3;      // наклон в покое: видно кадр A и немного объёма
@@ -1182,7 +1185,7 @@
       item.className = "work";
       item.innerHTML = `
         <div class="flip"></div>
-        <div class="work__meta"><b>${esc(w.c.name)}</b><span>${RARITY[w.rarity]}</span>${heartBtn(workKey(w))}</div>
+        <div class="work__meta"><b>${esc(w.c.name)}</b><span>${RARITY[w.rarity]}</span>${cartBtn(workKey(w))}${heartBtn(workKey(w))}</div>
         <div class="work__buy"><b>${money(CONFIG.prices[w.rarity])}</b><button type="button" class="btn btn--sm">Заказать</button></div>`;
       gallery.append(item);
       const f = Flip($(".flip", item));
@@ -1190,12 +1193,14 @@
       f.setBack(u.back);
       // Клик по карточке (не вращение) или по кнопке — окно товара
       $(".flip", item).addEventListener("click", () => openProduct(i));
-      $(".work__meta", item).addEventListener("click", (e) => !e.target.closest("[data-fav]") && openProduct(i));
+      $(".work__meta", item).addEventListener("click", (e) => !e.target.closest("[data-fav], [data-quick]") && openProduct(i));
+      $(".tocart", item).addEventListener("click", () => addToCart(workKey(w)));
       $(".btn", item).addEventListener("click", () => openProduct(i));
       return f;
     });
 
     syncHearts();
+    syncCartBtns();
   }
 
   // Какая коллекция открыта на странице /catalog/<id>
@@ -1373,6 +1378,15 @@
       b.setAttribute("aria-label", on ? "Убрать из избранного" : "В избранное");
     });
   }
+  // Плитка, чья карточка уже в корзине, подсвечивает кнопку и показывает количество
+  function syncCartBtns() {
+    $$("[data-quick]").forEach((b) => {
+      const it = cart.find((x) => x.k === b.dataset.quick);
+      b.classList.toggle("is-on", !!it);
+      b.dataset.n = it ? it.qty : "";
+      b.setAttribute("aria-label", it ? `В корзину ещё одну (сейчас ${it.qty})` : "В корзину");
+    });
+  }
   function bump(el, n) {
     el.textContent = n;
     el.hidden = !n;
@@ -1438,6 +1452,7 @@
   }
 
   function renderCart() {
+    syncCartBtns();
     $("#cartFoot").hidden = !cart.length;
     $("#cartList").innerHTML = cart.length
       ? cart.map(({ k, qty }) => {

@@ -645,6 +645,32 @@
     qty: 1,
   };
   const preview = Flip($("#previewCard"), { free: true });
+  // Готовые фразы для карточки — их можно взять как есть или поправить под себя
+  const PHRASES = [
+    "Я не сдамся, пока бьётся сердце.",
+    "Сильнее всего тот, кто встаёт после падения.",
+    "Мечта стоит любой цены.",
+    "Защищу тех, кто мне дорог.",
+    "Мой путь — мои правила.",
+  ];
+  const heroAbout = () => (state.mode === "character" && state.character !== "other" ? char(state.character).about || "" : "");
+  function renderPhrases() {
+    const about = heroAbout();
+    const list = [about && ["Фраза героя", about], ...PHRASES.map((p) => [p, p])].filter(Boolean);
+    $("#phraseChips").innerHTML = list.map(([label, text]) =>
+      `<button type="button" class="phrase__chip ${state.photoText && state.photoText === text.slice(0, 180).trim() ? "is-on" : ""}" data-phrase="${esc(text)}">${esc(label)}</button>`).join("");
+    const fixed = state.mode === "character" && state.character !== "other";
+    $("#phraseNote").textContent = fixed
+      ? "Оставь поле пустым — будет фраза, как на карточке. Своя фраза заменит её при печати."
+      : "Фраза встанет внизу карточки — превью меняется сразу.";
+  }
+  $("#phraseChips").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-phrase]");
+    if (!b) return;
+    $("#photoText").value = b.dataset.phrase.slice(0, 180);
+    $("#photoText").dispatchEvent(new Event("input"));
+    $("#photoText").focus();
+  });
 
   function segSet(group, value) {
     $$(`[data-group="${group}"] button`).forEach((b) => b.classList.toggle("is-on", b.dataset.value === value));
@@ -729,7 +755,7 @@
       const u = uni(state.universe);
       preview.setCustom(customFace({
         name: state.otherChar, emptyLabel: "Твой герой",
-        text: "Арт нарисуем специально под заказ", rarity: state.rarity, accent: u.accent,
+        text: state.photoText || "Арт нарисуем специально под заказ", rarity: state.rarity, accent: u.accent,
       }));
       preview.setBack(u.back);
     } else {
@@ -767,6 +793,7 @@
     const rows = [
       ["Карточка", describeCard()],
       state.mode === "photo" ? null : ["Версия", RARITY[state.rarity]],
+      state.photoText ? ["Фраза", state.photoText] : null,
       ["Количество", `${state.qty} × ${money(unitPrice())}`],
       p41().free ? ["Акция 4+1", mystery(p41().free)] : null,
       g ? ["Акция 2+1", gift21Line()] : null,
@@ -799,6 +826,7 @@
     $("#rarityField").hidden = state.mode === "photo";
     renderUniverseChips();
     renderCharacterGrid();
+    renderPhrases();
     renderPreview();
     renderCropper();
     renderSummary();
@@ -814,6 +842,7 @@
       renderSummary();
       renderBar();
       if (key === "otherChar") renderCharacterGrid();
+      if (key === "photoText") renderPhrases();
     })
   );
 
@@ -931,7 +960,7 @@
       `Привет! Хочу заказать карточку:`,
       `• Карточка: ${describeCard()}`,
       state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
-      state.mode === "photo" && state.photoText ? `• Текст: ${state.photoText}` : null,
+      state.photoText ? `• ${heroAbout() ? "Своя фраза вместо фразы с карточки" : "Фраза на карточке"}: ${state.photoText}` : null,
       `• Количество: ${state.qty}`,
       promoLine(p41()),
       gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,

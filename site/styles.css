@@ -2526,3 +2526,13 @@ h1.h2 { margin: 0; }
   .tocart { width: 32px; height: 32px; margin: -6px 0; }
   .tocart .ico { width: 16px; height: 16px; }
 }
+
+/* Конструктор: фраза на карточке и готовые варианты */
+.phrase { margin-top: 18px; display: grid; gap: 10px; }
+.phrase .input { margin: 0; }
+.phrase__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.phrase__chip { max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--well); color: var(--grey);
+  font: 500 12.5px/1.25 var(--body); text-align: left; cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+.phrase__chip:hover { color: var(--text); border-color: rgba(255, 255, 255, .3); }
+.phrase__chip.is-on { color: #fff; border-color: var(--red); background: rgba(216, 17, 47, .18); }
+.phrase .note { margin: 0; }

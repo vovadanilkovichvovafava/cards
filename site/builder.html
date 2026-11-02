@@ -74,13 +74,20 @@
                 <span>Имя на карточке</span>
                 <input type="text" id="photoName" maxlength="24" placeholder="Твоё имя или ник">
               </label>
-              <label class="input">
-                <span>Текст на карточке</span>
-                <textarea id="photoText" maxlength="180" rows="3" placeholder="Пара строк о герое: титул, суперсила, любимая фраза"></textarea>
-              </label>
               <span class="input__label">Стиль серии</span>
               <div class="chips" id="styleChips"></div>
               <p class="note">Фото остаются у тебя в браузере — никуда не загружаются, пока ты сам не отправишь их нам.</p>
+            </div>
+
+            <!-- Фраза внизу карточки: своя или одна из готовых -->
+            <div class="phrase">
+              <label class="input">
+                <span>Фраза на карточке</span>
+                <textarea id="photoText" maxlength="180" rows="3" placeholder="Напиши свою: девиз, титул, любимая цитата"></textarea>
+              </label>
+              <span class="input__label">Или возьми готовую</span>
+              <div class="phrase__chips" id="phraseChips"></div>
+              <p class="note" id="phraseNote"></p>
             </div>
           </fieldset>
 

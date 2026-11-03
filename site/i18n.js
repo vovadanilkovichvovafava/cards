@@ -88,6 +88,9 @@
     "Kakashi Hatake": "Leader of Team 7, the Copy Ninja with a Sharingan in his left eye. Always late and always reading his book, but in battle one of the Leaf's strongest shinobi.",
     "Itachi Uchiha": "Sasuke's older brother, a prodigy of the Uchiha clan and a member of the Akatsuki. A man who took a terrible crime upon himself for the sake of the village's peace and his little brother's life.",
     "Thorfinn": "Son of the great warrior Thors. As a child he swore revenge on his father's killer and grew up in a band of Vikings; after years of slavery he searches for a path where a man has no enemies.",
+    "Thors": "Thorfinn's father, once a famed warrior of the Jomsvikings who gave up war for a peaceful life in Iceland. He taught his son that a true warrior needs no sword.",
+    "Thorkell": "A giant, cheerful Viking who loves a good fight more than anything. Thorfinn's maternal great-uncle and one of the strongest warriors of his time.",
+    "Canute": "A timid Danish prince who, after losing someone close, becomes a cold and determined ruler dreaming of building paradise on earth.",
     "Askeladd": "The cunning, charismatic leader of a Viking band who killed Thorfinn's father. A calculating strategist with a secret goal he hides from everyone.",
     "Ichigo Kurosaki": "A high-school student who can see ghosts and became a substitute Soul Reaper. He protects the living and the dead from Hollows with his huge sword Zangetsu and never leaves his friends in trouble.",
   };
@@ -320,6 +323,13 @@
     return null;
   }
   window.I18N.t = (s) => tr(s) || s;
+  // Имя героя, которого нет в справочнике: латиницей по звучанию (Роальд → Roald)
+  const TL = { а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p",
+    р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya" };
+  window.I18N.translit = (s) => s.replace(/[а-яё]/gi, (ch) => {
+    const t = TL[ch.toLowerCase()] ?? ch;
+    return ch === ch.toLowerCase() ? t : t.charAt(0).toUpperCase() + t.slice(1);
+  });
 
   // ---------------- Перевод страницы на лету ----------------
   const ATTRS = ["placeholder", "aria-label", "title", "alt"];

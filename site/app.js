@@ -16,7 +16,10 @@
     if (c) c.variants[rarity] = pair;
     else {
       const k = known(name);
-      c = { id: `db${id}`, universe, name, variants: { [rarity]: pair } };
+      // В английской версии русское имя из бота — по справочнику или латиницей
+      const shown = window.LANG === "en" && /[а-яё]/i.test(name)
+        ? (k ? k.names[0] + (/18\+/.test(name) ? " 18+" : "") : window.I18N.translit(name)) : name;
+      c = { id: `db${id}`, universe, name: shown, nameRu: name, variants: { [rarity]: pair } };
       if (k) Object.assign(c, { full: k.full + (/18\+/.test(name) ? " 18+" : ""), about: k.about });
       CHARACTERS.push(c);
     }

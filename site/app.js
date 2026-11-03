@@ -12,7 +12,7 @@
   (window.EXTRA_CARDS || []).forEach(({ id, universe, name, rarity, about }) => {
     if (!UNIVERSES.some((u) => u.id === universe)) return;
     const pair = [`assets/cards/db/${id}-a.jpg?v=3`, `assets/cards/db/${id}-b.jpg?v=3`];
-    let c = CHARACTERS.find((x) => x.universe === universe && x.name.toLowerCase() === name.toLowerCase());
+    let c = CHARACTERS.find((x) => x.universe === universe && [x.name, x.nameRu].some((n) => n && n.toLowerCase() === name.toLowerCase()));
     if (c) c.variants[rarity] = pair;
     else {
       const k = known(name);
@@ -20,7 +20,8 @@
       if (k) Object.assign(c, { full: k.full + (/18\+/.test(name) ? " 18+" : ""), about: k.about });
       CHARACTERS.push(c);
     }
-    if (about) c.about = about;
+    // Описание из бота написано по-русски — в английской версии остаётся описание известного героя
+    if (about && !(window.LANG === "en" && /[а-яё]/i.test(about))) c.about = about;
   });
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -29,8 +30,11 @@
   const track = (type, data) => { try { window.track?.(type, data); } catch {} };
   const char = (id) => CHARACTERS.find((c) => c.id === id);
   // Валюта выбирается переключателем BYN | RUS в шапке и запоминается
-  let REGION = "RUS";
-  try { if (localStorage.getItem("region") === "BYN") REGION = "BYN"; } catch {}
+  // Английская версия (браузер не на русском) — всегда в долларах; иначе BYN | RUS: выбор в шапке,
+  // а по умолчанию BYN для белорусского языка или региона браузера
+  const EN = window.LANG === "en";
+  let REGION = EN ? "USD" : (navigator.languages || [navigator.language]).some((l) => /^be\b|-by$/i.test(l || "")) ? "BYN" : "RUS";
+  try { const r = localStorage.getItem("region"); if (!EN && (r === "BYN" || r === "RUS")) REGION = r; } catch {}
   // В BYN каждая цена карточки округляется до целого, а суммы считаются из уже округлённых цен —
   // поэтому «2 × 25 BYN» всегда даёт 50 BYN. Все цены сайта — кратны цене одной карточки.
   const UNIT_PRICES = () => Object.values(window.CONFIG.prices);
@@ -38,8 +42,14 @@
     for (const p of UNIT_PRICES()) if (p && rub % p === 0) return (rub / p) * Math.max(1, Math.round(p * CONFIG.bynPerRub));
     return Math.max(1, Math.round(rub * CONFIG.bynPerRub));
   };
-  const money = (v) => REGION === "BYN"
-    ? `${toByn(v).toLocaleString("ru-RU")} BYN`
+  // Доллары задаются отдельно на каждую цену (CONFIG.pricesUsd), суммы — из них же
+  const toUsd = (rub) => {
+    const usd = CONFIG.pricesUsd || {};
+    for (const [k, p] of Object.entries(CONFIG.prices)) if (p && usd[k] && rub % p === 0) return (rub / p) * usd[k];
+    return Math.max(1, Math.round((rub * (usd.common || 12)) / (CONFIG.prices.common || 700)));
+  };
+  const money = (v) => REGION === "USD" ? `$${toUsd(v).toLocaleString("en-US")}`
+    : REGION === "BYN" ? `${toByn(v).toLocaleString("ru-RU")} BYN`
     : `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
   const RARITY = { common: "Обычная", special: "Особая" };
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
@@ -394,6 +404,8 @@
   // ---------------------------------------------------------------
   const Sound = (() => {
     const btn = $("#soundToggle");
+    // Озвучка пока выключена: кнопки в шапке нет — звук не играет
+    if (!btn) return { play() {}, stop() {} };
     const audio = new Audio();
     audio.preload = "none";
     // Звук выключен, пока пользователь сам его не включит
@@ -1039,6 +1051,8 @@
     omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
     // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
     const rows = omOrder.lines.slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s));
+    // Владу — пометка, что покупатель с английской версии и цены в долларах (в чек покупателю не идёт)
+    if (EN) omOrder.lines.splice(omOrder.lines.length - 1, 0, "• Сайт: английская версия, цены в долларах");
     if (omOrder.photos.length) rows.splice(rows.length - 1, 0, ["Фото", String(omOrder.photos.length)]);
     $("#omLines").innerHTML = rows.map(([k, v], i) =>
       `<div class="${i === rows.length - 1 ? "is-total" : ""}"><dt>${esc(k)}</dt><dd>${esc(v ?? "")}</dd></div>`).join("");
@@ -1538,7 +1552,7 @@
   const norm = (t) => String(t || "").toLowerCase().replace(/ё/g, "е");
   const searchIndex = [
     ...UNIVERSES.map((u) => ({ u, text: norm(`${u.name} ${u.id}`) })),
-    ...CHARACTERS.map((c) => ({ c, text: norm(`${c.name} ${c.subtitle || ""} ${c.id} ${uni(c.universe).name}`) })),
+    ...CHARACTERS.map((c) => ({ c, text: norm(`${c.name} ${c.nameRu || ""} ${c.full || ""} ${c.subtitle || ""} ${c.id} ${uni(c.universe).name}`) })),
   ];
   const sInput = $("#searchInput"), sRes = $("#searchRes");
   // На телефоне поле узкое — короткая подсказка

@@ -22,9 +22,9 @@ window.CONFIG = {
   currency: "₽",
   // Цены английской версии сайта (для браузеров не на русском) — в долларах. ЗАМЕНИ на свои
   pricesUsd: {
-    common: 12,
-    special: 12,
-    custom: 29,
+    common: 28,
+    special: 28,
+    custom: 50,
   },
   // Плашка в окне карточки
   stockLabel: "В наличии",

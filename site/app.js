@@ -49,7 +49,7 @@
   const toUsd = (rub) => {
     const usd = CONFIG.pricesUsd || {};
     for (const [k, p] of Object.entries(CONFIG.prices)) if (p && usd[k] && rub % p === 0) return (rub / p) * usd[k];
-    return Math.max(1, Math.round((rub * (usd.common || 12)) / (CONFIG.prices.common || 700)));
+    return Math.max(1, Math.round((rub * (usd.common || 28)) / (CONFIG.prices.common || 700)));
   };
   const money = (v) => REGION === "USD" ? `$${toUsd(v).toLocaleString("en-US")}`
     : REGION === "BYN" ? `${toByn(v).toLocaleString("ru-RU")} BYN`

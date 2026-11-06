@@ -27,6 +27,7 @@ import uuid
 
 from admin import Admin
 from catalog_bot import Bot, Store, image_type
+from reviews import PER_IP_DAY, Reviews, card_buttons, card_text
 
 # Кадры из бота приходят тяжёлыми PNG (~1 МБ). Отдаём их сжатыми JPEG: полный — 780 px, маленький — 400 px.
 # Без Pillow (не поставился) отдаём как есть.
@@ -110,7 +111,7 @@ SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
          "/about": "about.html", "/how": "how.html",
-         "/contacts": "contacts.html", "/privacy": "privacy.html", "/offer": "offer.html"}
+         "/contacts": "contacts.html", "/privacy": "privacy.html", "/offer": "offer.html", "/reviews": "reviews.html"}
 COLLECTION = re.compile(r"^/catalog/[a-z0-9-]+/?$")
 INCLUDE = re.compile(r"<!--#include ([a-z]+)-->")
 
@@ -123,6 +124,8 @@ def render_page(name):  # noqa: D401
 # База нужна только для карточек из бота; без неё сайт и заказы работают как раньше
 STORE = Store(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else None
 ADMIN = Admin(STORE) if STORE else None
+REVIEWS = Reviews(STORE) if STORE else None
+_review_hits = {}
 # Страница админки: картинки и стили записанных сессий — только со своего сервера и Google Fonts,
 # чтобы подделанная запись не могла ничего загрузить с чужого сайта
 ADMIN_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
@@ -244,6 +247,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                     "img": "ok" if Image else (IMAGE_ERR or "no pillow")})
         if path_only.startswith("/api/admin/"):
             return self.admin_api("GET", path_only, self.path.partition("?")[2])
+        if path_only == "/api/reviews":
+            if not REVIEWS:
+                return self.reply(200, {"ok": True, "items": [], "total": 0, "avg": None})
+            q = urllib.parse.parse_qs(self.path.partition("?")[2])
+            num = lambda k, d, hi: max(0, min(hi, int(q[k][0]) if q.get(k, [""])[0].isdigit() else d))
+            try:
+                return self.reply(200, {"ok": True, **REVIEWS.public(num("limit", 10, 30), num("offset", 0, 100000))})
+            except Exception as e:
+                print("reviews error:", repr(e), file=sys.stderr)
+                return self.reply(500, {"ok": False, "error": "Не удалось загрузить отзывы"})
         if path_only in ("/admin", "/admin.html"):
             body = open(os.path.join(SITE, "admin.html"), "rb").read()
             if "gzip" in self.headers.get("Accept-Encoding", ""):
@@ -366,6 +379,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path_only.startswith("/api/admin/"):
             body = self.read_body(64 * 1024)
             return self.admin_api("POST", path_only, query, body or b"{}")
+        if path_only == "/api/reviews":
+            return self.post_review()
         if self.path != "/api/order":
             return self.reply(404, {"ok": False, "error": "not found"})
 
@@ -448,10 +463,59 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print("admin order error:", repr(e), file=sys.stderr)
         return self.reply(200, {"ok": True})
 
+    def post_review(self):
+        if not REVIEWS:
+            return self.reply(503, {"ok": False, "error": "Отзывы временно не принимаются"})
+        body = self.read_body(16 * 1024)
+        try:
+            data = json.loads(body or b"")
+        except (ValueError, RecursionError):
+            data = None
+        if not isinstance(data, dict):
+            return self.reply(400, {"ok": False, "error": "Некорректные данные"})
+        if data.get("website"):  # невидимое поле: его заполняют только боты
+            return self.reply(200, {"ok": True, "status": "published"})
+        name = " ".join(clean(data.get("name"), 40).split())
+        text = clean(data.get("text"), 1000)
+        try:
+            rating = int(data.get("rating"))
+        except (TypeError, ValueError):
+            rating = 0
+        if len(name) < 2:
+            return self.reply(400, {"ok": False, "error": "Напиши, как тебя зовут"})
+        if not 1 <= rating <= 5:
+            return self.reply(400, {"ok": False, "error": "Поставь оценку от 1 до 5 звёзд"})
+        if len(text) < 10:
+            return self.reply(400, {"ok": False, "error": "Отзыв слишком короткий — напиши хотя бы пару слов"})
+        ip, now = self.client_ip(), time.time()
+        for k in [k for k, v in _review_hits.items() if not v or now - v[-1] > 600]:
+            _review_hits.pop(k, None)
+        recent = [t for t in _review_hits.get(ip, []) if now - t < 600]
+        try:
+            if len(recent) >= 2 or REVIEWS.recent_from(ip) >= PER_IP_DAY:
+                return self.reply(429, {"ok": False, "error": "Ты уже оставил отзывы сегодня — спасибо! Попробуй завтра"})
+            rid, status = REVIEWS.add(name, rating, text, "en" if data.get("lang") == "en" else "ru", ip)
+        except Exception as e:
+            print("reviews error:", repr(e), file=sys.stderr)
+            return self.reply(500, {"ok": False, "error": "Не удалось сохранить отзыв"})
+        _review_hits[ip] = recent + [now]
+        # Уведомление Владу; не дошло — отзыв всё равно сохранён, его видно в боте по /reviews
+        env = load_env()
+        token, chat = env.get("TELEGRAM_BOT_TOKEN"), env.get("TELEGRAM_CHAT_ID")
+        if token and chat:
+            try:
+                r = REVIEWS.get(rid)
+                res = tg_call(token, "sendMessage", {"chat_id": chat, "text": card_text(r, os.environ.get("SITE_URL", "").rstrip("/")),
+                                                     "disable_web_page_preview": True, "reply_markup": {"inline_keyboard": card_buttons(r)}})
+                REVIEWS.link_msg(res["result"]["message_id"], rid)
+            except Exception as e:
+                print("telegram review error:", repr(e), file=sys.stderr)
+        return self.reply(200, {"ok": True, "status": status})
+
 
 _env = load_env()
 if STORE and _env.get("TELEGRAM_BOT_TOKEN") and _env.get("TELEGRAM_CHAT_ID") and os.environ.get("BOT_POLLING", "1") != "0":
-    Bot(_env["TELEGRAM_BOT_TOKEN"], _env["TELEGRAM_CHAT_ID"], STORE, os.environ.get("SITE_URL", "")).start()
+    Bot(_env["TELEGRAM_BOT_TOKEN"], _env["TELEGRAM_CHAT_ID"], STORE, os.environ.get("SITE_URL", ""), REVIEWS).start()
 
 handler = functools.partial(Handler, directory=SITE)
 http.server.ThreadingHTTPServer(("", PORT), handler).serve_forever()

@@ -101,6 +101,23 @@
 
   // ---------------- Тексты интерфейса ----------------
   const DICT = {
+    // Отзывы
+    "Отзывы": "Reviews", "Все отзывы": "All reviews", "Оставить отзыв": "Leave a review", "Отзывы — Aniverse Flip": "Reviews — Aniverse Flip",
+    "Отзывы покупателей Aniverse Flip о стерео-карточках — и форма, чтобы оставить свой.": "Aniverse Flip customer reviews of our lenticular cards — and a form to leave your own.",
+    "Оценка *": "Rating *", "Как тебя зовут *": "Your name *", "Имя — его увидят на сайте": "Name — shown on the site", "Отзыв *": "Review *",
+    "Какие карточки заказывал, как доехали, как смотрятся вживую": "Which cards you ordered, how they arrived, how they look in person",
+    "Отправить отзыв": "Send review", "Отзыв появится на сайте сразу. Мы читаем каждый и отвечаем здесь же.": "Your review appears on the site right away. We read every one and reply here.",
+    "Спасибо за отзыв!": "Thanks for your review!", "Он уже на сайте — смотри ниже.": "It's already on the site — see below.",
+    "В нём есть ссылка, поэтому он появится на сайте после проверки.": "It contains a link, so it will appear on the site after a check.",
+    "Показать ещё": "Show more", "Сайт": "Website",
+    "Отзывов пока нет — будь первым, кто расскажет о своих карточках.": "No reviews yet — be the first to tell us about your cards.",
+    "Не удалось загрузить отзывы. Обнови страницу чуть позже.": "Couldn't load reviews. Refresh the page a bit later.",
+    "Поставь оценку — нажми на звёзды.": "Pick a rating — tap the stars.", "Напиши, как тебя зовут.": "Tell us your name.",
+    "Отзыв слишком короткий — напиши хотя бы пару слов.": "The review is too short — write at least a few words.",
+    "Не удалось отправить отзыв": "Couldn't send the review", "Не удалось сохранить отзыв": "Couldn't save the review",
+    "Отзывы временно не принимаются": "Reviews are temporarily unavailable", "Напиши, как тебя зовут": "Tell us your name",
+    "Поставь оценку от 1 до 5 звёзд": "Pick a rating from 1 to 5 stars", "Отзыв слишком короткий — напиши хотя бы пару слов": "The review is too short — write at least a few words",
+    "Ты уже оставил отзывы сегодня — спасибо! Попробуй завтра": "You've already left reviews today — thanks! Try again tomorrow",
     // Общие
     "Aniverse Flip — стерео-карточки по аниме": "Aniverse Flip — anime lenticular cards",
     "Стерео-карточки по аниме": "Anime lenticular cards",
@@ -273,6 +290,9 @@
   const rar = (s) => ({ "обычная": "regular", "особая": "special" }[s] || s);
   // Строки, собранные из частей: имя, число, цена. Проверяются по порядку, первая подходящая — побеждает
   const PATTERNS = [
+    [/^(\d+) отзыв(?:а|ов)?$/, (m, n) => `${n} ${+n === 1 ? "review" : "reviews"}`],
+    [/^(\d+) из 5$/, (m, n) => `${n} of 5`],
+    [/^Ответ (.+)$/, (m, x) => `Reply from ${x}`],
     [/^(\d+) карточ(?:ка|ки|ек|ку) — нажми, чтобы заказать$/, (m, n) => `${cards(n)} — tap to order`],
     [/^Коллекция, (\d+) карточ(?:ка|ки|ек)$/, (m, n) => `Collection, ${cards(n)}`],
     [/^(\d+) карточ(?:ка|ки|ек)(, (\d+) бесплатно)?$/, (m, n, f, k) => cards(n) + (f ? `, ${k} free` : "")],

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Страницы живут по адресам /catalog, /catalog/berserk… — все пути считаем от корня сайта -->
+  <base href="/">
+  <title>Отзывы — Aniverse Flip</title>
+  <meta name="description" content="Отзывы покупателей Aniverse Flip о стерео-карточках — и форма, чтобы оставить свой.">
+<!--#include head-->
+</head>
+<body data-page="reviews">
+
+<!--#include header-->
+
+<main id="top">
+  <section class="section" id="reviews">
+    <div class="wrap wrap--narrow">
+      <h1 class="h2">Отзывы</h1>
+      <div class="rv-sum" id="rvSum" hidden></div>
+
+      <!-- Новый отзыв: сразу виден на сайте, Владу приходит уведомление в Telegram -->
+      <form class="rv-form" id="rvForm" novalidate>
+        <h2 class="rv-form__title">Оставить отзыв</h2>
+        <div class="input">
+          <span id="rvRateLabel">Оценка *</span>
+          <div class="rv-rate" id="rvRate" role="radiogroup" aria-labelledby="rvRateLabel">
+            <button type="button" role="radio" data-r="1" aria-checked="false" aria-label="1 из 5">★</button>
+            <button type="button" role="radio" data-r="2" aria-checked="false" aria-label="2 из 5">★</button>
+            <button type="button" role="radio" data-r="3" aria-checked="false" aria-label="3 из 5">★</button>
+            <button type="button" role="radio" data-r="4" aria-checked="false" aria-label="4 из 5">★</button>
+            <button type="button" role="radio" data-r="5" aria-checked="false" aria-label="5 из 5">★</button>
+          </div>
+        </div>
+        <label class="input">
+          <span>Как тебя зовут *</span>
+          <input type="text" id="rvName" maxlength="40" autocomplete="given-name" placeholder="Имя — его увидят на сайте">
+        </label>
+        <label class="input">
+          <span>Отзыв *</span>
+          <textarea id="rvText" maxlength="1000" rows="4" placeholder="Какие карточки заказывал, как доехали, как смотрятся вживую"></textarea>
+        </label>
+        <!-- Невидимое поле от ботов -->
+        <label class="rv-hp" aria-hidden="true">Сайт<input type="text" id="rvSite" tabindex="-1" autocomplete="off"></label>
+        <p class="omodal__err" id="rvErr" role="alert" hidden></p>
+        <button type="submit" class="btn btn--full" id="rvSubmit">Отправить отзыв</button>
+        <p class="note note--center">Отзыв появится на сайте сразу. Мы читаем каждый и отвечаем здесь же.</p>
+      </form>
+      <div class="rv-done" id="rvDone" hidden>
+        <b>Спасибо за отзыв!</b>
+        <span id="rvDoneText">Он уже на сайте — смотри ниже.</span>
+      </div>
+
+      <div class="rv-list" id="rvList" aria-live="polite"></div>
+      <button type="button" class="btn btn--ghost btn--full rv-more" id="rvMore" hidden>Показать ещё</button>
+    </div>
+  </section>
+</main>
+
+<!--#include footer-->
+
+<!--#include overlays-->
+<!--#include scripts-->
+</body>
+</html>

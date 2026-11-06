@@ -1787,6 +1787,94 @@
   }
 
   if (PAGE === "builder") initBuilder();
+
+  // ---------------------------------------------------------------
+  //  Отзывы: на главной — три последних, на /reviews — все и форма.
+  //  Новый отзыв уходит Владу в Telegram; его ответ из бота показывается под отзывом.
+  // ---------------------------------------------------------------
+  const rvList = $("#rvList");
+  if (rvList) {
+    const home = PAGE === "index";
+    const locale = window.LANG === "en" ? "en-US" : "ru-RU";
+    const fmtDate = (iso) => new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+    const stars = (n) => `<span class="rv-stars" aria-label="${n} из 5">${"★".repeat(n)}<i>${"★".repeat(5 - n)}</i></span>`;
+    const rvItem = (r) => `
+      <article class="rv">
+        <header class="rv__head"><b class="rv__name">${esc(r.name)}</b>${stars(r.rating)}<time class="rv__date" datetime="${esc(r.date)}">${fmtDate(r.date)}</time></header>
+        <p class="rv__text">${esc(r.text)}</p>
+        ${r.reply ? `<div class="rv__reply"><b>Ответ ${esc(CONFIG.brand)}</b><p>${esc(r.reply)}</p></div>` : ""}
+      </article>`;
+    const sum = (d) => {
+      $("#rvSum").hidden = !d.total;
+      if (d.total) $("#rvSum").innerHTML = `<b class="rv-sum__avg">${Number(d.avg).toFixed(1).replace(".", window.LANG === "en" ? "." : ",")}</b>${stars(Math.round(d.avg))}<span>${plural(d.total, "отзыв", "отзыва", "отзывов")}</span>`;
+    };
+    let shown = 0;
+    async function loadReviews(reset) {
+      if (reset) shown = 0;
+      try {
+        const d = await (await fetch(`/api/reviews?limit=${home ? 3 : 10}&offset=${shown}`)).json();
+        if (!d.ok) throw new Error();
+        sum(d);
+        const html = d.items.map(rvItem).join("");
+        rvList.innerHTML = reset ? html : rvList.innerHTML + html;
+        shown += d.items.length;
+        if (!d.total) rvList.innerHTML = `<p class="rv-empty">Отзывов пока нет — будь первым, кто расскажет о своих карточках.</p>`;
+        if (!home) $("#rvMore").hidden = shown >= d.total;
+      } catch {
+        if (reset) rvList.innerHTML = `<p class="rv-empty">Не удалось загрузить отзывы. Обнови страницу чуть позже.</p>`;
+      }
+    }
+    loadReviews(true);
+
+    if (!home) {
+      $("#rvMore").addEventListener("click", () => loadReviews(false));
+      let rating = 0;
+      const paint = (n) => $$("#rvRate [data-r]").forEach((b) => {
+        b.classList.toggle("is-on", +b.dataset.r <= n);
+        b.setAttribute("aria-checked", +b.dataset.r === rating);
+      });
+      $("#rvRate").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-r]");
+        if (b) rating = +b.dataset.r, paint(rating);
+      });
+      $("#rvRate").addEventListener("mouseover", (e) => { const b = e.target.closest("[data-r]"); if (b) paint(+b.dataset.r); });
+      $("#rvRate").addEventListener("mouseleave", () => paint(rating));
+      const err = (msg, el) => {
+        $("#rvErr").textContent = msg;
+        $("#rvErr").hidden = !msg;
+        if (el) el.focus();
+      };
+      $("#rvForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = $("#rvName").value.trim(), text = $("#rvText").value.trim();
+        if (!rating) return err("Поставь оценку — нажми на звёзды.", $("#rvRate [data-r='5']"));
+        if (name.length < 2) return err("Напиши, как тебя зовут.", $("#rvName"));
+        if (text.length < 10) return err("Отзыв слишком короткий — напиши хотя бы пару слов.", $("#rvText"));
+        err("");
+        const btn = $("#rvSubmit");
+        btn.disabled = true;
+        btn.textContent = "Отправляем…";
+        try {
+          const res = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, rating, text, website: $("#rvSite").value, lang: window.LANG || "ru" }) });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok || !d.ok) throw new Error(d.error || "Не удалось отправить отзыв");
+          track("review_sent", { rating });
+          $("#rvForm").hidden = true;
+          $("#rvDone").hidden = false;
+          $("#rvDoneText").textContent = d.status === "pending"
+            ? "В нём есть ссылка, поэтому он появится на сайте после проверки."
+            : "Он уже на сайте — смотри ниже.";
+          loadReviews(true);
+        } catch (ex) {
+          err(ex instanceof TypeError ? "Нет связи с сервером" : ex.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Отправить отзыв";
+        }
+      });
+    }
+  }
   // Карточки коллекции рисуем в конце: им нужны уже готовые избранное и окно товара
   if (PAGE === "collection" && uni(pageCollection)) openCollection(pageCollection);
 

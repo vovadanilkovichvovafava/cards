@@ -166,8 +166,8 @@ def image_type(data):
 #  Бот
 # ---------------------------------------------------------------
 class Bot:
-    def __init__(self, token, admin_chat, store, site_url=""):
-        self.token, self.admin, self.store = token, str(admin_chat), store
+    def __init__(self, token, admin_chat, store, site_url="", reviews=None):
+        self.token, self.admin, self.store, self.reviews = token, str(admin_chat), store, reviews
         self.site = site_url.rstrip("/")
         self.state = {}  # chat_id → черновик карточки
         self.into = {}   # chat_id → (id, название) коллекции, куда сейчас добавляются карточки
@@ -235,6 +235,12 @@ class Bot:
                                     reaction=[{"type": "emoji", "emoji": "👍"}])
                 except Exception as e:
                     return self.say(chat, f"Не получилось отправить ответ покупателю: {e}")
+            # Ответ (reply) на уведомление об отзыве — публикуем как ответ магазина
+            rid = self.reviews and self.reviews.by_msg(rep_to)
+            if rid:
+                if not text or text.startswith("/"):
+                    return self.say(chat, "Ответ на отзыв пришли текстом.")
+                return self.save_review_reply(chat, rid, text)
         self.on_admin(chat, msg, text)
 
     def on_customer(self, chat, msg, text):
@@ -275,6 +281,7 @@ class Bot:
                                   "/collection — новая коллекция (название, рубашка, потом карточки)\n"
                                   "/list — карточки и коллекции из бота (там же удаление)\n"
                                   "/about — описание персонажа для окна карточки на сайте\n"
+                                  "/reviews — последние отзывы с сайта (ответить, скрыть)\n"
                                   "/admin — ссылка-приглашение в админку сайта\n/cancel — отменить добавление")
         if text == "/cancel":
             self.state.pop(chat, None)
@@ -297,6 +304,11 @@ class Bot:
             return self.ask_about(chat)
         if text == "/admin":
             return self.admin_invite(chat)
+        if text == "/reviews":
+            return self.show_reviews(chat)
+        if st and st.get("step") == "rv_reply" and text and not text.startswith("/"):
+            self.state.pop(chat, None)
+            return self.save_review_reply(chat, st["id"], text)
         if st and st.get("step") == "about":
             if text == "/skip":
                 self.state.pop(chat, None)
@@ -368,6 +380,8 @@ class Bot:
             self.state[chat] = {"step": "about", "id": int(value), "name": name}
             return self.say(chat, f"Напиши описание для «{name}» — 2–4 предложения о персонаже. "
                                   "Пришли «-», чтобы убрать своё описание, или /skip.")
+        if kind in ("rv", "rvh", "rvs", "rvd") and self.reviews and value.isdigit():
+            return self.on_review_button(chat, kind, int(value), message_id)
         if kind == "inv" and value in ("owner", "admin", "viewer"):
             return self.admin_invite(chat, value)
         if kind == "no":
@@ -475,6 +489,62 @@ class Bot:
                   "callback_data": f"del:{c['id']}"}] for c in cards[-40:]]
         more = f" Показаны последние 40." if len(cards) > 40 else ""
         self.say(chat, f"Карточки из бота: {len(cards)}.{more} Нажми, чтобы удалить:", rows)
+
+    # --- отзывы с сайта ---
+    def review_card(self, chat, rid):
+        """Отправить отзыв карточкой с кнопками; reply на неё — ответ на отзыв."""
+        from reviews import card_text, card_buttons
+        r = self.reviews.get(rid)
+        if not r:
+            return None
+        m = self.say(chat, card_text(r, self.site), card_buttons(r))
+        self.reviews.link_msg(m["message_id"], rid)
+        return m
+
+    def refresh_card(self, chat, rid, message_id):
+        from reviews import card_text, card_buttons
+        r = self.reviews.get(rid)
+        if not r or not message_id:
+            return
+        try:
+            self.api("editMessageText", chat_id=chat, message_id=message_id, text=card_text(r, self.site),
+                     disable_web_page_preview=True, reply_markup={"inline_keyboard": card_buttons(r)})
+        except Exception:
+            pass  # сообщение не изменилось или слишком старое — не страшно
+
+    def save_review_reply(self, chat, rid, text):
+        r = self.reviews.get(rid)
+        if not r:
+            return self.say(chat, "Этого отзыва уже нет.")
+        self.reviews.set_reply(rid, text[:1000])
+        note = "" if r["status"] == "published" else "\nСам отзыв на сайте пока не виден — нажми «Опубликовать» в карточке ниже."
+        self.say(chat, f"Ответ на отзыв #{rid} ({r['name']}) опубликован на сайте." + note)
+        self.review_card(chat, rid)
+
+    def on_review_button(self, chat, kind, rid, message_id):
+        r = self.reviews.get(rid)
+        if not r:
+            return self.say(chat, "Этого отзыва уже нет.")
+        if kind == "rv":
+            self.state[chat] = {"step": "rv_reply", "id": rid}
+            return self.say(chat, f"Напиши ответ на отзыв #{rid} от {r['name']} — он появится на сайте под отзывом от имени магазина. /cancel — передумал.")
+        if kind == "rvd":
+            self.reviews.set_reply(rid, None)
+            self.say(chat, f"Убрал ответ с отзыва #{rid}.")
+        else:
+            self.reviews.set_status(rid, "hidden" if kind == "rvh" else "published")
+            self.say(chat, f"Отзыв #{rid} скрыт с сайта." if kind == "rvh" else f"Отзыв #{rid} опубликован на сайте.")
+        self.refresh_card(chat, rid, message_id)
+
+    def show_reviews(self, chat):
+        if not self.reviews:
+            return self.say(chat, "Отзывы работают только с базой данных.")
+        ids = self.reviews.latest(5)
+        if not ids:
+            return self.say(chat, "Отзывов пока нет.")
+        self.say(chat, f"Последние отзывы ({len(ids)}), сначала новые:")
+        for rid in ids:
+            self.review_card(chat, rid)
 
     # --- опрос Telegram в фоне ---
     def loop(self):

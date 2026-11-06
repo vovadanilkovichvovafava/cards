@@ -141,7 +141,7 @@
     "Контакты": "Contacts", "Меню": "Menu", "Закрыть": "Close", "Разделы": "Sections",
     "Найти персонажа или аниме": "Find a character or anime", "Поиск по каталогу": "Search the catalog",
     "Поиск": "Search", "Найти героя, коллекцию или карточку...": "Find a hero, collection or card...",
-    "Валюта цен": "Price currency", "Избранное": "Favorites", "Корзина": "Cart",
+    "Валюта цен": "Price currency", "Язык сайта": "Site language", "Избранное": "Favorites", "Корзина": "Cart",
     "Заказы и вопросы — в Telegram": "Orders and questions — on Telegram", "Написать в Telegram": "Message us on Telegram",
     "Собрать свою карточку": "Create your own card", "Заказать карточку": "Order a card", "Заказать": "Order",
     "Показать превью": "Show preview", "Подробнее": "Learn more", "Акция": "Deal", "Акции": "Deals",

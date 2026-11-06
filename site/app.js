@@ -60,6 +60,19 @@
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // Какая это страница сайта (body data-page): index, catalog, collection, builder, how, about, contacts, privacy, offer
   const PAGE = document.body.dataset.page || "index";
+  // Переключатель языка RU | EN: выбор запоминается и важнее языка браузера
+  $$("[data-setlang]").forEach((b) => {
+    b.classList.toggle("is-on", b.dataset.setlang === (window.LANG || "ru"));
+    b.setAttribute("aria-pressed", b.dataset.setlang === (window.LANG || "ru"));
+    b.addEventListener("click", () => {
+      if (b.dataset.setlang === window.LANG) return;
+      try { localStorage.setItem("lang", b.dataset.setlang); } catch {}
+      track("lang", { to: b.dataset.setlang });
+      const u = new URL(location.href);
+      u.searchParams.delete("lang");
+      location.href = u.pathname + u.search + u.hash;
+    });
+  });
   const go = (url) => (location.href = url);
   const plural = (n, one, few, many) =>
     `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;

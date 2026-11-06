@@ -2622,3 +2622,10 @@ h1.h2 { margin: 0; }
 .ceditor .btn--ghost { margin-top: 8px; }
 .ceditor__card .face__holo, .ceditor__card .face__sheen, .ceditor__card .face__lines, .ceditor__card .frame-b { display: none; }
 .ceditor__card .custom__photo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Переключатель языка RU | EN (меню и подвал) */
+.lang-sw { display: inline-flex; width: max-content; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .03); }
+.lang-sw button { min-width: 44px; min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--grey); font: 600 12px var(--body); cursor: pointer; }
+.lang-sw button.is-on { background: var(--text); color: var(--bg); }
+.drawer__foot .lang-sw { align-self: flex-start; margin: 4px 0 12px; }
+.footer .lang-sw { justify-self: start; }

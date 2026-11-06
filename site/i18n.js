@@ -110,6 +110,15 @@
     "Спасибо за отзыв!": "Thanks for your review!", "Он уже на сайте — смотри ниже.": "It's already on the site — see below.",
     "В нём есть ссылка, поэтому он появится на сайте после проверки.": "It contains a link, so it will appear on the site after a check.",
     "Показать ещё": "Show more", "Сайт": "Website",
+    "Фото или видео": "Photos or video", "+ Добавить фото или видео": "+ Add photos or video", "+ Добавить ещё": "+ Add more",
+    "До 4 фото и одно видео до 30 МБ. Отзыв с файлами появится на сайте после проверки.": "Up to 4 photos and one video up to 30 MB. Reviews with files appear after a check.",
+    "Убрать файл": "Remove file", "Фото к отзыву": "Review photo", "Готовим фото…": "Preparing photos…",
+    "Он появится на сайте после проверки — обычно в течение дня.": "It will appear on the site after a check — usually within a day.",
+    "Это не фото и не видео": "That's not a photo or a video", "Можно приложить одно видео": "You can attach one video",
+    "Видео больше 30 МБ — обрежь его или выбери покороче": "The video is over 30 MB — trim it or pick a shorter one",
+    "Можно приложить до 4 фото": "You can attach up to 4 photos",
+    "Файлы слишком большие: видео — до 30 МБ, фото — до 3 МБ": "Files are too large: video up to 30 MB, photos up to 3 MB",
+    "Не получилось принять файл — фото JPG/PNG, видео MP4, MOV или WebM": "Couldn't accept the file — photos JPG/PNG, video MP4, MOV or WebM",
     "Отзывов пока нет — будь первым, кто расскажет о своих карточках.": "No reviews yet — be the first to tell us about your cards.",
     "Не удалось загрузить отзывы. Обнови страницу чуть позже.": "Couldn't load reviews. Refresh the page a bit later.",
     "Поставь оценку — нажми на звёзды.": "Pick a rating — tap the stars.", "Напиши, как тебя зовут.": "Tell us your name.",
@@ -291,6 +300,7 @@
   // Строки, собранные из частей: имя, число, цена. Проверяются по порядку, первая подходящая — побеждает
   const PATTERNS = [
     [/^(\d+) отзыв(?:а|ов)?$/, (m, n) => `${n} ${+n === 1 ? "review" : "reviews"}`],
+    [/^Загружаем… (\d+)%$/, (m, n) => `Uploading… ${n}%`],
     [/^(\d+) из 5$/, (m, n) => `${n} of 5`],
     [/^Ответ (.+)$/, (m, x) => `Reply from ${x}`],
     [/^(\d+) карточ(?:ка|ки|ек|ку) — нажми, чтобы заказать$/, (m, n) => `${cards(n)} — tap to order`],

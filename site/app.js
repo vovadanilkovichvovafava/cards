@@ -1802,6 +1802,9 @@
       <article class="rv">
         <header class="rv__head"><b class="rv__name">${esc(r.name)}</b>${stars(r.rating)}<time class="rv__date" datetime="${esc(r.date)}">${fmtDate(r.date)}</time></header>
         <p class="rv__text">${esc(r.text)}</p>
+        ${(r.media || []).length ? `<div class="rv__media">${r.media.map((m) => m.kind === "video"
+          ? `<video class="rv__video" src="${m.src || `/media/r/${m.id}`}#t=0.1" controls playsinline preload="metadata"></video>`
+          : `<a class="rv__photo" href="${m.src || `/media/r/${m.id}`}" target="_blank" rel="noopener"><img src="${m.src || `/media/r/${m.id}`}" alt="Фото к отзыву" loading="lazy"></a>`).join("")}</div>` : ""}
         ${r.reply ? `<div class="rv__reply"><b>Ответ ${esc(CONFIG.brand)}</b><p>${esc(r.reply)}</p></div>` : ""}
       </article>`;
     const sum = (d) => {
@@ -1813,7 +1816,8 @@
     const DEMO = new URLSearchParams(location.search).get("demo") === "reviews";
     const DEMO_ITEMS = [
       { name: "Пример: Аня", rating: 5, text: "Так будет выглядеть отзыв покупателя: пара строк о карточках, доставке и впечатлениях.", date: "2026-11-05T12:00:00Z",
-        reply: "А так — ответ магазина, который Влад пишет из бота." },
+        reply: "А так — ответ магазина, который Влад пишет из бота.",
+        media: [{ kind: "photo", src: "assets/cards/sm/guts-special-a.jpg" }, { kind: "photo", src: "assets/cards/sm/griffith-common-a.jpg" }] },
       { name: "Пример: Дима", rating: 4, text: "Отзыв без ответа магазина. Длинный текст переносится по строкам, а на главной обрезается после шести строк, чтобы карточки отзывов были одной высоты.", date: "2026-11-03T12:00:00Z" },
       { name: "Пример: Kate", rating: 5, text: "Short review example.", date: "2026-10-28T12:00:00Z" },
       { name: "Пример: Лёша", rating: 3, text: "Четвёртый пример — на главной его не видно, только на странице отзывов.", date: "2026-10-20T12:00:00Z" },
@@ -1842,6 +1846,44 @@
 
     if (!home) {
       $("#rvMore").addEventListener("click", () => loadReviews(false));
+      // Файлы к отзыву: до 4 фото (сжимаются в браузере) и одно видео до 30 МБ
+      let files = [];
+      const renderFiles = () => {
+        $("#rvThumbs").hidden = !files.length;
+        $("#rvThumbs").innerHTML = files.map((f, i) => `<div class="rv-thumb">${f.kind === "video"
+          ? `<video src="${f.url}#t=0.1" muted playsinline preload="metadata"></video><i>▶</i>` : `<img src="${f.url}" alt="">`}
+          <button type="button" data-rmf="${i}" aria-label="Убрать файл">×</button></div>`).join("");
+        $("#rvUpText").textContent = files.length ? "+ Добавить ещё" : "+ Добавить фото или видео";
+      };
+      $("#rvFiles").addEventListener("change", (e) => {
+        for (const file of e.target.files) {
+          const video = /^video\//.test(file.type);
+          if (!video && !/^image\//.test(file.type)) { toast("Это не фото и не видео"); continue; }
+          if (video && files.some((f) => f.kind === "video")) { toast("Можно приложить одно видео"); continue; }
+          if (video && file.size > 30 * 1024 * 1024) { toast("Видео больше 30 МБ — обрежь его или выбери покороче"); continue; }
+          if (!video && files.filter((f) => f.kind === "photo").length >= 4) { toast("Можно приложить до 4 фото"); continue; }
+          if (!video && file.size > 25 * 1024 * 1024) { toast("Фото больше 25 МБ — выбери поменьше"); continue; }
+          files.push({ kind: video ? "video" : "photo", file, url: URL.createObjectURL(file) });
+        }
+        e.target.value = "";
+        renderFiles();
+      });
+      $("#rvThumbs").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-rmf]");
+        if (!b) return;
+        URL.revokeObjectURL(files[+b.dataset.rmf].url);
+        files.splice(+b.dataset.rmf, 1);
+        renderFiles();
+      });
+      // Отправка с файлами — через XHR, чтобы показывать, сколько загрузилось
+      const sendForm = (fd, btn) => new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open("POST", "/api/reviews");
+        x.upload.onprogress = (ev) => { if (ev.lengthComputable) btn.textContent = `Загружаем… ${Math.round((ev.loaded / ev.total) * 100)}%`; };
+        x.onload = () => { let d = {}; try { d = JSON.parse(x.responseText); } catch {} resolve({ ok: x.status >= 200 && x.status < 300, d }); };
+        x.onerror = () => reject(new TypeError("network"));
+        x.send(fd);
+      });
       let rating = 0;
       const paint = (n) => $$("#rvRate [data-r]").forEach((b) => {
         b.classList.toggle("is-on", +b.dataset.r <= n);
@@ -1870,15 +1912,34 @@
         btn.textContent = "Отправляем…";
         try {
           if (DEMO) throw new Error("В демо-режиме отзыв не отправляется — открой страницу без ?demo=reviews.");
-          const res = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, rating, text, website: $("#rvSite").value, lang: window.LANG || "ru" }) });
-          const d = await res.json().catch(() => ({}));
+          const payload = { name, rating, text, website: $("#rvSite").value, lang: window.LANG || "ru" };
+          let res;
+          if (files.length) {
+            btn.textContent = "Готовим фото…";
+            const fd = new FormData();
+            fd.append("json", JSON.stringify(payload));
+            let n = 0;
+            for (const f of files) {
+              if (f.kind === "video") { fd.append("video", f.file, f.file.name || "video.mp4"); continue; }
+              const url = await shrinkPhoto(f.url);
+              if (!url) throw new Error("Не получилось прочитать фото — выбери другое (JPG или PNG)");
+              fd.append(`photo${n++}`, await (await fetch(url)).blob(), `photo${n}.jpg`);
+            }
+            res = await sendForm(fd, btn);
+          } else {
+            const r = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            res = { ok: r.ok, d: await r.json().catch(() => ({})) };
+          }
+          const d = res.d;
           if (!res.ok || !d.ok) throw new Error(d.error || "Не удалось отправить отзыв");
+          files.forEach((f) => URL.revokeObjectURL(f.url));
+          files = [];
+          renderFiles();
           track("review_sent", { rating });
           $("#rvForm").hidden = true;
           $("#rvDone").hidden = false;
           $("#rvDoneText").textContent = d.status === "pending"
-            ? "В нём есть ссылка, поэтому он появится на сайте после проверки."
+            ? "Он появится на сайте после проверки — обычно в течение дня."
             : "Он уже на сайте — смотри ниже.";
           loadReviews(true);
         } catch (ex) {

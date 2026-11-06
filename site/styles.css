@@ -2579,3 +2579,20 @@ h1.h2 { margin: 0; }
   .rv-cta { width: 100%; }
 }
 .rv-demo { margin: 0 0 12px; padding: 10px 12px; border: 1px dashed #ffc23d; border-radius: 10px; color: #ffd77a; font-size: 13px; }
+
+/* Фото и видео в отзывах */
+.rv__media { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv__photo { display: block; width: 92px; height: 92px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+.rv__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rv__video { width: 100%; max-width: 360px; max-height: 420px; border-radius: 10px; background: #000; }
+.rv-list--home .rv__photo { width: 64px; height: 64px; }
+.rv-list--home .rv__video { max-height: 220px; }
+.rv-up { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 10px 14px; border: 1px dashed rgba(255, 255, 255, .25); border-radius: 12px; color: var(--grey); font-weight: 600; cursor: pointer; transition: border-color .15s, color .15s; }
+.rv-up:hover, .rv-up:focus-within { border-color: var(--hot); color: var(--text); }
+.rv-up input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.input .rv-up span { font-size: 14px; font-weight: 600; }
+.rv-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.rv-thumb { position: relative; width: 76px; height: 76px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+.rv-thumb img, .rv-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rv-thumb i { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 20px; text-shadow: 0 1px 6px #000; pointer-events: none; }
+.rv-thumb button { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .75); color: #fff; font-size: 16px; line-height: 24px; cursor: pointer; }

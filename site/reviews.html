@@ -40,6 +40,12 @@
           <span>Отзыв *</span>
           <textarea id="rvText" maxlength="1000" rows="4" placeholder="Какие карточки заказывал, как доехали, как смотрятся вживую"></textarea>
         </label>
+        <div class="input">
+          <span>Фото или видео</span>
+          <label class="rv-up"><input type="file" id="rvFiles" accept="image/*,video/mp4,video/quicktime,video/webm" multiple><span id="rvUpText">+ Добавить фото или видео</span></label>
+          <div class="rv-thumbs" id="rvThumbs" hidden></div>
+          <p class="note">До 4 фото и одно видео до 30 МБ. Отзыв с файлами появится на сайте после проверки.</p>
+        </div>
         <!-- Невидимое поле от ботов -->
         <label class="rv-hp" aria-hidden="true">Сайт<input type="text" id="rvSite" tabindex="-1" autocomplete="off"></label>
         <p class="omodal__err" id="rvErr" role="alert" hidden></p>

@@ -27,7 +27,9 @@ import uuid
 
 from admin import Admin
 from catalog_bot import Bot, Store, image_type
-from reviews import PER_IP_DAY, Reviews, card_buttons, card_text
+from email.parser import BytesParser
+from email.policy import HTTP as HTTP_POLICY
+from reviews import MAX_PHOTO, MAX_PHOTOS, MAX_VIDEO, PER_IP_DAY, VIDEO_TYPES, Reviews, card_buttons, card_text
 
 # Кадры из бота приходят тяжёлыми PNG (~1 МБ). Отдаём их сжатыми JPEG: полный — 780 px, маленький — 400 px.
 # Без Pillow (не поставился) отдаём как есть.
@@ -89,14 +91,14 @@ def tg_call(token, method, fields, files=None):
         body = b""
         for k, v in fields.items():
             body += f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
-        for k, (name, data) in files.items():
+        for k, (name, data, *mime) in files.items():
             body += (f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"; filename="{name}"\r\n'
-                     f"Content-Type: image/jpeg\r\n\r\n").encode() + data + b"\r\n"
+                     f"Content-Type: {mime[0] if mime else 'image/jpeg'}\r\n\r\n").encode() + data + b"\r\n"
         body += f"--{boundary}--\r\n".encode()
         req = urllib.request.Request(url, body, {"Content-Type": f"multipart/form-data; boundary={boundary}"})
     else:
         req = urllib.request.Request(url, json.dumps(fields).encode(), {"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=120 if files else 20) as r:
         return json.load(r)
 
 
@@ -107,6 +109,8 @@ def clean(value, limit):
 COMPRESSIBLE = (".html", ".css", ".js", ".json", ".svg")
 DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
 DB_BACK = re.compile(r"^/assets/collections/(\d+)\.jpg$")
+REVIEW_MEDIA = re.compile(r"^/media/r/(\d+)$")
+RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 SITE = os.path.join(ROOT, "site")
 # Красивые адреса страниц → файлы
 PAGES = {"/": "index.html", "/catalog": "catalog.html", "/builder": "builder.html",
@@ -289,6 +293,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 page = name
         if page:
             return self.send_text(render_page(page).encode(), "text/html; charset=utf-8")
+        mr = REVIEW_MEDIA.match(path_only)
+        if mr:
+            return self.send_review_media(int(mr[1]))
         mb = DB_BACK.match(path_only)
         if mb:
             data = None
@@ -463,14 +470,83 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print("admin order error:", repr(e), file=sys.stderr)
         return self.reply(200, {"ok": True})
 
+    def send_review_media(self, mid):
+        """Фото/видео опубликованного отзыва. Видео — кусками (Range): без этого Safari его не играет."""
+        info = None
+        try:
+            info = REVIEWS and REVIEWS.media_info(mid)
+        except Exception as e:
+            print("reviews error:", repr(e), file=sys.stderr)
+        if not info:
+            return self.reply(404, {"ok": False, "error": "not found"})
+        mime, size = info
+        start, end, code = 0, size - 1, 200
+        m = RANGE.match(self.headers.get("Range") or "")
+        if m and (m[1] or m[2]):
+            if m[1]:
+                start, end = int(m[1]), min(int(m[2]) if m[2] else size - 1, size - 1)
+            else:
+                start = max(0, size - int(m[2]))
+            if start > end or start >= size:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            code = 206
+        end = min(end, start + 4 * 1024 * 1024 - 1) if code == 206 else end  # кусок не больше 4 МБ
+        body = b"" if self.command == "HEAD" else bytes(REVIEWS.media_part(mid, start, end - start + 1))
+        # Не кешируем навсегда: скрытый Владом отзыв должен пропасть и вместе с файлами
+        self.send_response(code)
+        self.send_header("Content-Type", mime)
+        self.send_header("Accept-Ranges", "bytes")
+        if code == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.send_header("Content-Length", str(end - start + 1))
+        self.end_headers()
+        if body:
+            self.wfile.write(body)
+
+    def read_review(self):
+        """Отзыв приходит JSON-ом или формой с файлами: поле json + photo0…3 + video."""
+        ctype = self.headers.get("Content-Type") or ""
+        if not ctype.startswith("multipart/form-data"):
+            return json.loads(self.read_body(16 * 1024) or b""), []
+        body = self.read_body(MAX_PHOTOS * MAX_PHOTO + MAX_VIDEO + 64 * 1024)
+        if body is None:
+            raise OverflowError
+        msg = BytesParser(policy=HTTP_POLICY).parsebytes(f"Content-Type: {ctype}\r\n\r\n".encode() + body)
+        data, media = {}, []
+        for part in msg.iter_parts():
+            name, raw = part.get_param("name", header="content-disposition"), part.get_payload(decode=True) or b""
+            if name == "json":
+                data = json.loads(raw)
+            elif name and name.startswith("photo") and len(media) < MAX_PHOTOS + 1:
+                if raw[:3] != b"\xff\xd8\xff" or len(raw) > MAX_PHOTO:
+                    raise ValueError("photo")
+                if sum(1 for k, *_ in media if k == "photo") < MAX_PHOTOS:
+                    media.append(("photo", "image/jpeg", raw))
+            elif name == "video" and not any(k == "video" for k, *_ in media):
+                mime = part.get_content_type()
+                ok = (raw[4:8] == b"ftyp") if mime in ("video/mp4", "video/quicktime") else raw[:4] == b"\x1a\x45\xdf\xa3"
+                if mime not in VIDEO_TYPES or not ok or len(raw) > MAX_VIDEO:
+                    raise ValueError("video")
+                media.append(("video", mime, raw))
+        return data, media
+
     def post_review(self):
         if not REVIEWS:
             return self.reply(503, {"ok": False, "error": "Отзывы временно не принимаются"})
-        body = self.read_body(16 * 1024)
         try:
-            data = json.loads(body or b"")
-        except (ValueError, RecursionError):
-            data = None
+            data, media = self.read_review()
+        except OverflowError:
+            return self.reply(413, {"ok": False, "error": "Файлы слишком большие: видео — до 30 МБ, фото — до 3 МБ"})
+        except ValueError as e:
+            if str(e) in ("photo", "video"):
+                return self.reply(400, {"ok": False, "error": "Не получилось принять файл — фото JPG/PNG, видео MP4, MOV или WebM"})
+            data, media = None, []
+        except RecursionError:
+            data, media = None, []
         if not isinstance(data, dict):
             return self.reply(400, {"ok": False, "error": "Некорректные данные"})
         if data.get("website"):  # невидимое поле: его заполняют только боты
@@ -494,7 +570,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             if len(recent) >= 2 or REVIEWS.recent_from(ip) >= PER_IP_DAY:
                 return self.reply(429, {"ok": False, "error": "Ты уже оставил отзывы сегодня — спасибо! Попробуй завтра"})
-            rid, status = REVIEWS.add(name, rating, text, "en" if data.get("lang") == "en" else "ru", ip)
+            rid, status = REVIEWS.add(name, rating, text, "en" if data.get("lang") == "en" else "ru", ip, media)
         except Exception as e:
             print("reviews error:", repr(e), file=sys.stderr)
             return self.reply(500, {"ok": False, "error": "Не удалось сохранить отзыв"})
@@ -510,6 +586,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 REVIEWS.link_msg(res["result"]["message_id"], rid)
             except Exception as e:
                 print("telegram review error:", repr(e), file=sys.stderr)
+            # Файлы — следом за карточкой; reply на любой из них — тоже ответ на отзыв
+            for i, (kind, mime, raw) in enumerate(media):
+                try:
+                    method, field, ext = ("sendPhoto", "photo", "jpg") if kind == "photo" else ("sendVideo", "video", VIDEO_TYPES[mime])
+                    res = tg_call(token, method, {"chat_id": chat, "caption": f"{'Фото' if kind == 'photo' else 'Видео'} к отзыву #{rid} от {name}"},
+                                  {field: (f"review{rid}-{i + 1}.{ext}", raw, mime)})
+                    REVIEWS.link_msg(res["result"]["message_id"], rid)
+                except Exception as e:
+                    print("telegram review media error:", repr(e), file=sys.stderr)
         return self.reply(200, {"ok": True, "status": status})
 
 

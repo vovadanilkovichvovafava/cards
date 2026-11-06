@@ -107,6 +107,9 @@
     "Имя персонажа": "Character name", "Как подписать героя": "Name on the card", "Описание персонажа": "Character description",
     "Кто он, чем силён, его девиз": "Who they are, their power, their motto", "при наклоне": "when tilted",
     "Готово, покрутить карточку": "Done — spin the card",
+    "Нажми на фото, чтобы добавить кадр. Тяни, чтобы подвинуть. Нажми на имя или текст — и пиши.": "Tap the photo to add a frame. Drag to move it. Tap the name or text and type.",
+    "Кадры": "Frames", "прямо": "straight on", "Нажми, чтобы добавить фото": "Tap to add a photo", "Нажми, чтобы добавить второй кадр": "Tap to add the second frame",
+    "Нажми — впиши имя": "Tap — add a name", "Нажми — напиши о герое": "Tap — write about the hero", "Заменить фото": "Replace photo",
     "Добавь хотя бы первый кадр — без него карточку не нарисовать": "Add at least the first frame — we can't draw the card without it",
     // Отзывы
     "Отзывы": "Reviews", "Все отзывы": "All reviews", "Оставить отзыв": "Leave a review", "Отзывы — Aniverse Flip": "Reviews — Aniverse Flip",

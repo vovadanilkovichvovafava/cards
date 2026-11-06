@@ -143,24 +143,35 @@
 
 </main>
 
-<!-- Редактор прямо «на карточке»: всё, что вписано, сразу видно на ней и уходит Владу в бот -->
+<!-- Редактор прямо на карточке: нажми на фото — добавь кадр, тяни — подвинь, нажми на имя или текст — пиши.
+     Всё уходит в поля режима «по фото» и Владу в бот вместе с заказом -->
 <div class="omodal" id="cardEditor" hidden>
   <div class="omodal__box ceditor" role="dialog" aria-modal="true" aria-labelledby="ceTitle">
     <button type="button" class="lightbox__close" data-ceclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <h3 id="ceTitle">Собери свою карточку</h3>
-    <p class="ceditor__sub">Впиши имя и описание персонажа, добавь два кадра — карточка меняется сразу.</p>
-    <div class="ceditor__card" id="ceCard"></div>
-    <label class="input">
-      <span>Имя персонажа</span>
-      <input type="text" id="ceName" maxlength="24" placeholder="Как подписать героя">
-    </label>
-    <label class="input">
-      <span>Описание персонажа</span>
-      <textarea id="ceText" maxlength="180" rows="3" placeholder="Кто он, чем силён, его девиз"></textarea>
-    </label>
-    <div class="ceditor__shots">
-      <button type="button" class="ceditor__shot" data-ceshot="0"><span class="ceditor__img"></span><b>Кадр 1</b><small>видно прямо</small></button>
-      <button type="button" class="ceditor__shot" data-ceshot="1"><span class="ceditor__img"></span><b>Кадр 2</b><small>при наклоне</small></button>
+    <p class="ceditor__sub" id="ceHint">Нажми на фото, чтобы добавить кадр. Тяни, чтобы подвинуть. Нажми на имя или текст — и пиши.</p>
+    <div class="ceditor__tabs" role="tablist" aria-label="Кадры">
+      <button type="button" role="tab" data-ceslot="0" class="is-on" aria-selected="true">Кадр 1 <small>прямо</small></button>
+      <button type="button" role="tab" data-ceslot="1" aria-selected="false">Кадр 2 <small>при наклоне</small></button>
+    </div>
+    <div class="ceditor__card" id="ceCard">
+      <div class="custom ce-live" id="ceLive">
+        <div class="custom__photo" id="cePhoto">
+          <img id="ceImg" alt="" hidden>
+          <button type="button" class="ce-add" id="ceAdd"><b>+</b><span id="ceAddText">Нажми, чтобы добавить фото</span></button>
+        </div>
+        <div class="custom__frame"></div>
+        <span class="custom__num">01</span>
+        <div class="custom__top"><span class="custom__rarity">Особая</span></div>
+        <div class="custom__bottom">
+          <input class="custom__name ce-name" id="ceName" maxlength="24" placeholder="Нажми — впиши имя" aria-label="Имя персонажа" autocomplete="off">
+          <textarea class="custom__text ce-text" id="ceText" maxlength="180" rows="3" placeholder="Нажми — напиши о герое" aria-label="Описание персонажа"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="ceditor__tools" id="ceTools" hidden>
+      <label class="ceditor__zoom"><span>Масштаб</span><input type="range" id="ceZoom" min="1" max="3" step="0.01" value="1"></label>
+      <button type="button" class="tool" id="ceReplace">Заменить фото</button>
     </div>
     <button type="button" class="btn btn--full" id="ceOrder">Оформить заказ</button>
     <button type="button" class="btn btn--ghost btn--full" data-ceclose>Готово, покрутить карточку</button>

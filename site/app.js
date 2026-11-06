@@ -876,33 +876,45 @@
   );
 
 
-  // ---- «Собери карточку сам»: нажатие на превью открывает редактор прямо поверх карточки.
-  // Имя, описание и кадры пишутся в те же поля режима «по фото» — заказ уходит Владу как обычно.
+  // ---- «Собери карточку сам»: плашка или нажатие на превью открывают большую карточку,
+  // которую редактируют прямо пальцем: фото добавляется нажатием, двигается и увеличивается,
+  // имя и текст печатаются прямо на ней. Всё пишется в поля режима «по фото».
   // var: renderPreview может вызвать renderEditor раньше этой строки
   var ce = $("#cardEditor");
+  var ceSlot = 0;
   function renderEditor() {
     if (!ce || ce.hidden) return;
-    $("#ceCard").innerHTML = customFace({
-      photos: state.photos, crops: state.crops, name: state.photoName, text: state.photoText,
-      rarity: state.rarity, accent: uni(state.style).accent,
-    });
-    $$("[data-ceshot]", ce).forEach((b) => {
-      const src = state.photos[+b.dataset.ceshot];
-      $(".ceditor__img", b).style.backgroundImage = src ? `url(${src})` : "";
-      b.classList.toggle("is-set", !!src);
+    const src = state.photos[ceSlot], c = state.crops[ceSlot];
+    $("#ceImg").hidden = !src;
+    if (src) {
+      if ($("#ceImg").getAttribute("src") !== src) $("#ceImg").src = src;
+      $("#ceImg").style.transform = cropCss(c).replace("transform: ", "");
+      $("#ceZoom").value = c.z;
+    }
+    $("#ceAdd").hidden = !!src;
+    $("#ceAddText").textContent = ceSlot ? "Нажми, чтобы добавить второй кадр" : "Нажми, чтобы добавить фото";
+    $("#ceTools").hidden = !src;
+    $("#ceLive").style.setProperty("--c", uni(state.style).accent);
+    $$("[data-ceslot]", ce).forEach((b) => {
+      const on = +b.dataset.ceslot === ceSlot;
+      b.classList.toggle("is-on", on);
+      b.classList.toggle("is-set", !!state.photos[+b.dataset.ceslot]);
+      b.setAttribute("aria-selected", on);
     });
   }
+  const pickPhoto = () => $(`.upload input[data-slot="${ceSlot}"]`).click();
   function openEditor(focus) {
     if (state.mode !== "photo") { state.mode = "photo"; render(); }
     $("#ceName").value = $("#photoName").value;
     $("#ceText").value = $("#photoText").value;
+    ceSlot = 0;
     ce.hidden = false;
     document.body.style.overflow = "hidden";
     $("#editHint").classList.add("is-used");
     track("builder", { step: "card_editor" });
     renderEditor();
-    if (focus === "photo") $('.upload input[data-slot="0"]').click();
-    else setTimeout(() => (focus === "text" ? $("#ceText") : $("#ceName")).focus(), 60);
+    if (focus === "text") setTimeout(() => $("#ceText").focus(), 60);
+    else if (focus === "name") setTimeout(() => $("#ceName").focus(), 60);
   }
   function closeEditor() {
     ce.hidden = true;
@@ -911,24 +923,63 @@
     preview.sweep();
   }
   if (ce) {
-    // Нажатие (не вращение) по карточке: по имени — к имени, по тексту — к описанию, по фото — выбрать кадр
     $("#previewCard").addEventListener("click", (e) => {
       const t = e.target;
-      openEditor(t.closest(".custom__text") ? "text" : t.closest(".custom__photo, .custom__empty") && !state.photos[0] ? "photo" : "name");
+      openEditor(t.closest(".custom__text") ? "text" : t.closest(".custom__name") ? "name" : null);
     });
-    $("#editHint").addEventListener("click", () => openEditor("name"));
+    $("#editHint").addEventListener("click", () => openEditor(null));
     [["ceName", "photoName"], ["ceText", "photoText"]].forEach(([from, to]) =>
       $("#" + from).addEventListener("input", (e) => {
         $("#" + to).value = e.target.value;
         $("#" + to).dispatchEvent(new Event("input"));
-        renderEditor();
       }));
-    $$("[data-ceshot]", ce).forEach((b) => b.addEventListener("click", () => $(`.upload input[data-slot="${b.dataset.ceshot}"]`).click()));
+    // Enter в имени — к тексту; в тексте переносы строк не нужны
+    $("#ceName").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(), $("#ceText").focus(); });
+    $("#ceText").addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(), e.target.blur(); });
+    $$("[data-ceslot]", ce).forEach((b) => b.addEventListener("click", () => { ceSlot = +b.dataset.ceslot; cropSlot = ceSlot; renderEditor(); renderCropper(); }));
+    $("#ceAdd").addEventListener("click", pickPhoto);
+    $("#ceReplace").addEventListener("click", pickPhoto);
+    $("#ceZoom").addEventListener("input", () => { const c = state.crops[ceSlot]; c.z = +$("#ceZoom").value; clampCrop(c); applyCrop(); });
+    // Двигаем фото пальцем прямо на карточке; двумя пальцами — увеличиваем
+    const photo = $("#cePhoto"), pts = new Map();
+    let drag = null;
+    const begin = () => {
+      const [a, b] = [...pts.values()];
+      drag = { c: { ...state.crops[ceSlot] }, w: photo.clientWidth, h: photo.clientHeight, a: { ...a }, d: b ? Math.hypot(b.x - a.x, b.y - a.y) : 0 };
+    };
+    photo.addEventListener("pointerdown", (e) => {
+      if (!state.photos[ceSlot] || e.target.closest(".ce-add")) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      photo.setPointerCapture(e.pointerId);
+      begin();
+    });
+    photo.addEventListener("pointermove", (e) => {
+      if (!drag || !pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const c = state.crops[ceSlot], [a, b] = [...pts.values()];
+      if (b && drag.d) c.z = Math.max(1, Math.min(3, drag.c.z * (Math.hypot(b.x - a.x, b.y - a.y) / drag.d)));
+      const lim = 50 * (c.z - 1) + 3;
+      c.x = Math.max(-lim, Math.min(lim, drag.c.x + ((a.x - drag.a.x) / drag.w) * 100));
+      c.y = Math.max(-lim, Math.min(lim, drag.c.y + ((a.y - drag.a.y) / drag.h) * 100));
+      applyCrop();
+    });
+    ["pointerup", "pointercancel"].forEach((ev) => photo.addEventListener(ev, (e) => {
+      pts.delete(e.pointerId);
+      if (pts.size) begin(); else drag = null;
+    }));
+    photo.addEventListener("wheel", (e) => {
+      if (!state.photos[ceSlot]) return;
+      e.preventDefault();
+      const c = state.crops[ceSlot];
+      c.z = Math.max(1, Math.min(3, c.z - e.deltaY * 0.002));
+      clampCrop(c);
+      applyCrop();
+    }, { passive: false });
     $$("[data-ceclose]", ce).forEach((b) => b.addEventListener("click", closeEditor));
     ce.addEventListener("click", (e) => { if (e.target === ce) closeEditor(); });
     addEventListener("keydown", (e) => { if (e.key === "Escape" && !ce.hidden) closeEditor(); });
     $("#ceOrder").addEventListener("click", () => {
-      if (!state.photos[0]) return toast("Добавь хотя бы первый кадр — без него карточку не нарисовать");
+      if (!state.photos[0]) { ceSlot = 0; renderEditor(); return toast("Добавь хотя бы первый кадр — без него карточку не нарисовать"); }
       ce.hidden = true;
       document.body.style.overflow = "";
       $("#orderBtn").click();

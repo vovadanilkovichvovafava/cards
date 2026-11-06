@@ -2578,3 +2578,4 @@ h1.h2 { margin: 0; }
   .rv { padding: 15px; }
   .rv-cta { width: 100%; }
 }
+.rv-demo { margin: 0 0 12px; padding: 10px 12px; border: 1px dashed #ffc23d; border-radius: 10px; color: #ffd77a; font-size: 13px; }

@@ -1808,11 +1808,25 @@
       $("#rvSum").hidden = !d.total;
       if (d.total) $("#rvSum").innerHTML = `<b class="rv-sum__avg">${Number(d.avg).toFixed(1).replace(".", window.LANG === "en" ? "." : ",")}</b>${stars(Math.round(d.avg))}<span>${plural(d.total, "отзыв", "отзыва", "отзывов")}</span>`;
     };
+    // Демо для просмотра вёрстки: ?demo=reviews показывает примеры с пометкой «Демо».
+    // Обычные посетители их не видят, в базу они не попадают.
+    const DEMO = new URLSearchParams(location.search).get("demo") === "reviews";
+    const DEMO_ITEMS = [
+      { name: "Пример: Аня", rating: 5, text: "Так будет выглядеть отзыв покупателя: пара строк о карточках, доставке и впечатлениях.", date: "2026-11-05T12:00:00Z",
+        reply: "А так — ответ магазина, который Влад пишет из бота." },
+      { name: "Пример: Дима", rating: 4, text: "Отзыв без ответа магазина. Длинный текст переносится по строкам, а на главной обрезается после шести строк, чтобы карточки отзывов были одной высоты.", date: "2026-11-03T12:00:00Z" },
+      { name: "Пример: Kate", rating: 5, text: "Short review example.", date: "2026-10-28T12:00:00Z" },
+      { name: "Пример: Лёша", rating: 3, text: "Четвёртый пример — на главной его не видно, только на странице отзывов.", date: "2026-10-20T12:00:00Z" },
+    ];
+    if (DEMO) $$('a[href^="reviews"]').forEach((l) => l.setAttribute("href", l.getAttribute("href").replace(/^reviews/, "reviews?demo=reviews")));
+    if (DEMO) rvList.insertAdjacentHTML("beforebegin", `<p class="rv-demo">Демо: это примеры отзывов для просмотра вёрстки. Посетители сайта их не видят.</p>`);
     let shown = 0;
     async function loadReviews(reset) {
       if (reset) shown = 0;
       try {
-        const d = await (await fetch(`/api/reviews?limit=${home ? 3 : 10}&offset=${shown}`)).json();
+        const d = DEMO
+          ? { ok: true, items: DEMO_ITEMS.slice(shown, shown + (home ? 3 : 10)), total: DEMO_ITEMS.length, avg: 4.3 }
+          : await (await fetch(`/api/reviews?limit=${home ? 3 : 10}&offset=${shown}`)).json();
         if (!d.ok) throw new Error();
         sum(d);
         const html = d.items.map(rvItem).join("");
@@ -1855,6 +1869,7 @@
         btn.disabled = true;
         btn.textContent = "Отправляем…";
         try {
+          if (DEMO) throw new Error("В демо-режиме отзыв не отправляется — открой страницу без ?demo=reviews.");
           const res = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, rating, text, website: $("#rvSite").value, lang: window.LANG || "ru" }) });
           const d = await res.json().catch(() => ({}));

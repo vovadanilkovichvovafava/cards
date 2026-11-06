@@ -101,6 +101,13 @@
 
   // ---------------- Тексты интерфейса ----------------
   const DICT = {
+    // Редактор карточки в конструкторе
+    "Нажми на карточку — собери её сам": "Tap the card — make it yourself", "Собери свою карточку": "Make your own card",
+    "Впиши имя и описание персонажа, добавь два кадра — карточка меняется сразу.": "Add the character's name and description and two frames — the card updates instantly.",
+    "Имя персонажа": "Character name", "Как подписать героя": "Name on the card", "Описание персонажа": "Character description",
+    "Кто он, чем силён, его девиз": "Who they are, their power, their motto", "при наклоне": "when tilted",
+    "Готово, покрутить карточку": "Done — spin the card",
+    "Добавь хотя бы первый кадр — без него карточку не нарисовать": "Add at least the first frame — we can't draw the card without it",
     // Отзывы
     "Отзывы": "Reviews", "Все отзывы": "All reviews", "Оставить отзыв": "Leave a review", "Отзывы — Aniverse Flip": "Reviews — Aniverse Flip",
     "Отзывы покупателей Aniverse Flip о стерео-карточках — и форма, чтобы оставить свой.": "Aniverse Flip customer reviews of our lenticular cards — and a form to leave your own.",

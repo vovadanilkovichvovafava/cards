@@ -119,6 +119,8 @@
 
         <aside class="builder__preview">
           <div class="preview">
+            <!-- Нажми на карточку — подпиши её сам: имя, описание и два кадра -->
+            <button type="button" class="edit-hint" id="editHint"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>Нажми на карточку — собери её сам</button>
             <div class="flip flip--big" id="previewCard"></div>
             <div class="preview__tools">
               <button type="button" class="tool" id="tiltBtn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4"/></svg>Наклонить</button>
@@ -140,6 +142,30 @@
   </section>
 
 </main>
+
+<!-- Редактор прямо «на карточке»: всё, что вписано, сразу видно на ней и уходит Владу в бот -->
+<div class="omodal" id="cardEditor" hidden>
+  <div class="omodal__box ceditor" role="dialog" aria-modal="true" aria-labelledby="ceTitle">
+    <button type="button" class="lightbox__close" data-ceclose aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h3 id="ceTitle">Собери свою карточку</h3>
+    <p class="ceditor__sub">Впиши имя и описание персонажа, добавь два кадра — карточка меняется сразу.</p>
+    <div class="ceditor__card" id="ceCard"></div>
+    <label class="input">
+      <span>Имя персонажа</span>
+      <input type="text" id="ceName" maxlength="24" placeholder="Как подписать героя">
+    </label>
+    <label class="input">
+      <span>Описание персонажа</span>
+      <textarea id="ceText" maxlength="180" rows="3" placeholder="Кто он, чем силён, его девиз"></textarea>
+    </label>
+    <div class="ceditor__shots">
+      <button type="button" class="ceditor__shot" data-ceshot="0"><span class="ceditor__img"></span><b>Кадр 1</b><small>видно прямо</small></button>
+      <button type="button" class="ceditor__shot" data-ceshot="1"><span class="ceditor__img"></span><b>Кадр 2</b><small>при наклоне</small></button>
+    </div>
+    <button type="button" class="btn btn--full" id="ceOrder">Оформить заказ</button>
+    <button type="button" class="btn btn--ghost btn--full" data-ceclose>Готово, покрутить карточку</button>
+  </div>
+</div>
 
 <!--#include footer-->
 

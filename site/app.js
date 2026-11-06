@@ -782,6 +782,7 @@
       preview.setBack(u.back);
     }
     preview.setBadge(state.recipient === "gift" ? state.giftName || "Подарок" : "");
+    renderEditor();
   }
 
   // Индивидуальная карточка — по фото или свой персонаж «под заказ»
@@ -860,6 +861,66 @@
       if (key === "photoText") renderPhrases();
     })
   );
+
+
+  // ---- «Собери карточку сам»: нажатие на превью открывает редактор прямо поверх карточки.
+  // Имя, описание и кадры пишутся в те же поля режима «по фото» — заказ уходит Владу как обычно.
+  // var: renderPreview может вызвать renderEditor раньше этой строки
+  var ce = $("#cardEditor");
+  function renderEditor() {
+    if (!ce || ce.hidden) return;
+    $("#ceCard").innerHTML = customFace({
+      photos: state.photos, crops: state.crops, name: state.photoName, text: state.photoText,
+      rarity: state.rarity, accent: uni(state.style).accent,
+    });
+    $$("[data-ceshot]", ce).forEach((b) => {
+      const src = state.photos[+b.dataset.ceshot];
+      $(".ceditor__img", b).style.backgroundImage = src ? `url(${src})` : "";
+      b.classList.toggle("is-set", !!src);
+    });
+  }
+  function openEditor(focus) {
+    if (state.mode !== "photo") { state.mode = "photo"; render(); }
+    $("#ceName").value = $("#photoName").value;
+    $("#ceText").value = $("#photoText").value;
+    ce.hidden = false;
+    document.body.style.overflow = "hidden";
+    $("#editHint").classList.add("is-used");
+    track("builder", { step: "card_editor" });
+    renderEditor();
+    if (focus === "photo") $('.upload input[data-slot="0"]').click();
+    else setTimeout(() => (focus === "text" ? $("#ceText") : $("#ceName")).focus(), 60);
+  }
+  function closeEditor() {
+    ce.hidden = true;
+    document.body.style.overflow = "";
+    $(".preview").scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    preview.sweep();
+  }
+  if (ce) {
+    // Нажатие (не вращение) по карточке: по имени — к имени, по тексту — к описанию, по фото — выбрать кадр
+    $("#previewCard").addEventListener("click", (e) => {
+      const t = e.target;
+      openEditor(t.closest(".custom__text") ? "text" : t.closest(".custom__photo, .custom__empty") && !state.photos[0] ? "photo" : "name");
+    });
+    $("#editHint").addEventListener("click", () => openEditor("name"));
+    [["ceName", "photoName"], ["ceText", "photoText"]].forEach(([from, to]) =>
+      $("#" + from).addEventListener("input", (e) => {
+        $("#" + to).value = e.target.value;
+        $("#" + to).dispatchEvent(new Event("input"));
+        renderEditor();
+      }));
+    $$("[data-ceshot]", ce).forEach((b) => b.addEventListener("click", () => $(`.upload input[data-slot="${b.dataset.ceshot}"]`).click()));
+    $$("[data-ceclose]", ce).forEach((b) => b.addEventListener("click", closeEditor));
+    ce.addEventListener("click", (e) => { if (e.target === ce) closeEditor(); });
+    addEventListener("keydown", (e) => { if (e.key === "Escape" && !ce.hidden) closeEditor(); });
+    $("#ceOrder").addEventListener("click", () => {
+      if (!state.photos[0]) return toast("Добавь хотя бы первый кадр — без него карточку не нарисовать");
+      ce.hidden = true;
+      document.body.style.overflow = "";
+      $("#orderBtn").click();
+    });
+  }
 
   // Загрузка фото (только локально, в браузере)
   $$(".upload input").forEach((input) =>
@@ -975,7 +1036,8 @@
       `Привет! Хочу заказать карточку:`,
       `• Карточка: ${describeCard()}`,
       state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
-      state.photoText ? `• ${heroAbout() ? "Своя фраза вместо фразы с карточки" : "Фраза на карточке"}: ${state.photoText}` : null,
+      state.mode === "photo" ? `• Имя персонажа: ${state.photoName || "не указано"}` : null,
+      state.photoText ? `• ${state.mode === "photo" ? "Описание персонажа" : heroAbout() ? "Своя фраза вместо фразы с карточки" : "Фраза на карточке"}: ${state.photoText}` : null,
       `• Количество: ${state.qty}`,
       promoLine(p41()),
       gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,

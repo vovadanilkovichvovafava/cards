@@ -420,13 +420,12 @@
   // ---------------------------------------------------------------
   const Sound = (() => {
     const btn = $("#soundToggle");
-    // Озвучка пока выключена: кнопки в шапке нет — звук не играет
     if (!btn) return { play() {}, stop() {} };
     const audio = new Audio();
     audio.preload = "none";
-    // Звук выключен, пока пользователь сам его не включит
-    let on = false, src = null, fade = null;
-    try { on = localStorage.getItem("sound") === "on"; } catch {}
+    // Звук включён сразу (играет, когда карточку открывают нажатием); кнопка в шапке выключает его
+    let on = true, src = null, fade = null;
+    try { on = localStorage.getItem("sound") !== "off"; } catch {}
 
     const sync = () => {
       btn.setAttribute("aria-pressed", on);

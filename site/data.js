@@ -109,6 +109,7 @@ window.CHARACTERS = [
   },
   {
     id: "griffith", universe: "berserk", name: "Гриффит", subtitle: "White Hawk",
+    quote: "assets/audio/griffith.mp3",
     full: "Гриффит",
     about: "Белый ястреб, лидер Отряда ястреба. Харизматичный и безупречный стратег, ради мечты о собственном королевстве готовый заплатить любую цену.",
     variants: {

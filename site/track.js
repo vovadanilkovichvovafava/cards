@@ -57,12 +57,25 @@
   const pageview = () => setTimeout(() => window.track("pageview", { title: document.title.slice(0, 80) }), 400);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pageview); else pageview();
 
-  // Ошибки JavaScript — чтобы видеть, у кого что сломалось
-  let errs = 0;
+  // Ошибки JavaScript и незагрузившиеся файлы — для вкладки «Ошибки» в админке.
+  // Одинаковые не повторяем, всего — не больше 10 разных за страницу
+  const seenErr = new Set();
+  const stackOf = (err) => String(err?.stack || "").split("\n").slice(0, 4).map((l) => l.trim().replace(location.origin, "")).join("\n").slice(0, 400);
+  const report = (msg, data) => {
+    const key = msg + (data.at || "");
+    if (seenErr.has(key) || seenErr.size >= 10) return;
+    seenErr.add(key);
+    window.track("js_error", { msg: msg.slice(0, 200), ...data });
+  };
   addEventListener("error", (e) => {
-    if (errs++ < 5) window.track("js_error", { msg: String(e.message || e.target?.src || "error").slice(0, 200), at: `${(e.filename || "").split("/").pop()}:${e.lineno || ""}` });
+    const el = e.target;
+    if (el && el !== window && (el.src || el.href)) {  // картинка, скрипт или стиль не загрузились
+      const url = String(el.src || el.href).replace(location.origin, "");
+      return report(`Не загрузился файл: ${url.slice(0, 120)}`, { at: (el.tagName || "").toLowerCase(), kind: "resource" });
+    }
+    report(String(e.message || "error"), { at: `${(e.filename || "").split("/").pop()}:${e.lineno || ""}:${e.colno || ""}`, stack: stackOf(e.error) });
   }, true);
-  addEventListener("unhandledrejection", (e) => { if (errs++ < 5) window.track("js_error", { msg: String(e.reason?.message || e.reason).slice(0, 200) }); });
+  addEventListener("unhandledrejection", (e) => report(String(e.reason?.message || e.reason || "Promise rejected"), { at: "promise", stack: stackOf(e.reason) }));
   // Переходы в соцсети и Telegram
   document.addEventListener("click", (e) => {
     const a = e.target.closest?.("a[href]");

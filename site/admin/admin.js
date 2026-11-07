@@ -138,9 +138,9 @@
   }
 
   // ------------------------------------------------------------------
-  //  Каркас и маршруты (#/, #/sessions, #/s/<id>, #/orders, #/cards, #/team)
+  //  Каркас и маршруты (#/, #/sessions, #/s/<id>, #/orders, #/cards, #/errors, #/team)
   // ------------------------------------------------------------------
-  const NAV = [["#/", "home", "Обзор"], ["#/sessions", "rec", "Сессии"], ["#/orders", "bag", "Заказы"], ["#/cards", "card", "Карточки"], ["#/team", "team", "Команда"]];
+  const NAV = [["#/", "home", "Обзор"], ["#/sessions", "rec", "Сессии"], ["#/orders", "bag", "Заказы"], ["#/cards", "card", "Карточки"], ["#/errors", "warn", "Ошибки"], ["#/team", "team", "Команда"]];
   function shell(active, html) {
     app.className = "";
     app.innerHTML = `<div class="shell"><aside class="side">
@@ -182,10 +182,11 @@
     ping();
     every(30000, ping);
     try {
-      if (path.startsWith("/s/")) return await viewSession(decodeURIComponent(path.slice(3)));
+      if (path.startsWith("/s/")) return await viewSession(decodeURIComponent(path.slice(3)), q);
       if (path === "/sessions") return await viewSessions(q);
       if (path === "/orders") return await viewOrders(q);
       if (path === "/cards") return await viewCards(q);
+      if (path === "/errors") return await viewErrors(q);
       if (path === "/team") return await viewTeam();
       return await viewOverview(q);
     } catch (e) {
@@ -324,7 +325,7 @@
   };
   const facts = (rows) => `<dl class="facts">${rows.filter((r) => r[1] !== undefined && r[1] !== "").map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
 
-  async function viewSession(sid) {
+  async function viewSession(sid, q = new URLSearchParams()) {
     const main = shell("#/sessions", `<div class="empty">Загружаем запись…</div>`);
     const [info, rec] = await Promise.all([api(`/sessions/${encodeURIComponent(sid)}`), api(`/sessions/${encodeURIComponent(sid)}/replay`)]);
     const s = info.session;
@@ -382,6 +383,8 @@
       player = new Player({ target: box, props: { events, width: W, height: H, autoPlay: !s.live, skipInactive: true, showController: true,
         speedOption: [1, 2, 4, 8], mouseTail: { strokeStyle: "#ff3b52", lineWidth: 3, duration: 600 }, UNSAFE_replayCanvas: false } });
       if (s.live) player.goto(Math.max(0, events[events.length - 1].timestamp - base() - 800), true);
+      // Пришли из «Ошибок» — сразу к моменту ошибки (чуть раньше, чтобы видеть, что к ней привело)
+      else if (+q.get("t")) player.goto(Math.max(0, +q.get("t") - base() - 4000), false);
       // Подписи плеера — по-русски
       $$(".rr-controller *", box).forEach((n) => { if (n.childNodes.length === 1 && n.firstChild.nodeType === 3 && /skip inactive/i.test(n.textContent)) n.textContent = "пропускать паузы"; });
       player.addEventListener("ui-update-current-time", (p) => {
@@ -476,6 +479,32 @@
         <tbody>${d.items.map((c) => `<tr><td><b>${esc(c.name)}</b></td><td class="muted">${esc(c.uni)}</td><td class="n">${num(c.opens)}</td><td class="n">${num(c.people)}</td><td class="n">${num(c.carts)}</td><td class="n">${num(c.favs)}</td><td class="n">${pct(c.carts, c.people)}</td></tr>`).join("")}</tbody></table>`
         : '<div class="empty">Пока никто не открывал карточки за этот период</div>'}</div>`;
     $$("[data-days]", main).forEach((b) => b.addEventListener("click", () => (location.hash = `#/cards?days=${b.dataset.days}`)));
+  }
+
+  // ------------------------------------------------------------------
+  //  Ошибки на сайте у покупателей: одинаковые склеены, посторонние (встроенные браузеры) спрятаны
+  // ------------------------------------------------------------------
+  async function viewErrors(q) {
+    const days = +(q.get("days") || 7), all = q.get("all") === "1";
+    const head = (d) => `<div class="top"><h1>Ошибки</h1>${seg(PERIODS.slice(1).concat([[180, "180 дней"]]), days, "days")}
+      ${d ? `<div class="top__sub">${d.ours ? `Ошибок сайта: <b>${num(d.ours)}</b> разных, ${num(d.ours_count)} раз` : "Ошибок сайта нет"}${d.external ? ` · не наших (встроенные браузеры, расширения): ${num(d.external_count)}` : ""}</div>` : ""}</div>`;
+    const main = shell("#/errors", `${head()}<div class="empty">Собираем ошибки…</div>`);
+    const d = await api(`/errors?days=${days}`);
+    const list = d.items.filter((e) => all || e.kind === "ours");
+    const row = (e) => `<div class="panel err ${e.kind === "ours" ? "" : "err--ext"}">
+        <div class="err__head">${ico("warn")}<b class="err__msg">${esc(e.msg)}</b>${e.kind === "ours" ? "" : '<span class="tag">не наша</span>'}</div>
+        ${e.why ? `<div class="err__why">${esc(e.why)}</div>` : ""}
+        <div class="err__meta"><span><b>${num(e.count)}</b> раз</span><span><b>${num(e.sessions)}</b> ${e.sessions % 10 === 1 && e.sessions % 100 !== 11 ? "сессия" : "сессий"}</span>
+          <span>последняя ${esc(when(e.last))}</span>${e.at ? `<span class="muted">где: ${esc(e.at)}</span>` : ""}</div>
+        <div class="err__meta muted">${esc([...e.browsers, ...e.os].join(", ") || "браузер неизвестен")}${e.pages.length ? ` · страницы: ${esc(e.pages.join(", "))}` : ""}</div>
+        ${e.stack ? `<details class="err__stack"><summary>Подробности для разработчика</summary><pre>${esc(e.stack)}</pre></details>` : ""}
+        <div class="err__links">${e.examples.map((x, i) => `<a class="btn btn--sm" href="#/s/${encodeURIComponent(x.visit)}?t=${x.t}">${ico("play")}Сессия ${i + 1} — к моменту ошибки</a>`).join("")}</div>
+      </div>`;
+    main.innerHTML = `${head(d)}
+      ${d.external ? `<label class="err__toggle"><input type="checkbox" id="errAll" ${all ? "checked" : ""}> Показать и не наши ошибки (${num(d.external)})</label>` : ""}
+      ${list.length ? list.map(row).join("") : `<div class="panel empty">${d.items.length ? "Ошибок сайта за этот период нет — есть только посторонние от встроенных браузеров." : "Ошибок за этот период нет."}</div>`}`;
+    $$("[data-days]", main).forEach((b) => b.addEventListener("click", () => (location.hash = `#/errors?days=${b.dataset.days}${all ? "&all=1" : ""}`)));
+    $("#errAll")?.addEventListener("change", (e) => (location.hash = `#/errors?days=${days}${e.target.checked ? "&all=1" : ""}`));
   }
 
   // ------------------------------------------------------------------

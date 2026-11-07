@@ -195,3 +195,19 @@ a { color: inherit; }
 .player .rr-controller__btns button svg { fill: var(--text) !important; }
 .player .rr-controller__btns button { color: var(--text) !important; font-size: 12px; }
 .player .switch { color: var(--muted); font-size: 12px; }
+
+/* Ошибки */
+.err { margin-bottom: 10px; display: grid; gap: 6px; }
+.err--ext { opacity: .7; }
+.err__head { display: flex; align-items: flex-start; gap: 8px; }
+.err__head .ico { flex: none; width: 18px; height: 18px; color: #ffc23d; margin-top: 2px; }
+.err--ext .err__head .ico { color: var(--muted, #8a8794); }
+.err__msg { font-size: 14px; overflow-wrap: anywhere; flex: 1; min-width: 0; }
+.err__why { font-size: 12.5px; color: #ffd77a; }
+.err__meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; overflow-wrap: anywhere; }
+.err__stack summary { cursor: pointer; font-size: 12px; color: var(--muted, #8a8794); }
+.err__stack pre { margin: 6px 0 0; padding: 8px; border-radius: 8px; background: rgba(0, 0, 0, .35); font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.err__links { display: flex; flex-wrap: wrap; gap: 6px; }
+.err__toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13px; cursor: pointer; }
+.err__msg, .err__meta b { color: var(--text, #f4f1f5); }
+.err__meta { color: var(--muted, #a19dab); }

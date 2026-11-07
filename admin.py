@@ -109,6 +109,39 @@ def source_of(referrer, utm, own=None):
             return name
     return host[:40] or "Прямой заход"
 
+# Ошибки, которые появляются не из-за сайта: их подкладывают встроенные браузеры и расширения.
+# В админке они помечены «не наша» и по умолчанию спрятаны.
+EXTERNAL_ERRORS = (
+    ("_AutofillCallbackHandler", "Встроенный браузер Instagram/Facebook на iPhone (его автозаполнение)"),
+    ("webkit.messageHandlers", "Встроенный браузер приложения"),
+    ("__gCrWeb", "Chrome на iPhone (его встроенные скрипты)"),
+    ("instantSearchSDKJSBridge", "Встроенный браузер приложения"),
+    ("Java exception was raised", "Встроенный браузер Android-приложения"),
+    ("zaloJSV2", "Встроенный браузер приложения"),
+    ("ResizeObserver loop", "Безвредное предупреждение браузера"),
+    ("Script error.", "Ошибка в чужом скрипте — браузер не показывает подробности"),
+    ("chrome-extension://", "Расширение браузера"),
+    ("moz-extension://", "Расширение браузера"),
+    ("safari-web-extension://", "Расширение браузера"),
+)
+OWN_SCRIPTS = {"app.js", "track.js", "i18n.js", "data.js", "catalog.js", "rrweb-record.min.js"}
+
+
+def error_origin(msg, at):
+    """('ours' | 'external', пояснение). Наша — если упала в нашем файле .js или без файла, но не из списка выше."""
+    for key, why in EXTERNAL_ERRORS:
+        if key in (msg or "") or key in (at or ""):
+            return "external", why
+    if at in ("promise", "img", "script", "link", "video", "audio", "source"):
+        return "ours", ""  # необработанная ошибка в промисе или файл сайта не загрузился
+    file = re.sub(r"(:\d*)+$", "", at or "")  # «app.js:120:15» → «app.js»
+    if file and not file.split("?")[0].endswith(".js"):
+        return "external", "Скрипт, вставленный в страницу браузером или приложением"
+    if file.endswith(".js") and file.split("?")[0] not in OWN_SCRIPTS:
+        return "external", f"Чужой скрипт ({file[:40]})"
+    return "ours", ""
+
+
 class Admin:
     def __init__(self, store):
         self.store = store
@@ -411,6 +444,8 @@ class Admin:
             return 200, {"ok": True}
         if path == "/cards":
             return 200, self.cards(int(q.get("days", 30) or 30))
+        if path == "/errors":
+            return 200, self.errors(int(q.get("days", 7) or 7))
         if path == "/team":
             return 200, self.team(me)
         if path == "/invites" and method == "POST":
@@ -631,6 +666,33 @@ class Admin:
                 FROM visit_events WHERE type IN ('card_open', 'cart_add', 'fav') AND ts >= now() - make_interval(days => :d)
                 AND data ? 'name' GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 200""", d=days)
         return {"ok": True, "items": [{"name": r[0], "uni": r[1] or "", "opens": r[2], "people": r[3], "carts": r[4], "favs": r[5]} for r in rows]}
+
+    def errors(self, days):
+        """Ошибки JavaScript из сессий покупателей: одинаковые склеены, свежие сверху."""
+        days = max(1, min(days, 180))
+        rows = self.store.run("""
+            SELECT e.data->>'msg', mode() WITHIN GROUP (ORDER BY e.data->>'at'), count(*), count(DISTINCT e.visit),
+                   min(e.ts), max(e.ts), array_agg(DISTINCT v.browser), array_agg(DISTINCT v.os), array_agg(DISTINCT e.path),
+                   array_agg(e.visit ORDER BY e.ts DESC), array_agg(e.t ORDER BY e.ts DESC),
+                   mode() WITHIN GROUP (ORDER BY e.data->>'stack')
+            FROM visit_events e JOIN visits v ON v.id = e.visit
+            WHERE e.type = 'js_error' AND e.ts >= now() - make_interval(days => :d)
+            GROUP BY 1 ORDER BY max(e.ts) DESC LIMIT 300""", d=days)
+        items = []
+        for msg, at, n, people, first, last, browsers, oses, paths, visits, ts, stack in rows:
+            kind, why = error_origin(msg, at)
+            seen, examples = set(), []
+            for vid, t in zip((visits or [])[:200], (ts or [])[:200]):  # двоеточия в SQL pg8000 считает параметрами — режем здесь
+                if vid not in seen:
+                    seen.add(vid)
+                    examples.append({"visit": vid, "t": t})
+            items.append({"msg": msg or "(без текста)", "at": at or "", "count": n, "sessions": people, "kind": kind, "why": why,
+                          "first": first.isoformat(), "last": last.isoformat(), "stack": stack or "",
+                          "browsers": sorted(b for b in browsers or [] if b), "os": sorted(o for o in oses or [] if o),
+                          "pages": sorted(p for p in paths or [] if p)[:6], "examples": examples[:3]})
+        ours = [i for i in items if i["kind"] == "ours"]
+        return {"ok": True, "items": items, "ours": len(ours), "ours_count": sum(i["count"] for i in ours),
+                "external": len(items) - len(ours), "external_count": sum(i["count"] for i in items if i["kind"] != "ours")}
 
     def team(self, me):
         admins = [{"id": r[0], "email": r[1], "name": r[2], "role": r[3], "active": r[4],

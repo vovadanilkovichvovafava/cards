@@ -419,18 +419,20 @@
   //  Звуковые цитаты: одна дорожка за раз, плавное затухание
   // ---------------------------------------------------------------
   const Sound = (() => {
-    const btn = $("#soundToggle");
-    if (!btn) return { play() {}, stop() {} };
+    // Две кнопки: в шапке и в окне карточки (рядом с корзиной) — состояние у них общее
+    const btns = [$("#soundToggle"), $("#lbSound")].filter(Boolean);
+    if (!btns.length) return { card() {}, stop() {} };
     const audio = new Audio();
     audio.preload = "none";
-    // Звук включён сразу (играет, когда карточку открывают нажатием); кнопка в шапке выключает его
-    let on = true, src = null, fade = null;
+    // Звук включён сразу (играет, когда карточку открывают нажатием); любая из кнопок выключает его
+    let on = true, src = null, fade = null, want = null;
     try { on = localStorage.getItem("sound") !== "off"; } catch {}
 
-    const sync = () => {
-      btn.setAttribute("aria-pressed", on);
-      btn.classList.toggle("is-playing", on && !audio.paused);
-    };
+    const sync = () => btns.forEach((b) => {
+      b.setAttribute("aria-pressed", on);
+      b.setAttribute("aria-label", on ? "Выключить звук" : "Включить звук");
+      b.classList.toggle("is-playing", on && !audio.paused);
+    });
     ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, sync));
 
     // На iPhone громкость менять нельзя (audio.volume всегда 1), поэтому затухание там
@@ -465,14 +467,25 @@
       audio.play().catch(() => {});
     }
 
-    btn.addEventListener("click", () => {
+    btns.forEach((b) => b.addEventListener("click", () => {
       on = !on;
       try { localStorage.setItem("sound", on ? "on" : "off"); } catch {}
       if (!on) stop();
+      else if (want) play(want);  // включили в окне карточки — сразу её цитата
       sync();
-    });
+    }));
     sync();
-    return { play, stop };
+    return {
+      // Открыта карточка: есть озвучка — кнопка в окне видна, и звук играет, если не выключен
+      card(quote) {
+        want = quote || null;
+        const lbBtn = $("#lbSound");
+        if (lbBtn) lbBtn.hidden = !want;
+        want ? play(want) : stop();
+      },
+      // Окно закрыли — тишина
+      stop() { want = null; stop(); },
+    };
   })();
 
   // Все готовые карточки (персонаж × версия)
@@ -1458,7 +1471,7 @@
     lbCard.reset();
     renderProduct();
     lbCard.sweep(1200);
-    w.c.quote ? Sound.play(w.c.quote) : Sound.stop();
+    Sound.card(w.c.quote);
   }
   $$("[data-lbnav]").forEach((x) => x.addEventListener("click", () => lbGo(+x.dataset.lbnav)));
   $("#lbPrevCard").addEventListener("click", () => lbGo(-1));
@@ -1480,7 +1493,7 @@
     document.body.style.overflow = "hidden";
     trackCard(w);
     setTimeout(() => lbCard.sweep(), 250);
-    w.c.quote ? Sound.play(w.c.quote) : Sound.stop();
+    Sound.card(w.c.quote);
   }
   function closeLightbox(fromHistory) {
     if (lb.hidden) return;

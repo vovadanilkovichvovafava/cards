@@ -65,6 +65,43 @@
   const page = (p) => PAGE[(p || "/").replace(/\/$/, "") || "/"] || (p || "").replace(/^\/catalog\//, "Коллекция ");
   const plural = (n, a, b, c) => { const m = Math.abs(n) % 100, k = m % 10; return `${num(n)} ${m > 10 && m < 20 ? c : k > 1 && k < 5 ? b : k === 1 ? a : c}`; };
 
+  // Отчёт об ошибке одним текстом — чтобы скопировать и отправить разработчику
+  function devReport(err, vis, before, sessionId) {
+    const msk = (t) => new Date(t).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+    const lines = [
+      "=== Ошибка на сайте Aniverse Flip ===",
+      `Текст: ${err.msg || ""}`,
+      `Где: ${err.at || "—"}`,
+      err.count ? `Сколько: ${err.count} раз, в ${err.sessions} сессиях; первая ${msk(err.first)}, последняя ${msk(err.last)} (МСК)` : `Когда: ${msk(err.t)} (МСК)`,
+      err.why ? `Пометка: не наша — ${err.why}` : "",
+      err.stack ? `Стек:\n${err.stack}` : "Стек: браузер не передал",
+      err.browsers ? `Браузеры: ${[...err.browsers, ...(err.os || [])].join(", ")}` : "",
+      err.pages ? `Страницы: ${err.pages.join(", ")}` : "",
+      vis ? `Устройство: ${[vis.device, vis.os, vis.browser].filter(Boolean).join(", ")}; экран ${vis.screen || "?"}; язык ${vis.lang || "?"}; страна ${vis.country || "?"}` : "",
+      vis && vis.ua ? `UA: ${vis.ua}` : "",
+      vis && vis.landing ? `Вход на сайт: ${vis.landing} (источник: ${vis.source || "?"})` : "",
+      sessionId ? `Запись: ${location.origin}/admin#/s/${encodeURIComponent(sessionId)}${err.t || err.examples?.[0]?.t ? `?t=${err.t || err.examples[0].t}` : ""}` : "",
+    ];
+    if (before && before.length) {
+      const t0 = before[before.length - 1].t;
+      lines.push("Перед ошибкой:");
+      before.forEach((e) => lines.push(`  ${((e.t - t0) / 1000).toFixed(1).padStart(6)} с  ${e.type}  ${e.path || ""}  ${JSON.stringify(e.data || {}).slice(0, 300)}`));
+    }
+    return lines.filter(Boolean).join("\n");
+  }
+  function copyText(text) {
+    const manual = () => {
+      const d = document.createElement("div");
+      d.className = "copybox";
+      d.innerHTML = `<div class="panel"><b>Выдели и скопируй текст</b><textarea readonly></textarea><button class="btn btn--red btn--sm">Закрыть</button></div>`;
+      $("textarea", d).value = text;
+      $("button", d).addEventListener("click", () => d.remove());
+      document.body.append(d);
+      $("textarea", d).select();
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Скопировано — вставь в чат разработчику"), manual);
+    else manual();
+  }
   function toast(text) {
     const t = document.createElement("div");
     t.className = "toast"; t.textContent = text;
@@ -361,9 +398,16 @@
       $("#evn").textContent = list.length ? `· ${list.length}` : "";
       $("#tl").innerHTML = list.length ? list.map((e) => {
         const [icon, cls, text] = EV[e.type] || ["page", "", () => esc(e.type)];
-        return `<li class="${cls}" data-t="${e.t}"><time>${clock(e.t - base())}</time>${ico(icon)}<span>${text(e)}</span></li>`;
+        const copy = e.type === "js_error" ? `<button type="button" class="tl__copy" data-copyerr="${e.t}" title="Скопировать для разработчика">Скопировать</button>` : "";
+        return `<li class="${cls}" data-t="${e.t}"><time>${clock(e.t - base())}</time>${ico(icon)}<span>${text(e)}${copy}</span></li>`;
       }).join("") : '<li class="muted" style="cursor:default">Событий пока нет</li>';
       $$("#tl li[data-t]").forEach((li) => li.addEventListener("click", () => player && player.goto(Math.max(0, +li.dataset.t - base() - 1500), true)));
+      $$("[data-copyerr]").forEach((b) => b.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const i = list.findIndex((e) => e.type === "js_error" && String(e.t) === b.dataset.copyerr);
+        const e = list[i];
+        copyText(devReport({ ...e.data, t: e.t }, s, list.slice(Math.max(0, i - 11), i + 1), s.id));
+      }));
     }
     drawTimeline(info.events);
 
@@ -498,12 +542,16 @@
           <span>последняя ${esc(when(e.last))}</span>${e.at ? `<span class="muted">где: ${esc(e.at)}</span>` : ""}</div>
         <div class="err__meta muted">${esc([...e.browsers, ...e.os].join(", ") || "браузер неизвестен")}${e.pages.length ? ` · страницы: ${esc(e.pages.join(", "))}` : ""}</div>
         ${e.stack ? `<details class="err__stack"><summary>Подробности для разработчика</summary><pre>${esc(e.stack)}</pre></details>` : ""}
-        <div class="err__links">${e.examples.map((x, i) => `<a class="btn btn--sm" href="#/s/${encodeURIComponent(x.visit)}?t=${x.t}">${ico("play")}Сессия ${i + 1} — к моменту ошибки</a>`).join("")}</div>
+        <div class="err__links"><button type="button" class="btn btn--sm btn--red" data-copy="${d.items.indexOf(e)}">Скопировать для разработчика</button>${e.examples.map((x, i) => `<a class="btn btn--sm" href="#/s/${encodeURIComponent(x.visit)}?t=${x.t}">${ico("play")}Сессия ${i + 1} — к моменту ошибки</a>`).join("")}</div>
       </div>`;
     main.innerHTML = `${head(d)}
       ${d.external ? `<label class="err__toggle"><input type="checkbox" id="errAll" ${all ? "checked" : ""}> Показать и не наши ошибки (${num(d.external)})</label>` : ""}
       ${list.length ? list.map(row).join("") : `<div class="panel empty">${d.items.length ? "Ошибок сайта за этот период нет — есть только посторонние от встроенных браузеров." : "Ошибок за этот период нет."}</div>`}`;
     $$("[data-days]", main).forEach((b) => b.addEventListener("click", () => (location.hash = `#/errors?days=${b.dataset.days}${all ? "&all=1" : ""}`)));
+    $$("[data-copy]", main).forEach((b) => b.addEventListener("click", () => {
+      const e = d.items[+b.dataset.copy];
+      copyText(devReport(e, e.visitor, e.before, e.examples[0]?.visit));
+    }));
     $("#errAll")?.addEventListener("change", (e) => (location.hash = `#/errors?days=${days}${e.target.checked ? "&all=1" : ""}`));
   }
 

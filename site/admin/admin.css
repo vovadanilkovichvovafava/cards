@@ -211,3 +211,9 @@ a { color: inherit; }
 .err__toggle { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13px; cursor: pointer; }
 .err__msg, .err__meta b { color: var(--text, #f4f1f5); }
 .err__meta { color: var(--muted, #a19dab); }
+
+.tl__copy { display: inline-block; margin-top: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--text); font: 600 11.5px var(--body); cursor: pointer; }
+.tl__copy:hover { border-color: var(--red2); }
+.copybox { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .7); }
+.copybox .panel { width: min(640px, 100%); display: grid; gap: 10px; }
+.copybox textarea { width: 100%; min-height: 50vh; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: #0b0a0f; color: var(--text); font: 12px/1.45 ui-monospace, monospace; box-sizing: border-box; }

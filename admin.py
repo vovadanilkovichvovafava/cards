@@ -135,6 +135,9 @@ def error_origin(msg, at):
     if at in ("promise", "img", "script", "link", "video", "audio", "source"):
         return "ours", ""  # необработанная ошибка в промисе или файл сайта не загрузился
     file = re.sub(r"(:\d*)+$", "", at or "")  # «app.js:120:15» → «app.js»
+    if not file and at:
+        # Строка есть, файла нет: код вставил браузер или приложение — у сайта весь код лежит в файлах .js
+        return "external", "Код без файла — его вставил браузер или приложение (часто встроенный браузер Instagram)"
     if file and not file.split("?")[0].endswith(".js"):
         return "external", "Скрипт, вставленный в страницу браузером или приложением"
     if file.endswith(".js") and file.split("?")[0] not in OWN_SCRIPTS:
@@ -690,6 +693,17 @@ class Admin:
                           "first": first.isoformat(), "last": last.isoformat(), "stack": stack or "",
                           "browsers": sorted(b for b in browsers or [] if b), "os": sorted(o for o in oses or [] if o),
                           "pages": sorted(p for p in paths or [] if p)[:6], "examples": examples[:3]})
+        # Для отчёта разработчику: у последнего случая — устройство и 10 событий перед ошибкой
+        for it in items[:80]:
+            if not it["examples"]:
+                continue
+            ex = it["examples"][0]
+            v = self.store.run("SELECT device, os, browser, ua, screen, lang, country, landing, source FROM visits WHERE id = :s", s=ex["visit"])
+            if v:
+                it["visitor"] = dict(zip(("device", "os", "browser", "ua", "screen", "lang", "country", "landing", "source"), v[0]))
+            it["before"] = [{"t": r[0], "type": r[1], "path": r[2], "data": r[3] if isinstance(r[3], dict) else json.loads(r[3] or "{}")}
+                            for r in reversed(self.store.run("""SELECT t, type, path, data FROM visit_events WHERE visit = :s AND t <= :t
+                                                                 ORDER BY t DESC, id DESC LIMIT 12""", s=ex["visit"], t=ex["t"]))]
         ours = [i for i in items if i["kind"] == "ours"]
         return {"ok": True, "items": items, "ours": len(ours), "ours_count": sum(i["count"] for i in ours),
                 "external": len(items) - len(ours), "external_count": sum(i["count"] for i in items if i["kind"] != "ours")}

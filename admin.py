@@ -11,6 +11,7 @@ import gzip
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 import sys
@@ -77,17 +78,36 @@ def parse_ua(ua):
     return device, os_, browser
 
 
-def source_of(referrer, utm):
-    if utm.get("utm_source"):
-        return utm["utm_source"][:40]
+# Метки utm_source → понятное название. Instagram сам ставит utm_source=ig на ссылку из профиля
+UTM_NAMES = {"ig": "Instagram", "instagram": "Instagram", "insta": "Instagram", "tt": "TikTok", "tiktok": "TikTok",
+             "tg": "Telegram", "telegram": "Telegram", "fb": "Facebook", "facebook": "Facebook", "vk": "VK", "vkontakte": "VK",
+             "yandex": "Яндекс", "google": "Google", "youtube": "YouTube", "yt": "YouTube"}
+REF_NAMES = (("tiktok", "TikTok"), ("instagram", "Instagram"), ("t.me", "Telegram"), ("telegram", "Telegram"),
+             ("facebook", "Facebook"), ("fb.com", "Facebook"), ("vk.com", "VK"), ("yandex", "Яндекс"), ("google", "Google"),
+             ("youtube", "YouTube"))
+OWN_SITE = "Возврат на сайт"  # пришли с другой страницы этого же сайта (вернулись после перерыва, новая вкладка)
+
+
+def own_hosts():
+    hosts = {"cards-rwc16u.saturn.ac", "localhost", "127.0.0.1"}
+    site = urllib.parse.urlparse(os.environ.get("SITE_URL", "")).hostname
+    if site:
+        hosts.add(site.removeprefix("www."))
+    return hosts
+
+
+def source_of(referrer, utm, own=None):
+    tag = str((utm or {}).get("utm_source") or "").strip()
+    if tag:
+        return UTM_NAMES.get(tag.lower(), tag[:40])
     host = urllib.parse.urlparse(referrer or "").hostname or ""
-    host = host.removeprefix("www.").removeprefix("m.").removeprefix("l.")
-    for key, name in (("tiktok", "TikTok"), ("instagram", "Instagram"), ("t.me", "Telegram"), ("telegram", "Telegram"),
-                      ("vk.com", "VK"), ("yandex", "Яндекс"), ("google", "Google"), ("youtube", "YouTube")):
+    host = host.removeprefix("www.").removeprefix("m.").removeprefix("l.").removeprefix("lm.")
+    if host and (host in (own or own_hosts()) or host.endswith(".saturn.ac")):
+        return OWN_SITE
+    for key, name in REF_NAMES:
         if key in host:
             return name
     return host[:40] or "Прямой заход"
-
 
 class Admin:
     def __init__(self, store):
@@ -152,6 +172,17 @@ class Admin:
                 s = secrets.token_hex(32)
                 run("INSERT INTO admin_meta (k, v) VALUES ('secret', :v) ON CONFLICT (k) DO NOTHING", v=s)
                 self.secret = run("SELECT v FROM admin_meta WHERE k = 'secret'")[0][0].encode()
+            # Источники старых визитов — по новым правилам (ig → Instagram, свой сайт → «Возврат на сайт»); один раз
+            if not run("SELECT 1 FROM admin_meta WHERE k = 'sources_v2'"):
+                for vid, ref, utm, src in run("SELECT id, referrer, utm, source FROM visits"):
+                    try:
+                        tags = json.loads(utm or "{}")
+                    except ValueError:
+                        tags = {}
+                    new = source_of(ref, tags if isinstance(tags, dict) else {})
+                    if new != src:
+                        run("UPDATE visits SET source = :s WHERE id = :id", s=new, id=vid)
+                run("INSERT INTO admin_meta (k, v) VALUES ('sources_v2', '1') ON CONFLICT (k) DO NOTHING")
             self.ready = True
 
     # ------------------------------------------------------------------

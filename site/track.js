@@ -71,6 +71,7 @@
     const el = e.target;
     if (el && el !== window && (el.src || el.href)) {  // картинка, скрипт или стиль не загрузились
       const url = String(el.src || el.href).replace(location.origin, "");
+      if (url.startsWith("/vendor/rrweb-record")) return;  // о записи сообщает сам загрузчик ниже (после повторной попытки)
       return report(`Не загрузился файл: ${url.slice(0, 120)}`, { at: (el.tagName || "").toLowerCase(), kind: "resource" });
     }
     report(String(e.message || "error"), { at: `${(e.filename || "").split("/").pop()}:${e.lineno || ""}:${e.colno || ""}`, stack: stackOf(e.error) });
@@ -135,10 +136,17 @@
       collectFonts: false,
     });
   }
-  const load = () => {
+  // Запись может не загрузиться: моргнула сеть — пробуем ещё раз; если её блокирует защита
+  // браузера от слежки (Firefox, блокировщики, встроенный браузер Instagram) — так и оставляем
+  const load = (retry = 1) => {
     const s = document.createElement("script");
-    s.src = "/vendor/rrweb-record.min.js";
+    s.src = "/vendor/rrweb-record.min.js?v=2.1.7";
     s.onload = start;
+    s.onerror = () => {
+      s.remove();
+      if (retry) return setTimeout(() => load(retry - 1), 3000);
+      window.track("js_error", { msg: "Запись сессии не загрузилась", at: "recorder", kind: "resource" });
+    };
     document.head.appendChild(s);
   };
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 300));

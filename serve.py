@@ -326,6 +326,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_404()
         if path.endswith(".html"):  # страницы — только через PAGES (с подстановкой шапки)
             return self.send_404()
+        if path_only.startswith("/vendor/"):
+            self.cache_forever = True  # сторонние библиотеки: версия в адресе, содержимое не меняется
         if path.endswith(COMPRESSIBLE) and "gzip" in self.headers.get("Accept-Encoding", ""):
             body = gzip.compress(open(path, "rb").read())
             self.send_response(200)

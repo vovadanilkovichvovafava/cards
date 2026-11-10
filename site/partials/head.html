@@ -1,7 +1,7 @@
   <!-- Язык: русский, если среди языков браузера есть ru/be/uk/kk/ky/tg/uz, иначе английский (site/i18n.js).
        Выбор вручную — переключатель RU | EN в меню и подвале (или ?lang=en|ru, ?lang=auto — снова по браузеру) -->
   <script>(function(){var d=document.documentElement,q=/[?&]lang=(en|ru|auto)\b/.exec(location.search),l=null;try{if(q)q[1]==="auto"?localStorage.removeItem("lang"):localStorage.setItem("lang",q[1]);l=localStorage.getItem("lang")}catch(e){}if(l!=="ru"&&l!=="en"){var a=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||"ru"];l="en";for(var i=0;i<a.length;i++)if(/^(ru|be|uk|kk|ky|tg|uz)\b/i.test(a[i]||""))l="ru"}window.LANG=l;if(l==="en"){d.lang="en";d.classList.add("i18n-wait");setTimeout(function(){d.classList.remove("i18n-wait")},2500)}})();</script>
-  <style>.i18n-wait body{visibility:hidden}html[lang="en"] .region{display:none}</style>
+  <style>.i18n-wait body{visibility:hidden}</style>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='22' height='30' x='5' y='1' rx='3' fill='%23ff3b3b'/%3E%3Crect width='16' height='22' x='8' y='4' rx='2' fill='%230b0a0f'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

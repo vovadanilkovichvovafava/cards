@@ -33,11 +33,15 @@
   const track = (type, data) => { try { window.track?.(type, data); } catch {} };
   const char = (id) => CHARACTERS.find((c) => c.id === id);
   // Валюта выбирается переключателем BYN | RUS в шапке и запоминается
-  // Английская версия (браузер не на русском) — всегда в долларах; иначе BYN | RUS: выбор в шапке,
-  // а по умолчанию BYN для белорусского языка или региона браузера
+  // Английская версия (браузер не на русском) — USD | EUR, русская — BYN | RUS; выбор в шапке запоминается.
+  // По умолчанию: BYN для белорусского языка/региона, EUR для европейских языков и стран, иначе RUS или USD
   const EN = window.LANG === "en";
-  let REGION = EN ? "USD" : (navigator.languages || [navigator.language]).some((l) => /^be\b|-by$/i.test(l || "")) ? "BYN" : "RUS";
-  try { const r = localStorage.getItem("region"); if (!EN && (r === "BYN" || r === "RUS")) REGION = r; } catch {}
+  const LANGS = navigator.languages || [navigator.language];
+  const EURO = /^(de|fr|es|it|nl|pt|fi|el|sk|sl|et|lv|lt|ga|mt|hr|lb)\b|-(de|at|fr|be|nl|lu|ie|it|es|pt|fi|gr|sk|si|ee|lv|lt|mt|cy|hr)$/i;
+  let REGION = EN ? (EURO.test(LANGS[0] || "") ? "EUR" : "USD") : LANGS.some((l) => /^be\b|-by$/i.test(l || "")) ? "BYN" : "RUS";
+  try { const r = localStorage.getItem(EN ? "regionEn" : "region"); if (EN ? r === "USD" || r === "EUR" : r === "BYN" || r === "RUS") REGION = r; } catch {}
+  // В английской версии переключатель в шапке — USD | EUR
+  if (EN) $$(".region").forEach((g) => (g.innerHTML = '<button type="button" data-region="USD" aria-pressed="false">USD</button><span aria-hidden="true">|</span><button type="button" data-region="EUR" aria-pressed="false">EUR</button>'));
   // В BYN каждая цена карточки округляется до целого, а суммы считаются из уже округлённых цен —
   // поэтому «2 × 25 BYN» всегда даёт 50 BYN. Все цены сайта — кратны цене одной карточки.
   const UNIT_PRICES = () => Object.values(window.CONFIG.prices);
@@ -45,13 +49,13 @@
     for (const p of UNIT_PRICES()) if (p && rub % p === 0) return (rub / p) * Math.max(1, Math.round(p * CONFIG.bynPerRub));
     return Math.max(1, Math.round(rub * CONFIG.bynPerRub));
   };
-  // Доллары задаются отдельно на каждую цену (CONFIG.pricesUsd), суммы — из них же
-  const toUsd = (rub) => {
-    const usd = CONFIG.pricesUsd || {};
-    for (const [k, p] of Object.entries(CONFIG.prices)) if (p && usd[k] && rub % p === 0) return (rub / p) * usd[k];
-    return Math.max(1, Math.round((rub * (usd.common || 28)) / (CONFIG.prices.common || 700)));
+  // Доллары и евро задаются отдельно на каждую цену (CONFIG.pricesUsd / pricesEur), суммы — из них же
+  const toFx = (rub, table) => {
+    for (const [k, p] of Object.entries(CONFIG.prices)) if (p && table[k] && rub % p === 0) return (rub / p) * table[k];
+    return Math.max(1, Math.round((rub * (table.common || 10)) / (CONFIG.prices.common || 700)));
   };
-  const money = (v) => REGION === "USD" ? `$${toUsd(v).toLocaleString("en-US")}`
+  const money = (v) => REGION === "USD" ? `$${toFx(v, CONFIG.pricesUsd || {}).toLocaleString("en-US")}`
+    : REGION === "EUR" ? `€${toFx(v, CONFIG.pricesEur || CONFIG.pricesUsd || {}).toLocaleString("en-US")}`
     : REGION === "BYN" ? `${toByn(v).toLocaleString("ru-RU")} BYN`
     : `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
   const RARITY = { common: "Обычная", special: "Особая" };
@@ -341,7 +345,7 @@
     b.setAttribute("aria-pressed", b.dataset.region === REGION);
     b.addEventListener("click", () => {
       if (b.dataset.region === REGION) return;
-      try { localStorage.setItem("region", b.dataset.region); } catch {}
+      try { localStorage.setItem(EN ? "regionEn" : "region", b.dataset.region); } catch {}
       track("region", { to: b.dataset.region });
       location.reload(); // все цены на странице пересчитаются в выбранной валюте
     });
@@ -1192,8 +1196,8 @@
     omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
     // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
     const rows = omOrder.lines.slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s));
-    // Владу — пометка, что покупатель с английской версии и цены в долларах (в чек покупателю не идёт)
-    if (EN) omOrder.lines.splice(omOrder.lines.length - 1, 0, "• Сайт: английская версия, цены в долларах");
+    // Владу — пометка, что покупатель с английской версии и в какой валюте цены (в чек покупателю не идёт)
+    if (EN) omOrder.lines.splice(omOrder.lines.length - 1, 0, `• Сайт: английская версия, цены в ${REGION === "EUR" ? "евро" : "долларах"}`);
     if (omOrder.photos.length) rows.splice(rows.length - 1, 0, ["Фото", String(omOrder.photos.length)]);
     $("#omLines").innerHTML = rows.map(([k, v], i) =>
       `<div class="${i === rows.length - 1 ? "is-total" : ""}"><dt>${esc(k)}</dt><dd>${esc(v ?? "")}</dd></div>`).join("");

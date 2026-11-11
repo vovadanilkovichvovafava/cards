@@ -4,7 +4,7 @@
 (() => {
   const noop = () => {};
   window.track = noop;
-  if (navigator.webdriver || /bot|crawl|spider|headless|lighthouse/i.test(navigator.userAgent)) return;
+  if (navigator.webdriver || /bot|crawl|spider|slurp|headless|lighthouse|read-aloud|google-|pagespeed|gtmetrix|\+https?:\/\//i.test(navigator.userAgent)) return;
   const store = (s, k, v) => { try { return v === undefined ? s.getItem(k) : s.setItem(k, v); } catch { return null; } };
   const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(15)), (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
   const IDLE = 30 * 60 * 1000; // полчаса тишины — новая сессия

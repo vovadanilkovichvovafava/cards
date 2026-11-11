@@ -32,7 +32,8 @@ EVENT_TYPES = {"pageview", "card_open", "cart_add", "fav", "order_open", "order_
                "builder", "search", "region", "promo", "collection", "js_error", "tg_click"}
 TZ = "Europe/Moscow"  # сутки и часы в отчётах — по Москве/Минску
 LOCAL_DAY = f"date_trunc('day', now() AT TIME ZONE '{TZ}')"
-BOT_UA = re.compile(r"bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|vkshare|whatsapp", re.I)
+BOT_UA = re.compile(r"bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|vkshare|whatsapp"
+                    r"|read-aloud|google-|mediapartners|pagespeed|gtmetrix|\+https?://", re.I)
 
 
 def now_ms():
@@ -221,6 +222,14 @@ class Admin:
                     if new != src:
                         run("UPDATE visits SET source = :s WHERE id = :id", s=new, id=vid)
                 run("INSERT INTO admin_meta (k, v) VALUES ('sources_v2', '1') ON CONFLICT (k) DO NOTHING")
+            # Визиты роботов, которых старый фильтр не узнавал (например Google Read Aloud), — убираем один раз
+            if not run("SELECT 1 FROM admin_meta WHERE k = 'bots_v2'"):
+                bots = [vid for vid, ua in run("SELECT id, ua FROM visits") if BOT_UA.search(ua or "")]
+                for vid in bots:
+                    for t in ("replay_chunks", "visit_events"):
+                        run(f"DELETE FROM {t} WHERE visit = :s", s=vid)
+                    run("DELETE FROM visits WHERE id = :s", s=vid)
+                run("INSERT INTO admin_meta (k, v) VALUES ('bots_v2', :n) ON CONFLICT (k) DO NOTHING", n=str(len(bots)))
             self.ready = True
 
     # ------------------------------------------------------------------

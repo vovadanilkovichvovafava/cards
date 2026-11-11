@@ -17,6 +17,7 @@ window.CONFIG = {
   prices: {
     common: 700,   // обычная карточка
     special: 700,  // особая карточка
+    bonus: 700,    // бонусная карточка
     custom: 1800,  // индивидуальная: по фото или свой персонаж под заказ
   },
   currency: "₽",
@@ -25,11 +26,13 @@ window.CONFIG = {
   pricesUsd: {
     common: 10,
     special: 10,
+    bonus: 10,
     custom: 50,
   },
   pricesEur: {
     common: 10,
     special: 10,
+    bonus: 10,
     custom: 50,
   },
   // Плашка в окне карточки

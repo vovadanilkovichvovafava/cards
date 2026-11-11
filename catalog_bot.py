@@ -23,7 +23,7 @@ import urllib.parse
 import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-RARITY = {"common": "Обычная", "special": "Особая"}
+RARITY = {"common": "Обычная", "special": "Особая", "bonus": "Бонус"}
 MAX_IMAGE = 8 * 1024 * 1024
 
 

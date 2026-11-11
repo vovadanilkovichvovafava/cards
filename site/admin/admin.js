@@ -349,7 +349,7 @@
   // ------------------------------------------------------------------
   const EV = {
     pageview: ["page", "", (e) => `Открыл страницу «${esc(e.path.startsWith("/catalog/") && e.data.title ? e.data.title.split(/\s[—|·-]\s/)[0] : page(e.path))}»`],
-    card_open: ["eye", "t-card", (e) => `Смотрит карточку <b>${esc(e.data.name)}</b><small>${esc(e.data.uni)}${e.data.r ? " · " + (e.data.r === "special" ? "особая" : "обычная") : ""}</small>`],
+    card_open: ["eye", "t-card", (e) => `Смотрит карточку <b>${esc(e.data.name)}</b><small>${esc(e.data.uni)}${e.data.r ? " · " + ({ special: "особая", bonus: "бонус" }[e.data.r] || "обычная") : ""}</small>`],
     cart_add: ["cart", "t-cart", (e) => `В корзину: <b>${esc(e.data.name)}</b>${e.data.qty > 1 ? " × " + esc(e.data.qty) : ""}`],
     fav: ["heart", "t-card", (e) => `В избранное: ${esc(e.data.name)}`],
     order_open: ["form", "t-cart", (e) => `Открыл оформление заказа<small>${esc(e.data.total)}</small>`],

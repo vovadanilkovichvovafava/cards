@@ -58,7 +58,9 @@
     : REGION === "EUR" ? `€${toFx(v, CONFIG.pricesEur || CONFIG.pricesUsd || {}).toLocaleString("en-US")}`
     : REGION === "BYN" ? `${toByn(v).toLocaleString("ru-RU")} BYN`
     : `${v.toLocaleString("ru-RU")} ${CONFIG.currency}`;
-  const RARITY = { common: "Обычная", special: "Особая" };
+  // Версии карточки — в этом порядке они и показываются (переключатель в окне карточки, конструктор)
+  const RARITY = { common: "Обычная", special: "Особая", bonus: "Бонус" };
+  const rarityOrder = (keys) => Object.keys(RARITY).filter((r) => keys.includes(r));
   // Уменьшенная копия карточки (400 px) — для сеток и миниатюр
   const sm = (src) => src.replace("assets/cards/", "assets/cards/sm/");
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -494,7 +496,7 @@
 
   // Все готовые карточки (персонаж × версия)
   const WORKS = CHARACTERS.flatMap((c) =>
-    Object.entries(c.variants).map(([rarity, [a, b]]) => ({ c, rarity, a, b }))
+    rarityOrder(Object.keys(c.variants)).map((rarity) => ({ c, rarity, a: c.variants[rarity][0], b: c.variants[rarity][1] }))
   );
 
   // ---------------------------------------------------------------
@@ -865,7 +867,7 @@
     if (!avail.includes(state.rarity)) state.rarity = avail[avail.length - 1];
     $$('[data-group="rarity"] button').forEach((b) => (b.disabled = !avail.includes(b.dataset.value)));
     $("#rarityNote").textContent =
-      avail.length === 1 ? (state.character === "other" ? "Персонажи под заказ делаются в особой версии." : `У этого персонажа есть только ${RARITY[avail[0]].toLowerCase()} версия.`) : "";
+      avail.length === 1 ? (state.character === "other" ? "Персонажи под заказ делаются в особой версии." : (avail[0] === "bonus" ? "У этого персонажа есть только бонусная версия." : `У этого персонажа есть только ${RARITY[avail[0]].toLowerCase()} версия.`)) : "";
 
     ["mode", "rarity"].forEach((g) => segSet(g, state[g]));
     $("#rarityField").hidden = state.mode === "photo";
@@ -1147,7 +1149,7 @@
   }
   const preset = qp.get("preset");
   if (preset === "photo") state.mode = "photo";
-  else if (preset === "common" || preset === "special") {
+  else if (preset === "common" || preset === "special" || preset === "bonus") {
     state.rarity = preset;
     if (preset === "common" && !char(state.character)?.variants.common) Object.assign(state, { universe: "berserk", character: "guts" });
   }
@@ -1434,7 +1436,7 @@
     $("#lbNum").textContent = `№ ${String(i + 1).padStart(3, "0")}`;
     $("#lbStock").textContent = CONFIG.stockLabel || "В наличии";
     $("#lbTitle").textContent = c.full || c.name;
-    const rs = Object.keys(c.variants);
+    const rs = rarityOrder(Object.keys(c.variants));
     $("#lbRarity").hidden = rs.length < 2;
     $("#lbRarity").innerHTML = rs.map((r) => `<button type="button" data-r="${r}" class="${r === rarity ? "is-on" : ""}">${RARITY[r]}</button>`).join("");
     $("#lbQty").textContent = qty;

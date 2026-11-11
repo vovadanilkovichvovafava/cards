@@ -155,7 +155,7 @@
     "Стерео-карточки с любимыми персонажами аниме — или с тобой и твоими друзьями. Наклони — и картинка оживает.":
       "Lenticular cards with your favorite anime characters — or with you and your friends. Tilt it and the picture comes alive.",
     "Коллекционные карточки": "Collectible cards", "Коллекции: листай влево и вправо": "Collections: swipe left and right",
-    "Ещё коллекции": "More collections", "Новинки": "New arrivals", "Весь каталог": "Full catalog",
+    "Ещё коллекции": "More collections", "Создать свою индивидуальную карточку": "Create your own custom card", "Новинки": "New arrivals", "Весь каталог": "Full catalog",
     // Каталог и коллекции
     "Каталог — Aniverse Flip": "Catalog — Aniverse Flip", "Коллекция — Aniverse Flip": "Collection — Aniverse Flip",
     "Коллекции": "Collections", "Выбери вселенную — внутри все карточки серии.": "Pick a universe — all cards of the series are inside.",

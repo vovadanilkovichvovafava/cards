@@ -1,0 +1,48 @@
+<style>
+:root{--bg:var(--tg-theme-bg-color,#15121a);--tx:var(--tg-theme-text-color,#f2eef0);--hint:var(--tg-theme-hint-color,#9a93a0);--red:#e3122f}
+body{margin:0;font:14px/1.4 system-ui,sans-serif;color:var(--tx)}
+.w{padding:12px 12px 10px;display:grid;gap:8px}
+.h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.h b{font-size:16px}
+.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;background:#666;transition:background .3s}
+.l{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.l span:first-child{color:var(--hint)}
+.t{border-top:1px dashed var(--hint);padding-top:6px;font-weight:700;font-size:15px}
+.st{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.st button{padding:8px 2px;border:1px solid var(--hint);border-radius:9px;background:transparent;color:var(--tx);font:600 12px system-ui,sans-serif}
+.st button.on{background:var(--red);border-color:var(--red);color:#fff}
+.n{font-size:11px;color:var(--hint);text-align:center;min-height:14px}
+</style>
+<div class="w">
+<div class="h"><b>🃏 Заказ #ТЕСТ</b><span class="pill" id="p">Новый</span></div>
+<div class="l"><span>Гатс, Берсерк (особая)</span><span>2 × 700 ₽</span></div>
+<div class="l"><span>Гриффит, Берсерк (бонус)</span><span>1 × 700 ₽</span></div>
+<div class="l"><span>👤 Аня · Telegram</span><span>@anya_test</span></div>
+<div class="l t"><span>Сумма</span><span>2 100 ₽</span></div>
+<div class="st" id="s">
+<button data-s="new">Новый</button><button data-s="work">В работе</button><button data-s="sent">Отправлен</button><button data-s="done">Готов</button>
+</div>
+<div class="n" id="n">Нажми статус — он сохранится в этом сообщении</div>
+</div>
+<script>
+var W=window.TelegramWidget;
+var C={new:'#666',work:'#d18b12',sent:'#2f7fd1',done:'#2fa463'};
+var N={new:'Новый',work:'В работе',sent:'Отправлен',done:'Готов'};
+function render(){
+  var d=null;try{d=JSON.parse(W&&W.chatData)}catch(e){}
+  var s=(d&&d.s)||'new';
+  var p=document.getElementById('p');p.textContent=N[s];p.style.background=C[s];
+  var b=document.querySelectorAll('#s button');
+  for(var i=0;i<b.length;i++)b[i].className=b[i].getAttribute('data-s')===s?'on':'';
+}
+if(W){W.onEvent('chatDataChanged',render);W.onEvent('themeChanged',render)}
+render();
+document.getElementById('s').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b||!W)return;
+  var n=document.getElementById('n');n.textContent='Сохраняю…';
+  W.request('st:'+b.getAttribute('data-s')).then(function(a){
+    n.textContent=a.result||'Готово';if(W.HapticFeedback)W.HapticFeedback.notificationOccurred('success');
+  },function(err){n.textContent='Не вышло: '+err.code});
+});
+if(W&&W.ready)W.ready();
+</script>

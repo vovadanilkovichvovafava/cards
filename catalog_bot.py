@@ -206,8 +206,30 @@ class Bot:
             return doc["file_id"], doc["file_id"]
         return None
 
+    # --- интерактивные виджеты (Bot API 10.4): HTML-карточка прямо в сообщении ---
+    WIDGET_STATUS = {"new": "Новый", "work": "В работе", "sent": "Отправлен", "done": "Готов"}
+
+    def send_widget_demo(self, chat):
+        html = open(os.path.join(ROOT, "widgets", "order.html"), encoding="utf-8").read()
+        try:
+            self.api("sendWidget", chat_id=chat, html=html, allow_queries=True, chat_data=json.dumps({"s": "new"}),
+                     caption="Тест: интерактивная карточка заказа. Нажми статус в карточке.")
+        except Exception as e:
+            self.say(chat, f"Telegram не принял виджет: {e}")
+
+    def on_widget(self, q):
+        """Нажатие в виджете: только Влад может менять статус; ответ виден прямо в карточке."""
+        chat = str((q.get("chat") or {}).get("id", ""))
+        kind, _, value = (q.get("data") or "").partition(":")
+        if chat != self.admin or kind != "st" or value not in self.WIDGET_STATUS:
+            return self.api("answerWidgetQuery", widget_query_id=q["id"], data="Нет доступа")
+        self.api("editMessageWidgetData", chat_id=chat, message_id=q["message_id"], chat_data=json.dumps({"s": value}))
+        self.api("answerWidgetQuery", widget_query_id=q["id"], data=f"Статус: {self.WIDGET_STATUS[value]}")
+
     # --- приём сообщений ---
     def handle(self, upd):
+        if "widget_query" in upd:
+            return self.on_widget(upd["widget_query"])
         if "callback_query" in upd:
             cb = upd["callback_query"]
             chat = str(cb["message"]["chat"]["id"])
@@ -306,6 +328,8 @@ class Bot:
             return self.admin_invite(chat)
         if text == "/reviews":
             return self.show_reviews(chat)
+        if text == "/widget":
+            return self.send_widget_demo(chat)
         if st and st.get("step") == "rv_reply" and text and not text.startswith("/"):
             self.state.pop(chat, None)
             return self.save_review_reply(chat, st["id"], text)
@@ -567,7 +591,7 @@ class Bot:
                 if waiting:
                     print("bot: now polling", file=sys.stderr)
                 waiting = False
-                for upd in self.api("getUpdates", offset=offset, timeout=50, allowed_updates=["message", "callback_query"]):
+                for upd in self.api("getUpdates", offset=offset, timeout=50, allowed_updates=["message", "callback_query", "widget_query"]):
                     offset = upd["update_id"] + 1
                     try:
                         self.handle(upd)

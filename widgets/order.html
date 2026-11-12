@@ -8,7 +8,7 @@ body{margin:0;font:14px/1.4 system-ui,sans-serif;color:var(--tx)}
 .l{display:flex;justify-content:space-between;gap:8px;font-size:13px}
 .l span:first-child{color:var(--hint)}
 .t{border-top:1px dashed var(--hint);padding-top:6px;font-weight:700;font-size:15px}
-.st{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.st{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
 .st button{padding:8px 2px;border:1px solid var(--hint);border-radius:9px;background:transparent;color:var(--tx);font:600 12px system-ui,sans-serif}
 .st button.on{background:var(--red);border-color:var(--red);color:#fff}
 .n{font-size:11px;color:var(--hint);text-align:center;min-height:14px}
@@ -20,14 +20,14 @@ body{margin:0;font:14px/1.4 system-ui,sans-serif;color:var(--tx)}
 <div class="l"><span>👤 Аня · Telegram</span><span>@anya_test</span></div>
 <div class="l t"><span>Сумма</span><span>2 100 ₽</span></div>
 <div class="st" id="s">
-<button data-s="new">Новый</button><button data-s="work">В работе</button><button data-s="sent">Отправлен</button><button data-s="done">Готов</button>
+<button data-s="new">Новый</button><button data-s="work">В работе</button><button data-s="sent">Отправлен</button>
 </div>
 <div class="n" id="n">Нажми статус — он сохранится в этом сообщении</div>
 </div>
 <script>
 var W=window.TelegramWidget;
-var C={new:'#666',work:'#d18b12',sent:'#2f7fd1',done:'#2fa463'};
-var N={new:'Новый',work:'В работе',sent:'Отправлен',done:'Готов'};
+var C={new:'#666',work:'#d18b12',sent:'#2fa463'};
+var N={new:'Новый',work:'В работе',sent:'Отправлен'};
 function render(){
   var d=null;try{d=JSON.parse(W&&W.chatData)}catch(e){}
   var s=(d&&d.s)||'new';

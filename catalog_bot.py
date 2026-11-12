@@ -207,7 +207,8 @@ class Bot:
         return None
 
     # --- интерактивные виджеты (Bot API 10.4): HTML-карточка прямо в сообщении ---
-    WIDGET_STATUS = {"new": "Новый", "work": "В работе", "sent": "Отправлен", "done": "Готов"}
+    # «Отправлен» — последний шаг: отправил — значит готово
+    WIDGET_STATUS = {"new": "Новый", "work": "В работе", "sent": "Отправлен"}
 
     def send_widget_demo(self, chat):
         html = open(os.path.join(ROOT, "widgets", "order.html"), encoding="utf-8").read()

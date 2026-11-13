@@ -24,6 +24,14 @@ import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RARITY = {"common": "Обычная", "special": "Особая", "bonus": "Бонус"}
+# Постоянная клавиатура внизу чата заказов: кнопка = команда, печатать ничего не нужно
+ADMIN_KEYS = [["📚 Коллекции", "➕ Новая коллекция"],
+              ["🗂 Карточки из бота", "📝 Описание героя"],
+              ["⭐ Отзывы", "🔑 Пригласить в админку"],
+              ["❓ Помощь", "✖️ Отмена"]]
+KEY_COMMANDS = {"📚 Коллекции": "/collections", "➕ Новая коллекция": "/collection", "🗂 Карточки из бота": "/list",
+                "📝 Описание героя": "/about", "⭐ Отзывы": "/reviews", "🔑 Пригласить в админку": "/admin",
+                "❓ Помощь": "/help", "✖️ Отмена": "/cancel"}
 MAX_IMAGE = 8 * 1024 * 1024
 
 
@@ -205,6 +213,7 @@ class Bot:
         self.state = {}  # chat_id → черновик карточки
         self.into = {}   # chat_id → (id, название) коллекции, куда сейчас добавляются карточки
         self.greeted = {}
+        self.keys_shown = False  # клавиатуру Владу показываем один раз за запуск (дальше Telegram её помнит)
         self.flood = {}    # антифлуд покупателей  # покупателям «передали» пишем один раз за запуск
 
     def api(self, method, **fields):
@@ -213,10 +222,14 @@ class Bot:
         with urllib.request.urlopen(req, timeout=70) as r:
             return json.load(r)["result"]
 
-    def say(self, chat, text, buttons=None):
+    def say(self, chat, text, buttons=None, keyboard=False):
         fields = {"chat_id": chat, "text": text, "disable_web_page_preview": True}
         if buttons:
             fields["reply_markup"] = {"inline_keyboard": buttons}
+        elif keyboard:  # только в чате заказов: у покупателей своей клавиатуры нет
+            fields["reply_markup"] = {"keyboard": [[{"text": t} for t in row] for row in ADMIN_KEYS],
+                                      "resize_keyboard": True, "is_persistent": True,
+                                      "input_field_placeholder": "Пришли два кадра карточки или нажми кнопку"}
         return self.api("sendMessage", **fields)
 
     def download(self, file_id):
@@ -297,6 +310,10 @@ class Bot:
                 if not text or text.startswith("/"):
                     return self.say(chat, "Ответ на отзыв пришли текстом.")
                 return self.save_review_reply(chat, rid, text)
+        if not self.keys_shown:
+            self.keys_shown = True
+            if text not in ("/start", "/help", "/menu", "/cancel") and text not in KEY_COMMANDS:
+                self.say(chat, "Внизу чата — кнопки со всеми действиями бота.", keyboard=True)
         self.on_admin(chat, msg, text)
 
     def on_customer(self, chat, msg, text):
@@ -331,8 +348,10 @@ class Bot:
 
     def on_admin(self, chat, msg, text):
         st = self.state.get(chat)
-        if text in ("/start", "/help"):
-            return self.say(chat, "Чтобы добавить карточку на сайт, пришли два кадра — как она выглядит прямо и после наклона. "
+        text = KEY_COMMANDS.get(text, text)  # нажатая кнопка внизу чата — та же команда
+        if text in ("/start", "/help", "/menu"):
+            return self.say(chat, "Кнопки внизу чата — все действия бота, печатать команды не нужно.\n\n"
+                                  "Чтобы добавить карточку на сайт, пришли два кадра — как она выглядит прямо и после наклона. "
                                   "Можно одним альбомом. Дальше я спрошу коллекцию, имя и версию.\n\n"
                                   "/collection — новая коллекция (название, рубашка, потом карточки)\n"
                                   "/list — карточки и коллекции из бота (там же удаление)\n"
@@ -340,11 +359,11 @@ class Bot:
                                   "/about — описание персонажа для окна карточки на сайте\n"
                                   "/reviews — последние отзывы с сайта (ответить, скрыть)\n"
                                   "/widget — тест: интерактивная карточка заказа (новое в Telegram)\n"
-                                  "/admin — ссылка-приглашение в админку сайта\n/cancel — отменить добавление")
+                                  "/admin — ссылка-приглашение в админку сайта\n/cancel — отменить добавление", keyboard=True)
         if text == "/cancel":
             self.state.pop(chat, None)
             self.into.pop(chat, None)
-            return self.say(chat, "Отменил. Пришли два кадра, когда будешь готов.")
+            return self.say(chat, "Отменил. Пришли два кадра, когда будешь готов.", keyboard=True)
         if text.lower().lstrip("/") in ("collection", "коллекция", "новая коллекция"):
             self.state[chat] = {"step": "col_name"}
             return self.say(chat, "Новая коллекция. Как она называется? Например: Наруто")

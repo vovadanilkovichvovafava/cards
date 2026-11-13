@@ -6,6 +6,15 @@
   (window.EXTRA_UNIVERSES || []).forEach(({ id, name, back }) => {
     if (!UNIVERSES.some((u) => u.id === id)) UNIVERSES.push({ id, name, icon: back, banner: null, back, accent: "#d8112f", glow: "#d8112f" });
   });
+  // Новые рубашки из бота (/collections); у коллекций из бота рубашка — она же обложка
+  Object.entries(window.COLLECTION_BACKS || {}).forEach(([id, src]) => {
+    const u = UNIVERSES.find((x) => x.id === id);
+    if (u) Object.assign(u, { back: src }, /^c\d+$/.test(id) ? { icon: src } : {});
+  });
+  // Встроенные коллекции, скрытые через бота, — вместе с их карточками
+  const HIDDEN = new Set(window.HIDDEN_UNIVERSES || []);
+  for (let i = UNIVERSES.length - 1; i >= 0; i--) if (HIDDEN.has(UNIVERSES[i].id)) UNIVERSES.splice(i, 1);
+  for (let i = CHARACTERS.length - 1; i >= 0; i--) if (HIDDEN.has(CHARACTERS[i].universe)) CHARACTERS.splice(i, 1);
   // Известный персонаж (по имени из бота) получает русское имя и описание для блока «О персонаже»
   const normName = (s) => s.toLowerCase().replace(/18\+/g, "").replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim();
   const known = (name) => (window.KNOWN_CHARACTERS || []).find((k) => k.names.some((n) => normName(n) === normName(name)));
@@ -690,6 +699,11 @@
     photos: [null, null], crops: [{ x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }], photoName: "", photoText: "", style: "berserk",
     qty: 1,
   };
+  // «Берсерк» могли скрыть через бота — тогда начинаем с первой доступной коллекции
+  if (!uni(state.universe)) {
+    state.universe = state.style = UNIVERSES[0].id;
+    state.character = (CHARACTERS.find((c) => c.universe === state.universe) || { id: "other" }).id;
+  }
   const preview = Flip($("#previewCard"), { free: true });
   // Готовые фразы для карточки — их можно взять как есть или поправить под себя
   const PHRASES = [
@@ -1151,7 +1165,7 @@
   if (preset === "photo") state.mode = "photo";
   else if (preset === "common" || preset === "special" || preset === "bonus") {
     state.rarity = preset;
-    if (preset === "common" && !char(state.character)?.variants.common) Object.assign(state, { universe: "berserk", character: "guts" });
+    if (preset === "common" && !char(state.character)?.variants.common && char("guts")) Object.assign(state, { universe: "berserk", character: "guts" });
   }
   render();
   };

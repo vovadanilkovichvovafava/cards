@@ -74,6 +74,15 @@ class Store:
                 back BYTEA NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )""")
+        # Новая рубашка любой коллекции (и встроенной из data.js, и созданной ботом); ver — для адреса мимо кеша
+        self.conn.run("""
+            CREATE TABLE IF NOT EXISTS collection_backs (
+                uid TEXT PRIMARY KEY,
+                back BYTEA NOT NULL,
+                ver INT NOT NULL DEFAULT 1
+            )""")
+        # Встроенные коллекции, скрытые с сайта через бота (их нельзя удалить — они в коде сайта)
+        self.conn.run("CREATE TABLE IF NOT EXISTS hidden_collections (uid TEXT PRIMARY KEY)")
 
     def run(self, sql, **params):
         # Одно соединение на весь сервер; при обрыве — переподключаемся один раз
@@ -140,12 +149,33 @@ class Store:
     def add_collection(self, name, back):
         return self.run("INSERT INTO collections (name, back) VALUES (:n, :b) RETURNING id", n=name, b=back)[0][0]
 
+    def set_back(self, uid, back):
+        return self.run("""INSERT INTO collection_backs (uid, back) VALUES (:u, :b)
+                           ON CONFLICT (uid) DO UPDATE SET back = :b, ver = collection_backs.ver + 1 RETURNING ver""", u=uid, b=back)[0][0]
+
+    def back_versions(self):
+        return dict(self.run("SELECT uid, ver FROM collection_backs"))
+
+    def custom_back(self, uid):
+        rows = self.run("SELECT back FROM collection_backs WHERE uid = :u", u=uid)
+        return bytes(rows[0][0]) if rows else None
+
+    def hidden(self):
+        return [r[0] for r in self.run("SELECT uid FROM hidden_collections")]
+
+    def set_hidden(self, uid, hide):
+        if hide:
+            self.run("INSERT INTO hidden_collections (uid) VALUES (:u) ON CONFLICT DO NOTHING", u=uid)
+        else:
+            self.run("DELETE FROM hidden_collections WHERE uid = :u", u=uid)
+
     def delete_collection(self, num):
+        self.run("DELETE FROM collection_backs WHERE uid = :u", u=f"c{num}")
         self.run("DELETE FROM cards WHERE universe = :u", u=f"c{num}")
         return self.run("DELETE FROM collections WHERE id = :id RETURNING name", id=num)
 
 
-def universes(store=None):
+def universes(store=None, with_hidden=False):
     """Коллекции из site/data.js плюс созданные через бота."""
     src = open(os.path.join(ROOT, "site", "data.js"), encoding="utf-8").read()
     block = src.split("window.UNIVERSES", 1)[1].split("window.CHARACTERS", 1)[0]
@@ -153,6 +183,9 @@ def universes(store=None):
     if store:
         try:
             found += [(c["id"], c["name"]) for c in store.collections()]
+            if not with_hidden:
+                hidden = set(store.hidden())
+                found = [f for f in found if f[0] not in hidden]
         except Exception as e:
             print("bot: collections unavailable:", e, file=sys.stderr)
     return found
@@ -303,6 +336,7 @@ class Bot:
                                   "Можно одним альбомом. Дальше я спрошу коллекцию, имя и версию.\n\n"
                                   "/collection — новая коллекция (название, рубашка, потом карточки)\n"
                                   "/list — карточки и коллекции из бота (там же удаление)\n"
+                                  "/collections — все коллекции: сменить рубашку, удалить или скрыть с сайта\n"
                                   "/about — описание персонажа для окна карточки на сайте\n"
                                   "/reviews — последние отзывы с сайта (ответить, скрыть)\n"
                                   "/widget — тест: интерактивная карточка заказа (новое в Telegram)\n"
@@ -324,6 +358,13 @@ class Bot:
             return self.save_collection(chat, st, pic)
         if text == "/list":
             return self.show_list(chat)
+        if text.lower().lstrip("/") in ("collections", "коллекции", "рубашка", "back"):
+            return self.show_collections(chat)
+        if st and st.get("step") == "set_back":
+            pic = self.pick(msg)
+            if not pic:
+                return self.say(chat, "Пришли новую рубашку картинкой. Или /cancel.")
+            return self.save_back(chat, st, pic)
         if text.startswith("/about"):
             return self.ask_about(chat)
         if text == "/admin":
@@ -385,6 +426,20 @@ class Bot:
         if kind == "done":
             self.into.pop(chat, None)
             return self.say(chat, "Коллекция готова. Новые карточки снова попросят выбрать коллекцию.")
+        if kind == "bk":
+            name = dict(universes(self.store, with_hidden=True)).get(value)
+            if not name:
+                return self.say(chat, "Этой коллекции уже нет.")
+            self.state[chat] = {"step": "set_back", "uid": value, "name": name}
+            return self.say(chat, f"Пришли новую рубашку для «{name}» — картинкой, как обычное фото. /cancel — передумал.")
+        if kind in ("hide", "unhide"):
+            name = dict(universes(self.store, with_hidden=True)).get(value)
+            if not name or value.startswith("c"):
+                return self.say(chat, "Эту коллекцию так не скрыть.")
+            self.store.set_hidden(value, kind == "hide")
+            self.say(chat, f"«{name}» скрыта с сайта вместе с её карточками. Вернуть — /collections." if kind == "hide"
+                     else f"«{name}» снова на сайте.")
+            return self.show_collections(chat)
         if kind == "cdel":
             name = {str(c["num"]): c["name"] for c in self.store.collections()}.get(value)
             if not name:
@@ -462,7 +517,7 @@ class Bot:
         if not cards:
             return self.say(chat, "Через бота карточек пока не добавляли.")
         seen, rows = set(), []
-        names = dict(universes(self.store))
+        names = dict(universes(self.store, with_hidden=True))
         for c in reversed(cards):  # один раз на персонажа, свежие сверху
             key = (c["universe"], c["name"].lower())
             if key in seen:
@@ -502,6 +557,32 @@ class Bot:
                  [[{"text": "Закончить коллекцию", "callback_data": "done:"}],
                   [{"text": "Удалить коллекцию", "callback_data": f"cdel:{num}"}]])
 
+    def show_collections(self, chat):
+        """Все коллекции сайта: сменить рубашку; созданные ботом — удалить, встроенные — скрыть/вернуть."""
+        hidden = set(self.store.hidden())
+        own = {c["id"]: c["num"] for c in self.store.collections()}
+        rows = []
+        for uid, name in universes(self.store, with_hidden=True):
+            mark = " (скрыта)" if uid in hidden else ""
+            row = [{"text": f"🎴 {name}{mark}", "callback_data": f"bk:{uid}"}]
+            if uid in own:
+                row.append({"text": "✕ Удалить", "callback_data": f"cdel:{own[uid]}"})
+            else:
+                row.append({"text": "↩️ Вернуть" if uid in hidden else "🙈 Скрыть", "callback_data": f"{'unhide' if uid in hidden else 'hide'}:{uid}"})
+            rows.append(row)
+        self.say(chat, "Коллекции на сайте. Нажми на название — сменить рубашку. "
+                       "Коллекции из бота можно удалить, встроенные — скрыть с сайта (и вернуть).", rows)
+
+    def save_back(self, chat, st, pic):
+        try:
+            ver = self.store.set_back(st["uid"], self.download(pic[0]))
+        except Exception as e:
+            print("bot back error:", e, file=sys.stderr)
+            return self.say(chat, f"Не получилось сохранить: {e}. Пришли картинку ещё раз.")
+        self.state.pop(chat, None)
+        site = self.site or "https://cards-rwc16u.saturn.ac"
+        self.say(chat, f"Новая рубашка для «{st['name']}» уже на сайте (версия {ver}).\n{site}/catalog/{st['uid']}")
+
     def show_list(self, chat):
         cols = self.store.collections()
         if cols:
@@ -510,7 +591,7 @@ class Bot:
         cards = self.store.cards()
         if not cards:
             return self.say(chat, "Через бота карточек пока не добавляли. Пришли два кадра, чтобы добавить первую.")
-        names = dict(universes(self.store))
+        names = dict(universes(self.store, with_hidden=True))
         rows = [[{"text": f"✕ {c['name']}, {RARITY.get(c['rarity'], '').lower()} — {names.get(c['universe'], c['universe'])}",
                   "callback_data": f"del:{c['id']}"}] for c in cards[-40:]]
         more = f" Показаны последние 40." if len(cards) > 40 else ""

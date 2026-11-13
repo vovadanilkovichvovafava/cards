@@ -109,6 +109,7 @@ def clean(value, limit):
 COMPRESSIBLE = (".html", ".css", ".js", ".json", ".svg")
 DB_IMAGE = re.compile(r"^/assets/cards/(sm/)?db/(\d+)-([ab])\.jpg$")
 DB_BACK = re.compile(r"^/assets/collections/(\d+)\.jpg$")
+CUSTOM_BACK = re.compile(r"^/assets/collections/u/([a-z0-9-]{1,40})\.jpg$")
 REVIEW_MEDIA = re.compile(r"^/media/r/(\d+)$")
 RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 SITE = os.path.join(ROOT, "site")
@@ -138,11 +139,33 @@ ADMIN_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-in
              "frame-ancestors 'none'")
 
 
+def back_overrides():
+    """Новые рубашки из бота: {коллекция: адрес}; версия в адресе — чтобы браузер не показывал старую."""
+    if not STORE:
+        return {}
+    try:
+        return {uid: f"assets/collections/u/{uid}.jpg?v={ver}" for uid, ver in STORE.back_versions().items()}
+    except Exception as e:
+        print("db error:", e, file=sys.stderr)
+        return {}
+
+
+def hidden_collections():
+    if not STORE:
+        return []
+    try:
+        return STORE.hidden()
+    except Exception as e:
+        print("db error:", e, file=sys.stderr)
+        return []
+
+
 def extra_collections():
     if not STORE:
         return []
     try:
-        return [{"id": c["id"], "name": c["name"], "back": f"assets/collections/{c['num']}.jpg?v=3"} for c in STORE.collections()]
+        backs = back_overrides()
+        return [{"id": c["id"], "name": c["name"], "back": backs.get(c["id"], f"assets/collections/{c['num']}.jpg?v=3")} for c in STORE.collections()]
     except Exception as e:
         print("db error:", e, file=sys.stderr)
         return []
@@ -278,7 +301,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         if path_only == "/catalog.js":
             body = ("window.EXTRA_UNIVERSES = " + json.dumps(extra_collections(), ensure_ascii=False) + ";\n"
-                    "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n").encode()
+                    "window.EXTRA_CARDS = " + json.dumps(extra_cards(), ensure_ascii=False) + ";\n"
+                    "window.COLLECTION_BACKS = " + json.dumps(back_overrides()) + ";\n"
+                    "window.HIDDEN_UNIVERSES = " + json.dumps(hidden_collections()) + ";\n").encode()
             return self.send_body(200, "application/javascript; charset=utf-8", body)
         # Страницы цен больше нет — старые ссылки ведут на «Как это работает»
         if path_only.rstrip("/") in ("/prices", "/prices.html"):
@@ -296,6 +321,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         mr = REVIEW_MEDIA.match(path_only)
         if mr:
             return self.send_review_media(int(mr[1]))
+        mc = CUSTOM_BACK.match(path_only)
+        if mc:
+            data = None
+            try:
+                data = STORE and STORE.custom_back(mc[1])
+            except Exception as e:
+                print("db error:", e, file=sys.stderr)
+            if not data:
+                return self.reply(404, {"ok": False, "error": "not found"})
+            ver = urllib.parse.parse_qs(self.path.partition("?")[2]).get("v", ["0"])[0][:8]
+            data = shrink(("cback", mc[1], ver), data, 780)
+            self.cache_forever = True  # адрес меняется с каждой новой рубашкой (?v=)
+            return self.send_body(200, image_type(data), data)
         mb = DB_BACK.match(path_only)
         if mb:
             data = None

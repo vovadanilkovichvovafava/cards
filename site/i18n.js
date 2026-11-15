@@ -215,7 +215,8 @@
     "Фото остаются у тебя в браузере — никуда не загружаются, пока ты сам не отправишь их нам.":
       "Photos stay in your browser — nothing is uploaded until you send them to us yourself.",
     "Напиши свою: девиз, титул, любимая цитата": "Write your own: a motto, a title, a favorite quote", "Или возьми готовую": "Or pick a ready one",
-    "Фраза героя": "Hero's phrase",
+    "Фраза героя": "Hero's phrase", "Задник карточки": "Card back", "Задник": "Back", "Как у серии": "Series back", "Свой задник": "Your own back", "свой": "your own",
+    "Обратная сторона карточки. Нажми «Обратная сторона» под превью, чтобы посмотреть.": "The back side of the card. Tap “Back side” under the preview to see it.",
     "Оставь поле пустым — будет фраза, как на карточке. Своя фраза заменит её при печати.": "Leave it empty to keep the card's phrase. Your own phrase replaces it when printed.",
     "Фраза встанет внизу карточки — превью меняется сразу.": "The phrase goes at the bottom of the card — the preview updates instantly.",
     "Я не сдамся, пока бьётся сердце.": "I won't give up while my heart still beats.",

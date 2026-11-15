@@ -66,7 +66,7 @@ def shrink(key, data, width):
 PORT = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", 8080))
 ROOT = os.path.dirname(os.path.abspath(__file__))
 MAX_BODY = 12 * 1024 * 1024   # до ~12 МБ: текст + пара сжатых фото
-MAX_PHOTOS = 2
+MAX_PHOTOS = 3  # два кадра карточки + свой задник
 RATE_WINDOW, RATE_LIMIT = 60, 5  # не больше 5 заказов в минуту с одного IP
 _hits = {}
 

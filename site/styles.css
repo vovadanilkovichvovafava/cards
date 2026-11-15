@@ -2659,3 +2659,11 @@ h1.h2 { margin: 0; }
 .hero__custom { display: flex; align-items: center; justify-content: center; gap: 10px; width: min(440px, 100%); margin: 22px auto 0; min-height: 52px; text-align: center; }
 .hero__custom .ico { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 @media (max-width: 440px) { .hero__custom { font-size: 13px; padding-inline: 10px; gap: 8px; } .hero__custom .ico { width: 17px; height: 17px; } }
+
+/* Конструктор: выбор задника — лента карточек-рубашек */
+.backs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px 8px; scroll-snap-type: x proximity; }
+.backs::-webkit-scrollbar { display: none; }
+.backs__item { flex: 0 0 84px; scroll-snap-align: start; }
+.backs__item .pick__name { font-size: 12px; line-height: 1.2; overflow-wrap: anywhere; }
+.backs__item.pick__item--other b { font-size: 30px; }
+@media (max-width: 560px) { .backs { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; } .backs__item { flex-basis: 76px; } }

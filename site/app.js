@@ -697,6 +697,7 @@
     universe: "berserk", character: "guts", otherChar: "",
     rarity: "special",
     photos: [null, null], crops: [{ x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }], photoName: "", photoText: "", style: "berserk",
+    back: "series", backPhoto: null, // задник: "series" — как у серии, id коллекции или "own" — своё фото
     qty: 1,
   };
   // «Берсерк» могли скрыть через бота — тогда начинаем с первой доступной коллекции
@@ -806,25 +807,66 @@
     return `${char(state.character).name}, ${u}`;
   }
 
+  // ---- Задник: как у серии, рубашка любой коллекции или свой
+  const seriesUni = () => uni(state.mode === "photo" ? state.style : state.universe);
+  const backSrc = () => state.back === "own" && state.backPhoto ? state.backPhoto
+    : state.back !== "series" && uni(state.back) ? uni(state.back).back : seriesUni().back;
+  const backName = () => state.back === "own" && state.backPhoto ? "свой — фото приложено к заказу последним"
+    : state.back !== "series" && uni(state.back) ? `рубашка коллекции «${uni(state.back).name}»` : `как у серии «${seriesUni().name}»`;
+  function renderBacks() {
+    const item = (key, src, label, extra = "") =>
+      `<button type="button" role="radio" class="pick__item backs__item ${state.back === key ? "is-on" : ""} ${extra}" data-back="${key}" aria-checked="${state.back === key}">
+        <span class="pick__img">${src ? `<img src="${src}" alt="" loading="lazy">` : "<b>+</b>"}</span><span class="pick__name">${label}</span></button>`;
+    // «Свой задник» — сразу вторым, чтобы не листать до него через все коллекции
+    $("#backPick").innerHTML = item("series", seriesUni().back, "Как у серии")
+      + item("own", state.backPhoto, "Свой задник", "pick__item--other")
+      + UNIVERSES.map((u) => item(u.id, u.back, esc(u.short || u.name))).join("");
+  }
+  $("#backPick").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-back]");
+    if (!b) return;
+    if (b.dataset.back === "own" && (!state.backPhoto || state.back === "own")) return $("#backFile").click();
+    state.back = b.dataset.back;
+    renderBacks();
+    renderPreview();
+    renderSummary();
+    preview.turn(true); // сразу показать обратную сторону
+  });
+  $("#backFile").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^image\//.test(file.type) || /svg/.test(file.type)) return toast("Это не фото — выбери картинку JPG, PNG или HEIC");
+    if (file.size > 25 * 1024 * 1024) return toast("Фото больше 25 МБ — выбери поменьше");
+    if (state.backPhoto) URL.revokeObjectURL(state.backPhoto);
+    state.backPhoto = URL.createObjectURL(file);
+    state.back = "own";
+    track("builder", { step: "own_back" });
+    renderBacks();
+    renderPreview();
+    renderSummary();
+    preview.turn(true);
+  });
+
   function renderPreview() {
     if (state.mode === "character" && state.character !== "other") {
       const [a, b] = char(state.character).variants[state.rarity];
       preview.setImages(a, b);
-      preview.setBack(uni(state.universe).back);
+      preview.setBack(backSrc());
     } else if (state.mode === "character") {
       const u = uni(state.universe);
       preview.setCustom(customFace({
         name: state.otherChar, emptyLabel: "Твой герой",
         text: state.photoText || "Арт нарисуем специально под заказ", rarity: state.rarity, accent: u.accent,
       }));
-      preview.setBack(u.back);
+      preview.setBack(backSrc());
     } else {
       const u = uni(state.style);
       preview.setCustom(customFace({
         photos: state.photos, crops: state.crops, name: state.photoName, text: state.photoText,
         rarity: state.rarity, accent: u.accent,
       }));
-      preview.setBack(u.back);
+      preview.setBack(backSrc());
     }
     preview.setBadge(state.recipient === "gift" ? state.giftName || "Подарок" : "");
     renderEditor();
@@ -855,6 +897,7 @@
       ["Карточка", describeCard()],
       state.mode === "photo" ? null : ["Версия", RARITY[state.rarity]],
       state.photoText ? ["Фраза", state.photoText] : null,
+      state.back !== "series" ? ["Задник", state.back === "own" ? "свой" : uni(state.back)?.short || uni(state.back)?.name] : null,
       ["Количество", `${state.qty} × ${money(unitPrice())}`],
       p41().free ? ["Акция 4+1", mystery(p41().free)] : null,
       g ? ["Акция 2+1", gift21Line()] : null,
@@ -887,6 +930,7 @@
     $("#rarityField").hidden = state.mode === "photo";
     renderUniverseChips();
     renderCharacterGrid();
+    renderBacks();
     renderPhrases();
     renderPreview();
     renderCropper();
@@ -1134,11 +1178,16 @@
       state.mode === "photo" ? null : `• Версия: ${RARITY[state.rarity]}`,
       state.mode === "photo" ? `• Имя персонажа: ${state.photoName || "не указано"}` : null,
       state.photoText ? `• ${state.mode === "photo" ? "Описание персонажа" : heroAbout() ? "Своя фраза вместо фразы с карточки" : "Фраза на карточке"}: ${state.photoText}` : null,
+      `• Задник: ${backName()}`,
       `• Количество: ${state.qty}`,
       promoLine(p41()),
       gifts21() ? `• Акция 2+1: ${gift21Line()}` : null,
       `• Сумма: ${money(p41().total)}`,
-    ], { photos: state.mode === "photo" ? state.photos : [], crops: state.mode === "photo" ? state.crops : null });
+    ], {
+      // Свой задник — последним фото, без кадрирования
+      photos: [...(state.mode === "photo" ? state.photos : [null, null]), state.back === "own" ? state.backPhoto : null],
+      crops: state.mode === "photo" ? [...state.crops, null] : null,
+    });
   });
 
   // С других страниц сюда приходят с готовым выбором в адресе:

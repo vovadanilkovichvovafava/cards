@@ -29,6 +29,8 @@
     store(sessionStorage, "av_last", String(Date.now()));
     return JSON.stringify(body);
   };
+  // Safari на iOS 16 и старше сбоит на сжатии потоков («The I/O read operation failed») — там шлём без сжатия
+  const canGzip = !!window.CompressionStream && !/(iPhone|iPad|iPod).* OS 1[0-6]_/.test(navigator.userAgent);
   async function flush() {
     timer = null;
     if (!rr.length && !ev.length) return;
@@ -36,7 +38,7 @@
     sent += json.length;
     let body = json;
     try {
-      if (window.CompressionStream) body = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
+      if (canGzip) body = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer();
     } catch {}
     const len = body.byteLength ?? body.length;
     fetch("/api/t", { method: "POST", body, keepalive: len < 60000, headers: { "Content-Type": "application/octet-stream" } }).catch(noop);

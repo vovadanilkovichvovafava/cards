@@ -140,7 +140,8 @@ def error_origin(msg, at, stack=""):
         if key in (msg or "") or key in (at or "") or key in (stack or ""):
             return "external", why
     # Есть стек, но ни одной строки из наших файлов — значит, падает чужой код (вставленный браузером или приложением)
-    frames = [l for l in (stack or "").splitlines() if "@" in l or " at " in l]
+    # (строки «[native code]» — внутренности браузера, по ним не понять, чей код: такие не считаем)
+    frames = [l for l in (stack or "").splitlines() if ("@" in l or " at " in l) and "[native code]" not in l]
     if frames and not any(f in stack for f in OWN_SCRIPTS):
         return "external", "Ошибка в чужом коде — в стеке нет ни одного файла сайта"
     # Не загрузился файл с чужого сайта (сторонний сервис) — у нас все файлы свои, с относительными адресами

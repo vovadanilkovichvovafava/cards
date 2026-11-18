@@ -1567,8 +1567,10 @@
   function closeLightbox(fromHistory) {
     if (lb.hidden) return;
     lb.hidden = true; document.body.style.overflow = ""; Sound.stop();
-    if (!fromHistory && history.state && history.state.lb) history.back();
+    if (!fromHistory && history.state && history.state.lb) lbClosing = true, history.back();
+    if (fromHistory) window.__armLeave?.();  // закрыли окно карточки «Назадом» — корзину могли пополнить
   }
+  let lbClosing = false;  // «Назад», который делает сам сайт, закрывая окно карточки, — это не уход с сайта
   // Кнопка «Назад» в браузере/на Android закрывает окно, а не уводит со страницы
   addEventListener("popstate", () => { if (!lb.hidden) closeLightbox(true); });
 
@@ -1672,6 +1674,7 @@
     renderCart();
     track("cart_add", { name: workByKey(k).c.full || workByKey(k).c.name, uni: uni(workByKey(k).c.universe)?.name || "", r: workByKey(k).rarity, qty });
     toast(`${workByKey(k).c.name} в корзине`);
+    window.__armLeave?.();
   }
   function setCart(next) {
     cart = next;
@@ -1750,6 +1753,58 @@
       `• Сумма: ${money(cartSum().total)}`,
     ], { onSent: () => setCart([]) });
   });
+
+  // ---- Уходит с сайта, а в корзине карточки: окно «Оформить заказ?» (не чаще раза за визит).
+  // Закрытие вкладки браузеры перехватывать не дают, поэтому ловим то, что можно:
+  // на компьютере — мышь ушла к верху окна (к вкладкам/крестику), на телефоне — кнопку «Назад».
+  const leave = $("#leaveModal");
+  const leaveAsked = () => { try { return sessionStorage.getItem("leaveAsked") === "1"; } catch { return true; } };
+  const busy = () => !lb.hidden || !om.hidden || !!drawer || ($("#cardEditor") && !$("#cardEditor").hidden);
+  let leaveBack = false;  // окно открыто по кнопке «Назад»: на «Нет» — уходим, куда человек и шёл
+  function askLeave(byBack) {
+    if (!leave || !cart.length || leaveAsked() || busy()) return false;
+    try { sessionStorage.setItem("leaveAsked", "1"); } catch {}
+    const items = cart.map(({ k, qty }) => ({ w: workByKey(k), qty }));
+    $("#leaveCards").innerHTML = items.slice(0, 4).map(({ w }) => `<i ${thumbOf(w)}></i>`).join("");
+    $("#leaveSum").textContent = `${plural(cartSum().count, "карточка", "карточки", "карточек")} на ${money(cartSum().total)}`;
+    leaveBack = byBack;
+    leave.hidden = false;
+    document.body.style.overflow = "hidden";
+    track("leave", { act: "shown", by: byBack ? "back" : "exit", total: money(cartSum().total) });
+    setTimeout(() => leave.querySelector("[data-leave=yes]").focus(), 50);
+    return true;
+  }
+  leave?.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-leave]");
+    if (!b && e.target !== leave) return;
+    const act = b ? b.dataset.leave : "stay";
+    leave.hidden = true;
+    document.body.style.overflow = "";
+    track("leave", { act });
+    if (act === "yes") $("#cartOrder").click();
+    if (act === "no") {
+      setCart([]);
+      toast("Корзина очищена");
+      if (leaveBack) history.back();
+    }
+  });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && leave && !leave.hidden) leave.hidden = true, (document.body.style.overflow = ""); });
+  // Компьютер: мышь ушла за верх окна
+  const leaveArmedAt = Date.now();
+  document.addEventListener("mouseout", (e) => {
+    if (!e.relatedTarget && e.clientY <= 0 && Date.now() - leaveArmedAt > 4000 && matchMedia("(hover: hover)").matches) askLeave(false);
+  });
+  // Телефон: лишняя запись в истории — первое «Назад» показывает окно, а не уводит с сайта
+  const armBack = () => {
+    if (cart.length && !leaveAsked() && !(history.state && (history.state.leave || history.state.lb))) history.pushState({ leave: 1 }, "");
+  };
+  addEventListener("popstate", () => {
+    if (lbClosing) return void ((lbClosing = false), armBack());
+    if (history.state && history.state.leave) return;
+    if (lb.hidden && !leaveAsked() && cart.length) askLeave(true);
+  });
+  armBack();
+  window.__armLeave = armBack;  // корзина пополнилась — снова «взводим» кнопку «Назад»
 
   bump($("#favCount"), favs.length);
   bump($("#cartCount"), cart.reduce((n, x) => n + x.qty, 0));

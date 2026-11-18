@@ -37,6 +37,20 @@
   </div>
 </div>
 
+<!-- Уходит с сайта, а в корзине карточки: «Оформить?» — да (оформление) или нет (корзина очищается) -->
+<div class="leave" id="leaveModal" hidden>
+  <div class="leave__box" role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
+    <button type="button" class="lightbox__close leave__close" data-leave="stay" aria-label="Продолжить покупки"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="leave__cards" id="leaveCards"></div>
+    <h3 id="leaveTitle">В корзине остался заказ</h3>
+    <p class="leave__sum" id="leaveSum"></p>
+    <p class="leave__q">Оформить его?</p>
+    <button type="button" class="btn btn--full" data-leave="yes">Да, оформить заказ</button>
+    <button type="button" class="btn btn--ghost btn--full" data-leave="no">Нет, очистить корзину</button>
+    <button type="button" class="leave__stay" data-leave="stay">Продолжить покупки</button>
+  </div>
+</div>
+
 <!-- Окно карточки: карусель карточек серии, покупка, о персонаже, другие коллекции -->
 <div class="lightbox" id="lightbox" hidden>
   <div class="lightbox__inner" role="dialog" aria-modal="true" aria-labelledby="lbTitle">

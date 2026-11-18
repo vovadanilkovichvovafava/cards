@@ -2667,3 +2667,18 @@ h1.h2 { margin: 0; }
 .backs__item .pick__name { font-size: 12px; line-height: 1.2; overflow-wrap: anywhere; }
 .backs__item.pick__item--other b { font-size: 30px; }
 @media (max-width: 560px) { .backs { margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; } .backs__item { flex-basis: 76px; } }
+
+/* Окно «В корзине остался заказ» — на весь экран, когда человек уходит с сайта */
+.leave { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(5, 3, 8, .86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.leave__box { position: relative; width: min(420px, 100%); display: grid; gap: 10px; padding: 28px 22px 18px; text-align: center; border: 1px solid rgba(255, 70, 100, .45); border-radius: 18px; background: var(--paper); box-shadow: 0 0 60px -12px var(--glow); }
+.leave__close { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; }
+.leave__cards { display: flex; justify-content: center; margin-bottom: 6px; }
+.leave__cards i { width: 64px; aspect-ratio: var(--card-ratio); border-radius: 8px; background: #000 center / cover no-repeat; border: 1px solid var(--line); box-shadow: 0 10px 24px -10px #000; margin-left: -18px; transform: rotate(calc((var(--n, 0) - 1.5) * 6deg)); }
+.leave__cards i:first-child { margin-left: 0; }
+.leave__cards i:nth-child(1) { --n: 0; } .leave__cards i:nth-child(2) { --n: 1; } .leave__cards i:nth-child(3) { --n: 2; } .leave__cards i:nth-child(4) { --n: 3; }
+.leave h3 { margin: 0; font-size: 24px; line-height: 1.15; }
+.leave__sum { margin: 0; color: var(--grey); }
+.leave__q { margin: 4px 0 6px; font-weight: 700; font-size: 17px; }
+.leave .btn { margin: 0; }
+.leave__stay { margin-top: 2px; padding: 8px; border: 0; background: none; color: var(--grey); font: 600 13px var(--body); cursor: pointer; }
+.leave__stay:hover { color: var(--text); }

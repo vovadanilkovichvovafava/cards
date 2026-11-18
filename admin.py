@@ -113,6 +113,9 @@ def source_of(referrer, utm, own=None):
 # Ошибки, которые появляются не из-за сайта: их подкладывают встроенные браузеры и расширения.
 # В админке они помечены «не наша» и по умолчанию спрятаны.
 EXTERNAL_ERRORS = (
+    # Встроенный браузер Instagram/Facebook замечает поля ввода (форма заказа) и сообщает своему приложению — падает его код
+    ("logLoginFieldDetected", "Встроенный браузер Instagram/Facebook: его скрипт замечает поля формы и падает — форме не мешает"),
+    ("dispatchToBridge", "Встроенный браузер Instagram/Facebook: его скрипт замечает поля формы и падает — форме не мешает"),
     ("Запись сессии не загрузилась", "Запись заблокировал браузер (защита от слежки, блокировщик, встроенный браузер Instagram) или пропала сеть — сайт работает, только визит не записан на видео"),
     ("rrweb-record", "Запись заблокировал браузер (защита от слежки, блокировщик, встроенный браузер Instagram) или пропала сеть — сайт работает, только визит не записан на видео"),
     ("_AutofillCallbackHandler", "Встроенный браузер Instagram/Facebook на iPhone (его автозаполнение)"),
@@ -130,11 +133,15 @@ EXTERNAL_ERRORS = (
 OWN_SCRIPTS = {"app.js", "track.js", "i18n.js", "data.js", "catalog.js", "rrweb-record.min.js"}
 
 
-def error_origin(msg, at):
+def error_origin(msg, at, stack=""):
     """('ours' | 'external', пояснение). Наша — если упала в нашем файле .js или без файла, но не из списка выше."""
     for key, why in EXTERNAL_ERRORS:
-        if key in (msg or "") or key in (at or ""):
+        if key in (msg or "") or key in (at or "") or key in (stack or ""):
             return "external", why
+    # Есть стек, но ни одной строки из наших файлов — значит, падает чужой код (вставленный браузером или приложением)
+    frames = [l for l in (stack or "").splitlines() if "@" in l or " at " in l]
+    if frames and not any(f in stack for f in OWN_SCRIPTS):
+        return "external", "Ошибка в чужом коде — в стеке нет ни одного файла сайта"
     if at in ("promise", "img", "script", "link", "video", "audio", "source"):
         return "ours", ""  # необработанная ошибка в промисе или файл сайта не загрузился
     file = re.sub(r"(:\d*)+$", "", at or "")  # «app.js:120:15» → «app.js»
@@ -694,7 +701,7 @@ class Admin:
             GROUP BY 1 ORDER BY max(e.ts) DESC LIMIT 300""", d=days)
         items = []
         for msg, at, n, people, first, last, browsers, oses, paths, visits, ts, stack in rows:
-            kind, why = error_origin(msg, at)
+            kind, why = error_origin(msg, at, stack)
             seen, examples = set(), []
             for vid, t in zip((visits or [])[:200], (ts or [])[:200]):  # двоеточия в SQL pg8000 считает параметрами — режем здесь
                 if vid not in seen:

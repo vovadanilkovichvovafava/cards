@@ -1255,17 +1255,70 @@
     });
   }
 
-  // Сумма заказа — последняя строка чека («Итого: …»)
-  const orderTotal = () => (omOrder.lines[omOrder.lines.length - 1] || "").split(/:\s/).pop().slice(0, 40);
-  function sendOrder(lines, { photos = [], crops = null, onSent = null } = {}) {
-    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
-    // Строки заказа «• Ключ: значение» показываем как чек; сумма — отдельной строкой внизу
-    const rows = omOrder.lines.slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s));
-    // Владу — пометка, что покупатель с английской версии и в какой валюте цены (в чек покупателю не идёт)
-    if (EN) omOrder.lines.splice(omOrder.lines.length - 1, 0, `• Сайт: английская версия, цены в ${REGION === "EUR" ? "евро" : "долларах"}`);
+  // ---- Доставка: варианты из CONFIG.delivery, цена — в валюте сайта, прибавляется к сумме заказа
+  const DELIV = CONFIG.delivery || [];
+  const curKey = () => (REGION === "RUS" ? "RUB" : REGION);
+  const fmtCur = (n) => REGION === "USD" ? `$${n.toLocaleString("en-US")}` : REGION === "EUR" ? `€${n.toLocaleString("en-US")}`
+    : REGION === "BYN" ? `${n.toLocaleString("ru-RU")} BYN` : `${n.toLocaleString("ru-RU")} ${CONFIG.currency}`;
+  const delivPrice = (d) => (d && d.price && d.price[curKey()] != null ? d.price[curKey()] : null);
+  const delivCost = (d) => { const p = delivPrice(d); return p == null ? "по тарифу" : `${d.approx ? "≈" : ""}${fmtCur(p)}`; };
+  let delivId = null;
+  function pickDefaultDeliv() {
+    try { const saved = localStorage.getItem("deliv"); if (DELIV.some((d) => d.id === saved)) return saved; } catch {}
+    return (DELIV.find((d) => (d.forRegion || []).includes(REGION)) || DELIV[0] || {}).id || null;
+  }
+  // Строки заказа вместе с доставкой и итогом. forVlad — ещё и служебные пометки (покупателю в чек не идут)
+  function orderLines(forVlad) {
+    const lines = omOrder.lines.slice();
+    const d = DELIV.find((x) => x.id === delivId);
+    if (d) {
+      const last = lines[lines.length - 1] || "";
+      const cards = +(last.split(/:\s/).pop().replace(/[^\d]/g, "")) || 0;
+      const p = delivPrice(d);
+      lines.push(`• Доставка: ${d.name} (${d.where}) — ${p == null ? "по тарифу, сумму пришлём" : delivCost(d)}`);
+      lines.push(p == null ? `• Итого: ${fmtCur(cards)} + доставка` : `• Итого: ${d.approx ? "≈" : ""}${fmtCur(cards + p)}`);
+    }
+    // Владу — пометка, что покупатель с английской версии и в какой валюте цены
+    if (forVlad && EN) lines.splice(lines.length - 1, 0, `• Сайт: английская версия, цены в ${REGION === "EUR" ? "евро" : "долларах"}`);
+    return lines;
+  }
+  // Строки заказа «• Ключ: значение» показываем как чек; итог — отдельной строкой внизу
+  function renderReceipt() {
+    const rows = orderLines(false).slice(1).map((l) => l.replace(/^•\s*/, "").split(/:\s(.*)/s))
+      .map(([k, v]) => (k === "Доставка" ? [k, v.replace(/ \(.+?\) — /, " — ").replace(", сумму пришлём", "")]
+        : k === "Сумма" && delivId ? ["За карточки", v] : [k, v]));
     if (omOrder.photos.length) rows.splice(rows.length - 1, 0, ["Фото", String(omOrder.photos.length)]);
     $("#omLines").innerHTML = rows.map(([k, v], i) =>
-      `<div class="${i === rows.length - 1 ? "is-total" : ""}"><dt>${esc(k)}</dt><dd>${esc(v ?? "")}</dd></div>`).join("");
+      `<div class="${i === rows.length - 1 ? "is-total" : ""}"><dt>${esc(k)}</dt><dd>${
+        / \+ доставка$/.test(v || "") ? `${esc(v.replace(/ \+ доставка$/, ""))}<small class="omodal__plus">+ доставка</small>` : esc(v ?? "")}</dd></div>`).join("");
+    $$("#omDeliv [data-d]").forEach((b) => { b.classList.toggle("is-on", b.dataset.d === delivId); b.setAttribute("aria-checked", b.dataset.d === delivId); });
+    const d = DELIV.find((x) => x.id === delivId);
+    $("#omDelivNote") && ($("#omDelivNote").hidden = !(d && delivPrice(d) == null));
+  }
+  if (DELIV.length) {
+    $("#omDeliv").innerHTML = DELIV.map((d) => `<button type="button" role="radio" data-d="${esc(d.id)}" aria-checked="false">
+      <b>${esc(d.name)}</b><small>${esc(d.where)}</small><em>${esc(delivCost(d))}</em></button>`).join("")
+      + `<p class="dpick__note" id="omDelivNote" hidden>Точную сумму доставки посчитаем по тарифу службы и пришлём вместе с реквизитами</p>`;
+    $("#omDeliv").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-d]");
+      if (!b) return;
+      delivId = b.dataset.d;
+      try { localStorage.setItem("deliv", delivId); } catch {}
+      track("delivery", { id: delivId });
+      renderReceipt();
+    });
+  } else $("#omDeliv").closest(".input").hidden = true;
+
+  // Сумма заказа — последняя строка чека («Итого: …»)
+  const orderTotal = () => { const l = orderLines(false); return (l[l.length - 1] || "").split(/:\s/).pop().slice(0, 40); };
+  function sendOrder(lines, { photos = [], crops = null, onSent = null } = {}) {
+    omOrder = { lines: lines.filter(Boolean), photos: photos.filter(Boolean), crops: crops && crops.filter((_, i) => photos[i]), onSent };
+    if (DELIV.length) {
+      // цены в кнопках — в текущей валюте сайта (её могли переключить)
+      $$("#omDeliv [data-d] em").forEach((em) => (em.textContent = delivCost(DELIV.find((d) => d.id === em.parentNode.dataset.d))));
+      if (!DELIV.some((d) => d.id === delivId)) delivId = pickDefaultDeliv();
+    }
+    renderReceipt();
     try {
       const saved = JSON.parse(localStorage.getItem("orderContact") || "{}");
       if (saved.name && !$("#omName").value) $("#omName").value = saved.name;
@@ -1356,7 +1409,7 @@
         signal: ctl.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines: omOrder.lines.slice(1), name, contact, comment, photos, total: orderTotal(), sid: window.trackSid || "" }), // без приветствия
+        body: JSON.stringify({ lines: orderLines(true).slice(1), name, contact, comment, photos, total: orderTotal(), sid: window.trackSid || "" }), // без приветствия
       });
       clearTimeout(timer);
       const data = await res.json().catch(() => ({}));
@@ -1384,7 +1437,7 @@
       $("#omContact").value.trim() && `Контакт: ${CONTACT[contactMethod].name}: ${$("#omContact").value.trim()}`,
       $("#omComment").value.trim() && `Комментарий: ${$("#omComment").value.trim()}`,
     ].filter(Boolean);
-    const text = [...omOrder.lines, ...(extra.length ? ["", ...extra] : [])].join("\n");
+    const text = [...orderLines(true), ...(extra.length ? ["", ...extra] : [])].join("\n");
     try {
       await navigator.clipboard.writeText(text);
       toast("Текст заказа скопирован — вставь его в чат");

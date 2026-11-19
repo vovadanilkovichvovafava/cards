@@ -2682,3 +2682,15 @@ h1.h2 { margin: 0; }
 .leave .btn { margin: 0; }
 .leave__stay { margin-top: 2px; padding: 8px; border: 0; background: none; color: var(--grey); font: 600 13px var(--body); cursor: pointer; }
 .leave__stay:hover { color: var(--text); }
+
+/* Доставка в форме заказа: служба, куда, цена */
+.dpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; }
+.dpick button { display: grid; gap: 2px; justify-items: start; text-align: left; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--text); font: inherit; cursor: pointer; }
+.dpick button:hover { background: var(--paper-2); }
+.dpick b { font-size: 14px; }
+.dpick small { color: var(--grey); font-size: 12px; line-height: 1.2; }
+.dpick em { margin-top: 3px; font-style: normal; font-weight: 700; font-size: 14px; }
+.dpick button.is-on { border-color: var(--red); background: var(--red); color: #fff; box-shadow: 0 0 16px -2px var(--glow); }
+.dpick button.is-on small { color: rgba(255, 255, 255, .85); }
+.dpick__note { grid-column: 1 / -1; margin: 2px 0 0; color: var(--grey); font-size: 12px; line-height: 1.35; }
+.omodal__lines .is-total dd .omodal__plus { display: block; margin-top: 4px; font: 600 12px var(--body); color: var(--grey); text-align: right; }

@@ -183,7 +183,11 @@
     "Оформление заказа": "Checkout",
     "В корзине остался заказ": "You left an order in your cart", "Оформить его?": "Want to check out?",
     "Да, оформить заказ": "Yes, check out", "Нет, очистить корзину": "No, clear the cart", "Продолжить покупки": "Keep shopping",
-    "Корзина очищена": "Cart cleared", "Карточка": "Card", "Версия": "Version", "Количество": "Quantity", "Сумма": "Total",
+    "Корзина очищена": "Cart cleared",
+    "Доставка": "Delivery", "За карточки": "Cards", "+ доставка": "+ delivery", "Европочта": "Evropochta", "Белпочта": "Belpost", "СДЭК": "CDEK",
+    "по Беларуси": "within Belarus", "за границу": "international", "Россия, Казахстан": "Russia, Kazakhstan", "по тарифу": "carrier rate",
+    "Точную сумму доставки посчитаем по тарифу службы и пришлём вместе с реквизитами": "We'll calculate the exact delivery cost at the carrier's rate and send it with the payment details",
+    "Доставка Европочтой — 7 BYN, итого уже в заказе": "Delivery by Evropochta — 7 BYN, already in the order total", "Карточка": "Card", "Версия": "Version", "Количество": "Quantity", "Сумма": "Total",
     "Всего карточек": "Total cards", "Фото": "Photos", "Фраза": "Phrase", "Акция 4+1": "4+1 deal", "Акция 2+1": "2+1 deal",
     "Акция «Вся серия»": "Whole series deal", "Своя фраза вместо фразы с карточки": "Own phrase instead of the card's",
     "Фраза на карточке": "Phrase on the card",
@@ -352,6 +356,8 @@
     [/^Видео (\d+)$/, (m, n) => `Video ${n}`],
     [/^(.+) — Aniverse Flip$/, (m, x) => `${x} — Aniverse Flip`],
     [/^(\d+) × (.+)$/, (m, n, p) => `${n} × ${p}`],
+    [/^(Европочта|Белпочта|СДЭК) — (.+)$/, (m, x, p) => `${DICT[x]} — ${DICT[p] || p}`],
+    [/^(.+) \+ доставка$/, (m, x) => `${x} + delivery`],
   ];
   const CY = /[а-яё]/i;
   function tr(s) {

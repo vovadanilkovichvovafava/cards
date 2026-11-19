@@ -358,6 +358,7 @@
     search: ["search", "", (e) => `Искал «${esc(e.data.q)}»<small>${e.data.pick ? "выбрал: " + esc(e.data.pick) : ""}</small>`],
     region: ["swap", "", (e) => `Переключил валюту на ${esc(e.data.to)}`],
     tg_click: ["send", "", (e) => `Перешёл по ссылке<small>${esc(e.data.href)}</small>`],
+    delivery: ["cart", "", (e) => `Выбрал доставку<small>${esc({ evro: "Европочта", belpost: "Белпочта", cdek: "СДЭК" }[e.data.id] || e.data.id || "")}</small>`],
     leave: ["cart", "t-err", (e) => ({ shown: `Уходил с корзиной — показали «Оформить?»<small>${esc(e.data.total || "")}${e.data.by === "back" ? " · нажал «Назад»" : ""}</small>`,
       yes: "На «Оформить?» ответил: да, оформить", no: "На «Оформить?» ответил: нет, очистил корзину", stay: "На «Оформить?»: продолжил покупки" }[e.data.act] || "Окно «Оформить?»")],
     js_error: ["warn", "t-err", (e) => `Ошибка на странице<small>${esc(e.data.msg)} ${esc(e.data.at || "")}</small>`],

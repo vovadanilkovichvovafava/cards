@@ -29,7 +29,7 @@ MAX_RAW = 10 * 1024 * 1024        # он же после распаковки
 MAX_SESSION = 40 * 1024 * 1024    # всего на одну сессию (сжатые данные)
 KEEP_REPLAY_DAYS, KEEP_EVENTS_DAYS = 30, 180
 EVENT_TYPES = {"pageview", "card_open", "cart_add", "fav", "order_open", "order_sent", "order_fail",
-               "builder", "search", "region", "promo", "collection", "js_error", "tg_click", "leave", "review_sent", "lang"}
+               "builder", "search", "region", "promo", "collection", "js_error", "tg_click", "leave", "delivery", "review_sent", "lang"}
 TZ = "Europe/Moscow"  # сутки и часы в отчётах — по Москве/Минску
 LOCAL_DAY = f"date_trunc('day', now() AT TIME ZONE '{TZ}')"
 BOT_UA = re.compile(r"bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|vkshare|whatsapp"

@@ -185,7 +185,7 @@
     "Да, оформить заказ": "Yes, check out", "Нет, очистить корзину": "No, clear the cart", "Продолжить покупки": "Keep shopping",
     "Корзина очищена": "Cart cleared",
     "Доставка": "Delivery", "За карточки": "Cards", "+ доставка": "+ delivery", "Европочта": "Evropochta", "Белпочта": "Belpost", "СДЭК": "CDEK",
-    "по Беларуси": "within Belarus", "за границу": "international", "Россия, Казахстан": "Russia, Kazakhstan", "по тарифу": "carrier rate",
+    "по Беларуси": "within Belarus", "за границу": "international", "Россия, страны СНГ": "Russia, CIS countries", "по тарифу": "carrier rate",
     "Точную сумму доставки посчитаем по тарифу службы и пришлём вместе с реквизитами": "We'll calculate the exact delivery cost at the carrier's rate and send it with the payment details",
     "Доставка Европочтой — 7 BYN, итого уже в заказе": "Delivery by Evropochta — 7 BYN, already in the order total", "Карточка": "Card", "Версия": "Version", "Количество": "Quantity", "Сумма": "Total",
     "Всего карточек": "Total cards", "Фото": "Photos", "Фраза": "Phrase", "Акция 4+1": "4+1 deal", "Акция 2+1": "2+1 deal",

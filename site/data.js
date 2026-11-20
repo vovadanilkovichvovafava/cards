@@ -47,8 +47,8 @@ window.CONFIG = {
   // forRegion — какой вариант выбран сразу для посетителя с этой валютой.
   delivery: [
     { id: "evro", name: "Европочта", where: "по Беларуси", price: { BYN: 7, RUB: 200, USD: 2, EUR: 2 }, forRegion: ["BYN"] },
-    { id: "belpost", name: "Белпочта", where: "за границу", price: { BYN: 20, RUB: 570, USD: 6, EUR: 6 }, approx: true, forRegion: ["USD", "EUR"] },
-    { id: "cdek", name: "СДЭК", where: "Россия, Казахстан", price: null, forRegion: ["RUS"] },
+    { id: "belpost", name: "Белпочта", where: "за границу", price: { BYN: 25, RUB: 700, USD: 8, EUR: 7 }, approx: true, forRegion: ["USD", "EUR"] },
+    { id: "cdek", name: "СДЭК", where: "Россия, страны СНГ", price: null, forRegion: ["RUS"] },
   ],
   // Акция 4+1: за каждые 4 карточки в заказе — мистери-карточка в подарок. false — выключить.
   promo41: true,
